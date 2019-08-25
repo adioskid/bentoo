@@ -32,7 +32,7 @@ Invoke the following:
 ```
 #### then change to new branch.
 ```
-# cd /var/lib/layman/bentoo && git checkout next
+# cd /var/lib/layman/bentoo && git checkout next && cd ~
 ```
 
 ### Bentoo Portage config
