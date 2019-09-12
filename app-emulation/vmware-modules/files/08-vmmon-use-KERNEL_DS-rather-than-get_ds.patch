@@ -1,0 +1,47 @@
+From 41413a9b6e660a93600a438944d85b6f51eb680c Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Tue, 5 Mar 2019 13:21:35 +0100
+Subject: [PATCH 2/3] vmmon: use KERNEL_DS rather than get_ds()
+
+Commit 736706bee329 ("get rid of legacy 'get_ds()' function") in v5.1-rc1
+removed get_ds() helper. As this helper always returned KERNEL_DS on x86_64
+since the architecture was introduced (and even on i386, it did so since
+v2.1.0), simply use KERNEL_DS regardless of kernel version.
+---
+ vmmon-only/linux/hostif.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/vmmon-only/linux/hostif.c b/vmmon-only/linux/hostif.c
+index ef88a22..8ca17de 100644
+--- a/vmmon-only/linux/hostif.c
++++ b/vmmon-only/linux/hostif.c
+@@ -2305,7 +2305,7 @@ isVAReadable(VA r)  // IN:
+    int ret;
+ 
+    old_fs = get_fs();
+-   set_fs(get_ds());
++   set_fs(KERNEL_DS);
+    r = APICR_TO_ADDR(r, APICR_VERSION);
+    ret = HostIF_CopyFromUser(&dummy, r, sizeof dummy);
+    set_fs(old_fs);
+@@ -2582,7 +2582,7 @@ HostIF_SemaphoreWait(VMDriver *vm,   // IN:
+    }
+ 
+    old_fs = get_fs();
+-   set_fs(get_ds());
++   set_fs(KERNEL_DS);
+ 
+    {
+       struct poll_wqueues table;
+@@ -2711,7 +2711,7 @@ HostIF_SemaphoreSignal(uint64 *args)  // IN:
+    }
+ 
+    old_fs = get_fs();
+-   set_fs(get_ds());
++   set_fs(KERNEL_DS);
+ 
+    /*
+     * Always write sizeof(uint64) bytes. This works fine for eventfd and
+-- 
+2.21.0
+

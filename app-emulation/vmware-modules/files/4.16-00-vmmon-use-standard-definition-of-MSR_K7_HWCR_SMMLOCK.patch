@@ -1,0 +1,30 @@
+From ae4d4697c6f48be9314d807480dac206c9889d46 Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Sun, 11 Feb 2018 01:17:00 +0100
+Subject: [PATCH 07/10] vmmon: use standard definition of MSR_K7_HWCR_SMMLOCK
+ if available
+
+The MSR_K7_HWCR_SMMLOCK macro is defined in mainline since commit
+18c71ce9c882 ("x86/CPU/AMD: Add the Secure Encrypted Virtualization CPU
+feature") in v4.16-rc1.
+---
+ vmmon-only/include/x86msr.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/vmmon-only/include/x86msr.h b/vmmon-only/include/x86msr.h
+index e10a859..5618776 100644
+--- a/vmmon-only/include/x86msr.h
++++ b/vmmon-only/include/x86msr.h
+@@ -441,7 +441,9 @@ typedef enum {
+ #define MSR_K7_HWCR_SSEDIS         0x00008000ULL // Disable SSE bit
+ #define MSR_K7_HWCR_MONMWAITUSEREN 0x00000400ULL // Enable MONITOR/MWAIT CPL>0
+ #define MSR_K7_HWCR_TLBFFDIS       0x00000040ULL // Disable TLB Flush Filter
++#ifndef MSR_K7_HWCR_SMMLOCK
+ #define MSR_K7_HWCR_SMMLOCK        0x00000001ULL // Lock SMM environment
++#endif
+ 
+ #ifndef MSR_K8_SYSCFG
+ #define MSR_K8_SYSCFG        0xc0010010
+-- 
+2.17.0
+

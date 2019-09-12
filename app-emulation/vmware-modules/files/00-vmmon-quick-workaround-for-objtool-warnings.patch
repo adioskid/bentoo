@@ -1,0 +1,45 @@
+From 182ac915372c798e400c9718499cae2cb1822ef1 Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Sat, 30 Sep 2017 21:41:51 +0200
+Subject: [PATCH 6/6] vmmon: quick workaround for objtool warnings
+
+As discussed in
+
+  https://bugzilla.suse.com/show_bug.cgi?id=1059674
+
+the reason for multiple objtool warnings is the fact that vmmon module
+defines its own Panic() function which never returns. While it is marked as
+such which is used by the compiler for optimization, there is no way to
+find this from object file.
+
+While this seems innocuous, it might result in problems with unwinder
+later. The quickest way around is to replace vmmon's own Panic() with
+standard kernel panic() until a cleaner solution is found.
+---
+ vmmon-only/include/vm_assert.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/vmmon-only/include/vm_assert.h b/vmmon-only/include/vm_assert.h
+index 8cdbc93..b869def 100644
+--- a/vmmon-only/include/vm_assert.h
++++ b/vmmon-only/include/vm_assert.h
+@@ -67,6 +67,7 @@ extern "C" {
+ #if defined (VMKPANIC) 
+ #include "vmk_assert.h"
+ #else /* !VMKPANIC */
++#include <linux/kernel.h>
+ #define _ASSERT_PANIC(name) \
+            Panic(_##name##Fmt "\n", __FILE__, __LINE__)
+ #define _ASSERT_PANIC_BUG(bug, name) \
+@@ -107,7 +108,7 @@ NORETURN void Panic_NoSave(const char *fmt, ...) PRINTF_DECL(1, 2);
+ } while(0)
+ 
+ #else
+-NORETURN void Panic(const char *fmt, ...) PRINTF_DECL(1, 2);
++#define Panic panic
+ #endif
+ 
+ void LogThrottled(uint32 *count, const char *fmt, ...) PRINTF_DECL(2, 3);
+-- 
+2.14.3
+

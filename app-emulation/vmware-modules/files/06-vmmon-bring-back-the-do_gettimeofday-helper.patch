@@ -1,0 +1,46 @@
+From 97d03d41984a0ade064fa6ac0400eb61de7929ff Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Mon, 31 Dec 2018 00:15:11 +0100
+Subject: [PATCH 4/5] vmmon: bring back the do_gettimeofday() helper
+
+The do_gettimeofday() helper was removed by commit e4b92b108c6c
+("timekeeping: remove obsolete time accessors") in v5.0-rc1. Bring it back
+for users in vmmon-only/linux/hostif.c.
+
+This feels like a quick and clumsy band aid to allow build with post-4.20
+kernels. On a closer look, the whole gymnastics around uptimeState and
+HostIFReadUptimeWork() with jiffies and wall time checking and correcting
+each other seems to be a workaround for an absence of high resolution
+monotonic time. Considering ktime_get_ts64() is available since 3.17 and
+before that, ktime_get_ts() since 2.6.17, perhaps the time has come to
+clean all this machinery up. But something like this would be beyond the
+scope of this repository.
+---
+ vmmon-only/linux/hostif.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/vmmon-only/linux/hostif.c b/vmmon-only/linux/hostif.c
+index d32653c..cf4197b 100644
+--- a/vmmon-only/linux/hostif.c
++++ b/vmmon-only/linux/hostif.c
+@@ -192,6 +192,17 @@ static unsigned long compat_totalram_pages(void)
+ #endif
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
++static void do_gettimeofday(struct timeval *tv)
++{
++	struct timespec64 now;
++
++	ktime_get_real_ts64(&now);
++	tv->tv_sec = now.tv_sec;
++	tv->tv_usec = now.tv_nsec / 1000;
++}
++#endif
++
+ /*
+  *-----------------------------------------------------------------------------
+  *
+-- 
+2.21.0
+

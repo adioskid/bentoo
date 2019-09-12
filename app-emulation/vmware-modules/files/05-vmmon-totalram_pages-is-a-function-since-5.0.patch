@@ -1,0 +1,51 @@
+From ca44ce7215b91f82ff500843784b4e86a720fffe Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Mon, 31 Dec 2018 00:11:35 +0100
+Subject: [PATCH 3/5] vmmon: totalram_pages is a function since 5.0
+
+Since commit ca79b0c211af ("mm: convert totalram_pages and totalhigh_pages
+variables to atomic") in v5.0-rc1, totalram_pages() is an accessor function
+and the actual variable is an atomic.
+---
+ vmmon-only/linux/hostif.c | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/vmmon-only/linux/hostif.c b/vmmon-only/linux/hostif.c
+index af4b1d9..d32653c 100644
+--- a/vmmon-only/linux/hostif.c
++++ b/vmmon-only/linux/hostif.c
+@@ -183,6 +183,15 @@ static void UnlockEntry(void *clientData, MemTrackEntry *entryPtr);
+ uint8 monitorIPIVector;
+ uint8 hvIPIVector;
+ 
++static unsigned long compat_totalram_pages(void)
++{
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
++	return totalram_pages;
++#else
++	return totalram_pages();
++#endif
++}
++
+ /*
+  *-----------------------------------------------------------------------------
+  *
+@@ -1634,14 +1643,7 @@ unsigned int
+ HostIF_EstimateLockedPageLimit(const VMDriver* vm,                // IN
+                                unsigned int currentlyLockedPages) // IN
+ {
+-   /*
+-    * This variable is available and exported to modules,
+-    * since at least 2.6.0.
+-    */
+-
+-   extern unsigned long totalram_pages;
+-
+-   unsigned int totalPhysicalPages = totalram_pages;
++   unsigned int totalPhysicalPages = compat_totalram_pages();
+ 
+    /*
+     * Use the memory information linux exports as of late for a more
+-- 
+2.21.0
+

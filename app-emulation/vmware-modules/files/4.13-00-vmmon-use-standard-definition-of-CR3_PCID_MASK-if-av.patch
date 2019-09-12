@@ -1,0 +1,39 @@
+From 704be6e3f2143df35e99025caa3393b9c309fbc1 Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Mon, 24 Jul 2017 10:08:55 +0200
+Subject: [PATCH 4/6] vmmon: use standard definition of CR3_PCID_MASK if
+ available
+
+The CR3_PCID_MASK is defined in mainline asm/processor-flags.h since
+commit 6c690ee1039b ("x86/mm: Split read_cr3() into read_cr3_pa() and
+__read_cr3()") in v4.13-rc1.
+---
+ vmmon-only/include/x86_basic_defs.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/vmmon-only/include/x86_basic_defs.h b/vmmon-only/include/x86_basic_defs.h
+index abfb0b8..8c7566f 100644
+--- a/vmmon-only/include/x86_basic_defs.h
++++ b/vmmon-only/include/x86_basic_defs.h
+@@ -35,6 +35,8 @@
+ #define INCLUDE_ALLOW_VMCORE
+ #include "includeCheck.h"
+ 
++#include <asm/processor-flags.h>
++
+ #define X86_MAX_INSTR_LEN  15   /* Max byte length of an x86 instruction. */
+ 
+ #define NUM_IDT_VECTORS 256
+@@ -75,7 +77,9 @@
+ #define CR3_PDB_MASK   0xfffff000
+ #define CR3_IGNORE     0xFFF
+ #define PAE_CR3_IGNORE 0x1F
++#ifndef CR3_PCID_MASK
+ #define CR3_PCID_MASK  0xFFF
++#endif
+ #define CR3_NO_FLUSH   (1ULL << 63)
+ 
+ #define CR4_VME        0x00000001
+-- 
+2.14.3
+

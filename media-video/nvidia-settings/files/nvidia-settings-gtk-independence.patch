@@ -1,0 +1,114 @@
+--- a/src/Makefile	2018-06-06 14:34:20.896977769 +0800
++++ b/src/Makefile	2018-06-06 14:40:40.339127165 +0800
+@@ -44,12 +44,21 @@
+ 
+ PKG_CONFIG            ?= pkg-config
+ 
+-ifndef GTK2_CFLAGS
+-  GTK2_CFLAGS          := $(shell $(PKG_CONFIG) --cflags gtk+-2.0)
++ifndef GTK2_AVAILABLE
++  GTK2_AVAILABLE := $(shell $(PKG_CONFIG) --exists gtk+-2.0 && echo 1)
+ endif
+ 
+-ifndef GTK2_LDFLAGS
+-  GTK2_LDFLAGS         := -Wl,--no-as-needed $(shell $(PKG_CONFIG) --libs gtk+-2.0)
++ifeq (1,$(GTK3_AVAILABLE))
++  ifndef GTK2_CFLAGS
++    GTK2_CFLAGS          := $(shell $(PKG_CONFIG) --cflags gtk+-2.0)
++  endif
++
++  ifndef GTK2_LDFLAGS
++    GTK2_LDFLAGS         := -Wl,--no-as-needed $(shell $(PKG_CONFIG) --libs gtk+-2.0)
++  endif
++else
++  GTK2_CFLAGS ?=
++  GTK2_LDFLAGS ?=
+ endif
+ 
+ ifndef GTK3_AVAILABLE
+@@ -69,6 +78,11 @@
+   GTK3_LDFLAGS ?=
+ endif
+ 
++# If GTK2_CFLAGS is set, try and build GTK2LIB
++ifdef GTK2_CFLAGS
++  BUILD_GTK2LIB = 1
++endif
++
+ # If GTK3_CFLAGS is set, try and build GTK3LIB
+ ifdef GTK3_CFLAGS
+   BUILD_GTK3LIB = 1
+@@ -128,10 +142,14 @@
+ 
+ NVIDIA_SETTINGS_VERSION := $(NVIDIA_VERSION)
+ 
++ifdef BUILD_GTK2LIB
+ GTK2LIB_NAME = libnvidia-gtk2.so
+ GTK2LIB_DIR  = $(OUTPUTDIR)/gtk2
+ GTK2LIB = $(OUTPUTDIR)/$(GTK2LIB_NAME)
+ GTK2LIB_SONAME = $(GTK2LIB_NAME).$(NVIDIA_SETTINGS_VERSION)
++else
++  GTK2LIB =
++endif
+ 
+ ifdef BUILD_GTK3LIB
+   GTK3LIB_NAME = libnvidia-gtk3.so
+@@ -242,8 +260,10 @@
+ 
+ $(call BUILD_OBJECT_LIST,$(XCP_SRC)): CFLAGS += -fPIC
+ 
++ifdef BUILD_GTK2LIB
+ $(call BUILD_OBJECT_LIST_WITH_DIR,$(GTK_SRC),$(GTK2LIB_DIR)): \
+     CFLAGS += $(GTK2_CFLAGS) -fPIC -I $(XCONFIG_PARSER_DIR)/..
++endif
+ 
+ ifdef BUILD_GTK3LIB
+   $(call BUILD_OBJECT_LIST_WITH_DIR,$(GTK_SRC),$(GTK3LIB_DIR)): \
+@@ -274,8 +294,10 @@
+ 
+ NVIDIA_GTKLIB_install: $(GTK2LIB) $(GTK3LIB)
+ 	$(MKDIR) $(LIBDIR)
++ifdef BUILD_GTK2LIB
+ 	$(INSTALL) $(INSTALL_LIB_ARGS) $(GTK2LIB) \
+ 	    $(LIBDIR)/$(GTK2LIB_SONAME)
++endif
+ ifdef BUILD_GTK3LIB
+ 	$(INSTALL) $(INSTALL_LIB_ARGS) $(GTK3LIB) \
+ 	    $(LIBDIR)/$(GTK3LIB_SONAME)
+@@ -290,6 +312,7 @@
+ 	$(call quiet_cmd,LINK) $(CFLAGS) $(LDFLAGS) $(BIN_LDFLAGS) \
+ 	    -rdynamic -o $@ $(OBJS) $(XNVCTRL_ARCHIVE) $(LIBS)
+ 
++ifdef BUILD_GTK2LIB
+ $(eval $(call DEBUG_INFO_RULES, $(GTK2LIB)))
+ $(GTK2LIB).unstripped: $(GTK2_OBJS) $(XCP_OBJS) $(IMAGE_OBJS) $(VERSION_MK)
+ 	$(call quiet_cmd,LINK) -shared $(CFLAGS) $(LDFLAGS) $(BIN_LDFLAGS) \
+@@ -297,6 +320,7 @@
+ 	    -Wl,--unresolved-symbols=ignore-all -o $@ \
+ 	    -Wl,-soname -Wl,$(GTK2LIB_SONAME) \
+ 	    $(GTK2_OBJS) $(IMAGE_OBJS) $(XCP_OBJS)
++endif
+ 
+ ifdef BUILD_GTK3LIB
+ $(eval $(call DEBUG_INFO_RULES, $(GTK3LIB)))
+@@ -328,8 +352,10 @@
+ 		$(IMAGE_HEADERS)
+ 	@$(MAKE) -C $(XNVCTRL_DIR) -f $(XNVCTRL_MAKEFILE) clean
+ 
++ifdef BUILD_GTK2LIB
+ $(foreach src,$(GTK_SRC), \
+     $(eval $(call DEFINE_OBJECT_RULE_WITH_DIR,TARGET,$(src),$(GTK2LIB_DIR))))
++endif
+ 
+ ifdef BUILD_GTK3LIB
+ $(foreach src,$(GTK_SRC), \
+@@ -343,7 +369,9 @@
+ # Build $(IMAGE_HEADERS)
+ $(foreach png,$(IMAGE_FILES), \
+   $(eval $(call BINARY_DATA_HEADER_RULE,$(png))))
++ifdef BUILD_GTK3LIB
+ $(GTK2_OBJS): $(IMAGE_HEADERS)
++endif
+ ifdef BUILD_GTK3LIB
+   $(GTK3_OBJS): $(IMAGE_HEADERS)
+ endif

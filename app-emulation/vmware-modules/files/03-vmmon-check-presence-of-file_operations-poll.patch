@@ -1,0 +1,85 @@
+From 70ed9dd2ec64c09fbd0de27dcb10f9948a2b212a Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Mon, 20 Aug 2018 07:46:13 +0200
+Subject: [PATCH] vmmon: check presence of file_operations::poll()
+
+Commit 11c5ad0ec441 ("eventpoll: switch to ->poll_mask") in v4.18-rc1, made
+eventpoll switch from ->poll() to ->poll_mask(), resulting in a null
+pointer dereference as vmmon calls the callback directly without checking
+its availability.
+
+Rather than calling the callback directly (which would result in null
+pointer dereference), use vfs_poll() wrapper. As this wrapper is only
+available since 4.18-rc1 cycle as well, provide a copy to use when building
+against older kernels.
+
+Note: even if the commit revealing the problem was reverted in 4.18-rc3
+(and is unlikely to go back in the same form) so that vmmon no longer
+crashes with 4.18 kernel, calling the callback without a check is a bad
+practice so let's keep the patch in place.
+---
+ vmmon-only/include/compat_poll.h | 30 ++++++++++++++++++++++++++++++
+ vmmon-only/linux/hostif.c        |  3 ++-
+ 2 files changed, 32 insertions(+), 1 deletion(-)
+ create mode 100644 vmmon-only/include/compat_poll.h
+
+diff --git a/vmmon-only/include/compat_poll.h b/vmmon-only/include/compat_poll.h
+new file mode 100644
+index 0000000..562cdb6
+--- /dev/null
++++ b/vmmon-only/include/compat_poll.h
+@@ -0,0 +1,30 @@
++#ifndef __COMPAT_POLL_H__
++#define __COMPAT_POLL_H__
++
++#include <linux/poll.h>
++
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0))
++
++#ifndef __poll_t
++typedef unsigned int __poll_t;
++#endif
++
++static inline __poll_t compat_vfs_poll(struct file *file,
++				       struct poll_table_struct *pt)
++{
++	if (unlikely(!file->f_op->poll))
++		return DEFAULT_POLLMASK;
++	return file->f_op->poll(file, pt);
++}
++
++#else
++
++static inline __poll_t compat_vfs_poll(struct file *file,
++				       struct poll_table_struct *pt)
++{
++	return vfs_poll(file, pt);
++}
++
++#endif
++
++#endif /* __COMPAT_POLL_H__ */
+diff --git a/vmmon-only/linux/hostif.c b/vmmon-only/linux/hostif.c
+index 21758c2..af4b1d9 100644
+--- a/vmmon-only/linux/hostif.c
++++ b/vmmon-only/linux/hostif.c
+@@ -74,6 +74,7 @@
+ 
+ #include "pgtbl.h"
+ #include "versioned_atomic.h"
++#include "compat_poll.h"
+ 
+ #if !defined(CONFIG_HIGH_RES_TIMERS)
+ #error CONFIG_HIGH_RES_TIMERS required for acceptable performance
+@@ -2570,7 +2571,7 @@ HostIF_SemaphoreWait(VMDriver *vm,   // IN:
+ 
+       poll_initwait(&table);
+       current->state = TASK_INTERRUPTIBLE;
+-      mask = file->f_op->poll(file, &table.pt);
++      mask = compat_vfs_poll(file, &table.pt);
+       if (!(mask & (POLLIN | POLLERR | POLLHUP))) {
+          vm->vmhost->vcpuSemaTask[vcpuid] = current;
+          schedule_timeout(timeoutms * HZ / 1000);  // convert to Hz
+-- 
+2.19.0
+

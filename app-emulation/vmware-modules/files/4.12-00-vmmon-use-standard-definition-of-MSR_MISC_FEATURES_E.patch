@@ -1,0 +1,54 @@
+From 53d6ccbeed4c519dc105f98552067ced2ecbd432 Mon Sep 17 00:00:00 2001
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Fri, 23 Jun 2017 09:29:24 +0200
+Subject: [PATCH 3/6] vmmon: use standard definition of
+ MSR_MISC_FEATURES_ENABLES if available
+
+The MSR_MISC_FEATURES_ENABLES macro is defined in mainline since commit
+ab6d9468631a ("x86/msr: Rename MISC_FEATURE_ENABLES to
+MISC_FEATURES_ENABLES") in v4.12-rc1.
+
+The MSR_MISC_FEATURES_ENABLES_CPUID_FAULT macro is defined in mainline
+since commit e9ea1e7f53b8 ("x86/arch_prctl: Add ARCH_[GET|SET]_CPUID") in
+v4.12-rc1.
+---
+ vmmon-only/include/x86msr.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/vmmon-only/include/x86msr.h b/vmmon-only/include/x86msr.h
+index 3a6bfe8..904d9e9 100644
+--- a/vmmon-only/include/x86msr.h
++++ b/vmmon-only/include/x86msr.h
+@@ -24,6 +24,7 @@
+ 
+ #ifndef _X86MSR_H_
+ #define _X86MSR_H_
++#include <asm/msr-index.h>
+ #define INCLUDE_ALLOW_USERLEVEL
+ #define INCLUDE_ALLOW_VMX
+ 
+@@ -112,7 +113,9 @@ MSRQuery;
+ #define MSR_TSC_AUX           0xc0000103
+ #define MSR_BD_TSC_RATIO      0xc0000104
+ 
++#ifndef MSR_MISC_FEATURES_ENABLES
+ #define MSR_MISC_FEATURES_ENABLES            0x140
++#endif
+ 
+ /* Intel Core Architecture and later: use only architected counters. */
+ #define IA32_MSR_PERF_CAPABILITIES                0x345
+@@ -612,7 +615,11 @@ typedef enum {
+ /*
+  * MISC_FEATURES_ENABLES bits
+  */
++#ifdef MSR_MISC_FEATURES_ENABLES_CPUID_FAULT
++#define MSR_MISC_FEATURES_ENABLES_CPUID_FAULTING MSR_MISC_FEATURES_ENABLES_CPUID_FAULT
++#else
+ #define MSR_MISC_FEATURES_ENABLES_CPUID_FAULTING 1
++#endif
+ 
+ 
+ 
+-- 
+2.14.3
+
