@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+<longdescription>Ring daemon</longdescription>
+<use>
+	<flag name="system-pjproject">Uses the system library for pjproject</flag>
+	<flag name="dbus">The D-Bus xml interfaces, and c++ bindings.</flag>
+	<flag name="hwaccel">Enable hardware-accelerated rendering (only vaapi supports at this moment)</flag>
+	<flag name="graph">Create dot graphs in documentations</flag>
+	<flag name="libilbc">Support ilbc audio</flag>
+	<flag name="nat-pmp">Support for NAT-PMP</flag>
+	<flag name="opus">Support opus audio</flag>
+	<flag name="sdes">Support for sdes key exchange. It uses <pkg>dev-libs/libpcre</pkg></flag>
+	<flag name="speexdsp">Support for speexdp Noise Suppression and Automatic Gain Control</flag>
+	<flag name="restbed">An alternative to the dbus client to communicate with
+		a headless daemon. It uses <pkg>net-libs/restbed</pkg>, a cpp framework for RESTful services.</flag>
+	<flag name="ringns">Ring name service, depends on <pkg>net-libs/restbed</pkg></flag>
+	<flag name="vdpau">If enable, Ring would sometimes fail to build because
+		of an undefined reference to "vdp_device_create_x11". Enable it on your own risk.</flag>
+	<flag name="video">Support video call in Ring</flag>
+	<flag name="vpx">Support vp8 audio</flag>
+	</use>
+</pkgmetadata>

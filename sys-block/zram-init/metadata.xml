@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>martin@mvath.de</email>
+		<name>Martin Väth</name>
+		<description>maintainer of the updates in the mv overlay</description>
+	</maintainer>
+	<maintainer type="person">
+		<email>jauhien@gentoo.org</email>
+		<name>Jauhien Piatlicki</name>
+	</maintainer>
+	<upstream>
+		<maintainer>
+			<email>martin@mvath.de</email>
+			<name>Martin Väth</name>
+		</maintainer>
+		<bugs-to>mailto:martin@mvath.de</bugs-to>
+		<remote-id type="github">vaeth/zram-init</remote-id>
+	</upstream>
+</pkgmetadata>

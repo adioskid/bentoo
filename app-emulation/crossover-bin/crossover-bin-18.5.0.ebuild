@@ -14,7 +14,7 @@ SRC_URI="https://media.codeweavers.com/pub/crossover/cxlinux/demo/install-crosso
 LICENSE="CROSSOVER-3"
 SLOT="0"
 KEYWORDS="-* ~amd64 ~x86"
-IUSE="+capi +cups doc +gphoto2 +gsm +jpeg +lcms +ldap +mp3 +nls +openal +opencl +opengl +png +scanner +ssl +v4l"
+IUSE="+capi +cups doc +gphoto2 +gsm +jpeg +lcms libressl +ldap +mp3 +nls +openal +opencl +opengl +png +scanner +ssl +v4l"
 REQUIRED_USE=${PYTHON_REQUIRED_USE}
 RESTRICT="bindist test"
 
@@ -70,14 +70,17 @@ RDEPEND="${DEPEND}
 	)
 	png? ( media-libs/libpng:0 )
 	scanner? ( media-gfx/sane-backends )
-	ssl? ( dev-libs/openssl:0 )
+	ssl? (
+		!libressl? ( >=dev-libs/openssl-1.1.0:0= )
+		libressl? ( dev-libs/libressl:0= )
+	)
 	v4l? ( media-libs/libv4l )
 	media-libs/alsa-lib
 	media-libs/freetype:2
 	media-libs/mesa
 	sys-auth/nss-mdns
 	sys-apps/util-linux
-	sys-libs/ncurses:5/5
+	sys-libs/ncurses-compat:5
 	sys-libs/zlib
 	x11-libs/libICE
 	x11-libs/libSM

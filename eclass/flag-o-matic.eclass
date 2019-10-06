@@ -435,8 +435,14 @@ test-flag-PROG() {
 
 	[[ -z ${comp} || -z $1 ]] && return 1
 
+	# verify selected compiler exists before using it
+	comp=($(tc-get${comp}))
+	# 'comp' can already contain compiler options.
+	# 'type' needs a binary name
+	type -p ${comp[0]} >/dev/null || return 1
+
 	local cmdline=(
-		$(tc-get${comp})
+		"${comp[@]}"
 		# Clang will warn about unknown gcc flags but exit 0.
 		# Need -Werror to force it to exit non-zero.
 		-Werror

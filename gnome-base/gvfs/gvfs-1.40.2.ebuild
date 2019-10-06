@@ -21,7 +21,7 @@ REQUIRED_USE="
 	mtp? ( udev )
 	udisks? ( udev )
 "
-KEYWORDS="~alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 ~sh ~sparc x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux ~sparc-solaris ~x86-solaris"
+KEYWORDS="alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 ~sh ~sparc x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux ~sparc-solaris ~x86-solaris"
 
 RDEPEND="
 	>=dev-libs/glib-2.57.2:2
@@ -34,7 +34,7 @@ RDEPEND="
 	http? (
 		dev-libs/libxml2:2
 		>=net-libs/libsoup-2.58.0:2.4 )
-	zeroconf? ( >=net-dns/avahi-0.6 )
+	zeroconf? ( >=net-dns/avahi-0.6[dbus] )
 	udev? ( >=virtual/libgudev-147:= )
 	fuse? ( >=sys-fs/fuse-2.8.0:0 )
 	udisks? ( >=sys-fs/udisks-1.97:2 )

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<longdescription>Gnome Ring client</longdescription>
+	<use>
+		<flag name="qrcode">Uses qrencode</flag>
+		<flag name="appindicator">Uses libappindicator</flag>
+	</use>
+</pkgmetadata>

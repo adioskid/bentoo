@@ -69,7 +69,7 @@ dospp() {
 }
 
 # @FUNCTION: dosupervise
-# @USAGE: dosupervise <service> [<runfile> <logfile>]
+# @USAGE: <service> [<runfile> <logfile>]
 # @DESCRIPTION:
 # Install runfiles for services and logging to supervise directory
 dosupervise() {
@@ -103,31 +103,6 @@ qmail_set_cc() {
 	echo "${cc} ${CFLAGS} ${CPPFLAGS}"  > ./conf-cc || die 'Patching conf-cc failed.'
 	echo "${ld} ${LDFLAGS}" > ./conf-ld || die 'Patching conf-ld failed.'
 	sed -e "s#'ar #'$(tc-getAR) #" -e "s#'ranlib #'$(tc-getRANLIB) #" -i make-makelib.sh
-}
-
-# @FUNCTION: qmail_create_groups
-# @DESCRIPTION:
-# Keep qmail groups in sync across ebuilds
-qmail_create_groups() {
-	einfo "Creating qmail groups"
-	enewgroup nofiles 200
-	enewgroup qmail 201
-}
-
-# @FUNCTION: qmail_create_users
-# @DESCRIPTION:
-# Keep qmail users in sync across ebuilds
-qmail_create_users() {
-	qmail_create_groups
-
-	einfo "Creating qmail users"
-	enewuser alias 200 -1  "${QMAIL_HOME}"/alias 200
-	enewuser qmaild 201 -1 "${QMAIL_HOME}" 200
-	enewuser qmaill 202 -1 "${QMAIL_HOME}" 200
-	enewuser qmailp 203 -1 "${QMAIL_HOME}" 200
-	enewuser qmailq 204 -1 "${QMAIL_HOME}" 201
-	enewuser qmailr 205 -1 "${QMAIL_HOME}" 201
-	enewuser qmails 206 -1 "${QMAIL_HOME}" 201
 }
 
 genqmail_src_unpack() {
@@ -231,8 +206,7 @@ qmail_man_install() {
 	into /usr
 	doman *.[1578]
 	dodoc BLURB* CHANGES FAQ INSTALL* PIC* README* REMOVE* SECURITY \
-		SENDMAIL SYSDEPS TEST* THANKS* THOUGHTS TODO* \
-		UPGRADE VERSION*
+		SENDMAIL* TEST* THANKS* THOUGHTS UPGRADE VERSION*
 
 	declare -F qmail_man_install_hook >/dev/null && \
 		qmail_man_install_hook
