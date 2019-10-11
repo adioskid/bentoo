@@ -78,12 +78,6 @@ DEPEND="${RDEPEND}
 	pax_kernel? ( sys-apps/elfix )
 "
 
-PATCHES+=(
-	"${FILESDIR}/${PN}-5.12.0-nouveau-disable-gpu.patch" # bug 609752
-	# QTBUG-76963, not yet upstream:
-	"${FILESDIR}/${PN}-5.12.4-webrtc-missing-header-w-linux-headers-5.2.patch"
-)
-
 src_prepare() {
 	use pax_kernel && PATCHES+=( "${FILESDIR}/${PN}-5.11.2-paxmark-mksnapshot.patch" )
 
