@@ -21,6 +21,7 @@ DEPEND="
 	$(add_frameworks_dep kcompletion)
 	$(add_frameworks_dep kconfig)
 	$(add_frameworks_dep kconfigwidgets)
+	$(add_frameworks_dep kcontacts)
 	$(add_frameworks_dep kcoreaddons)
 	$(add_frameworks_dep kcrash)
 	$(add_frameworks_dep ki18n)
@@ -37,7 +38,6 @@ DEPEND="
 	$(add_kdeapps_dep akonadi-contacts)
 	$(add_kdeapps_dep akonadi-search)
 	$(add_kdeapps_dep grantleetheme)
-	$(add_kdeapps_dep kcontacts)
 	$(add_kdeapps_dep kdepim-apps-libs)
 	$(add_kdeapps_dep kontactinterface)
 	$(add_kdeapps_dep libgravatar)
@@ -55,3 +55,12 @@ RDEPEND="${DEPEND}
 	!kde-apps/kdepim-l10n
 	$(add_kdeapps_dep kdepim-runtime)
 "
+
+pkg_postinst() {
+	kde5_pkg_postinst
+
+	if [[ -z "${REPLACING_VERSIONS}" ]]; then
+		has_version "kde-apps/kdepim-addons:${SLOT}" || \
+			elog "${PN} is not complete without kde-apps/kdepim-addons:${SLOT}!"
+	fi
+}

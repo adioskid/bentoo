@@ -13,6 +13,7 @@ LICENSE="GPL-2+ LGPL-2.1+"
 KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE=""
 
+# drop qtwidgets subslot operator when QT_MINIMAL >= 5.14.0
 BDEPEND="
 	dev-libs/libxslt
 "
@@ -22,6 +23,7 @@ DEPEND="
 	$(add_frameworks_dep kcompletion)
 	$(add_frameworks_dep kconfig)
 	$(add_frameworks_dep kconfigwidgets)
+	$(add_frameworks_dep kcontacts)
 	$(add_frameworks_dep kdbusaddons)
 	$(add_frameworks_dep ki18n)
 	$(add_frameworks_dep kiconthemes)
@@ -36,7 +38,6 @@ DEPEND="
 	$(add_kdeapps_dep akonadi)
 	$(add_kdeapps_dep akonadi-contacts)
 	$(add_kdeapps_dep akonadi-mime)
-	$(add_kdeapps_dep kcontacts)
 	$(add_kdeapps_dep kmailtransport)
 	$(add_kdeapps_dep kmime)
 	$(add_kdeapps_dep kpimtextedit)
@@ -47,7 +48,7 @@ DEPEND="
 	$(add_qt_dep qtdbus)
 	$(add_qt_dep qtgui)
 	$(add_qt_dep qtmultimedia)
-	$(add_qt_dep qtwidgets)
+	$(add_qt_dep qtwidgets '' '' '5=')
 	$(add_qt_dep qtxml)
 	media-libs/phonon[qt5(+)]
 "

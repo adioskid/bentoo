@@ -8,17 +8,17 @@ inherit autotools eapi7-ver multilib-minimal
 MY_PN="gst-libav"
 MY_PV="$(ver_cut 1-3)"
 MY_P="${MY_PN}-${MY_PV}"
-FFMPEG_PV="4.2.1"
+FFMPEG_PV="$(ver_cut 4- ${PV%_*})"
 
 DESCRIPTION="FFmpeg based gstreamer plugin"
 HOMEPAGE="https://gstreamer.freedesktop.org/modules/gst-libav.html"
 SRC_URI="https://gstreamer.freedesktop.org/src/${MY_PN}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~leio/distfiles/${MY_PN}-1.14.4-ffmpeg4-patchset.tar.xz
-	libav? ( https://ffmpeg.org/releases/ffmpeg-${FFMPEG_PV}.tar.bz2 )"
+	https://dev.gentoo.org/~leio/distfiles/gst-libav-1.14.4-ffmpeg4-patchset.tar.xz
+	libav? ( https://ffmpeg.org/releases/ffmpeg-4.2.1.tar.bz2 )"
 
 LICENSE="LGPL-2+"
 SLOT="1.0"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 x86 ~x86-fbsd"
+KEYWORDS="alpha amd64 arm arm64 ~hppa ia64 ~mips ~ppc ~ppc64 x86"
 IUSE="libav +orc"
 
 RDEPEND="
@@ -38,6 +38,13 @@ DEPEND="${RDEPEND}
 "
 
 S="${WORKDIR}/${MY_P}"
+
+PATCHES=(
+	"${WORKDIR}"/patches # ffmpeg-4 compat and more from git up to 20181115; requires eautoreconf
+	"${FILESDIR}"/AVOptionsRanges-leak-fix.patch # extra patch from Jan 2019 for a leak fix
+	"${FILESDIR}"/fix-negative-pts.patch # extra patch from Feb 2019 to fix negative pts if start_time is bigger than the ts
+	"${FILESDIR}"/external-ffmpeg4-dep.patch # Automatically rescan available elements for registry when system ffmpeg changes
+)
 
 RESTRICT="test" # FIXME: tests seem to get stuck at one point; investigate properly
 
