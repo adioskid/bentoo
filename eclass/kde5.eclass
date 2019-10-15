@@ -4,7 +4,7 @@
 # @ECLASS: kde5.eclass
 # @MAINTAINER:
 # kde@gentoo.org
-# @SUPPORTED_EAPIS: 6 7
+# @SUPPORTED_EAPIS: 7
 # @BLURB: Support eclass for packages that follow KDE packaging conventions.
 # @DESCRIPTION:
 # This eclass is intended to streamline the creation of ebuilds for packages
@@ -33,10 +33,6 @@ _KDE5_ECLASS=1
 : ${VIRTUALX_REQUIRED:=manual}
 
 inherit cmake-utils flag-o-matic kde5-functions virtualx xdg
-
-case ${EAPI} in
-	6) inherit eapi7-ver eutils gnome2-utils ;;
-esac
 
 if [[ ${KDE_BUILD_TYPE} = live ]]; then
 	inherit git-r3
@@ -196,22 +192,22 @@ case ${KDE_AUTODEPS} in
 		;;
 esac
 
+case ${KDE_DESIGNERPLUGIN} in
+	false)  ;;
+	*)
+		IUSE+=" designer"
+		if [[ ${CATEGORY} = kde-apps && ${PV} = 19.0[48]* ]]; then
+			BDEPEND+=" designer? ( $(add_frameworks_dep kdesignerplugin) )"
+		else
+			BDEPEND+=" designer? ( $(add_qt_dep designer) )"
+		fi
+esac
+
 case ${KDE_DEBUG} in
 	false)	;;
 	*)
 		IUSE+=" debug"
 		;;
-esac
-
-case ${KDE_DESIGNERPLUGIN} in
-	false)  ;;
-	*)
-		IUSE+=" designer"
-		if [[ ${CATEGORY} = kde-frameworks ]]; then
-			BDEPEND+=" designer? ( $(add_qt_dep designer) )"
-		else
-			BDEPEND+=" designer? ( $(add_frameworks_dep kdesignerplugin) )"
-		fi
 esac
 
 case ${KDE_EXAMPLES} in
@@ -255,10 +251,6 @@ case ${KDE_SELINUX_MODULE} in
 		IUSE+=" selinux"
 		RDEPEND+=" selinux? ( sec-policy/selinux-${KDE_SELINUX_MODULE} )"
 		;;
-esac
-
-case ${EAPI} in
-	6) DEPEND+=" ${BDEPEND}" ;;
 esac
 
 DEPEND+=" ${COMMONDEPEND}"
@@ -562,10 +554,10 @@ kde5_src_prepare() {
 				diff -Naur ${f}.old ${f} 1>>${pf}
 				rm ${f}.old || die "Failed to clean up"
 			done
-			einfo "Build system was modified by KDE_TEST=forceoptional-recursive."
-			einfo "Unified diff file ready for pickup in:"
-			einfo "  ${pf}"
-			einfo "Push it upstream to make this message go away."
+			eqawarn "Build system was modified by KDE_TEST=forceoptional-recursive."
+			eqawarn "Unified diff file ready for pickup in:"
+			eqawarn "  ${pf}"
+			eqawarn "Push it upstream to make this message go away."
 		elif [[ ${CATEGORY} = kde-frameworks || ${CATEGORY} = kde-plasma || ${CATEGORY} = kde-apps ]] ; then
 			cmake_comment_add_subdirectory autotests test tests
 		fi
@@ -607,7 +599,11 @@ kde5_src_configure() {
 		if [[ ${CATEGORY} = kde-frameworks ]]; then
 			cmakeargs+=( -DBUILD_DESIGNERPLUGIN=$(usex designer) )
 		else
-			cmakeargs+=( $(cmake-utils_use_find_package designer KF5DesignerPlugin) )
+			if [[ ${KDE_BUILD_TYPE} = live && ${PV} != 19.08* ]] ; then
+				cmakeargs+=( -DBUILD_DESIGNERPLUGIN=$(usex designer) )
+			else
+				cmakeargs+=( $(cmake-utils_use_find_package designer KF5DesignerPlugin) )
+			fi
 		fi
 	fi
 
@@ -619,9 +615,9 @@ kde5_src_configure() {
 		cmakeargs+=(
 			# install mkspecs in the same directory as qt stuff
 			-DKDE_INSTALL_USE_QT_SYS_PATHS=ON
+			# move handbook outside of doc dir, bug 667138
+			-DKDE_INSTALL_DOCBUNDLEDIR="${EPREFIX}/usr/share/help"
 		)
-		# move handbook outside of doc dir for at least two QA warnings, bug 667138
-		[[ ${EAPI} != 6 ]] && cmakeargs+=( -DKDE_INSTALL_DOCBUNDLEDIR="${EPREFIX}/usr/share/help" )
 	fi
 
 	# allow the ebuild to override what we set here
@@ -674,22 +670,11 @@ kde5_src_test() {
 
 # @FUNCTION: kde5_src_install
 # @DESCRIPTION:
-# Wrapper for cmake-utils_src_install with extra logic to avoid compressing
-# certain types of files. For example, khelpcenter is not able to read
-# compressed handbooks.
+# Wrapper for cmake-utils_src_install. Currently doesn't do anything extra.
 kde5_src_install() {
 	debug-print-function ${FUNCNAME} "$@"
 
 	cmake-utils_src_install
-
-	if [[ ${EAPI} = 6 ]]; then
-		# We don't want /usr/share/doc/HTML to be compressed,
-		# because then khelpcenter can't find the docs
-		#todo: clean up trailing slash check when EAPI <7 is removed
-		if [[ -d ${ED%/}/usr/share/doc/HTML ]]; then
-			docompress -x /usr/share/doc/HTML
-		fi
-	fi
 }
 
 # @FUNCTION: kde5_pkg_preinst

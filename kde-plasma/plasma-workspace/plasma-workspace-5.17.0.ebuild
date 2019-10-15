@@ -6,7 +6,7 @@ EAPI=7
 KDE_HANDBOOK="forceoptional"
 KDE_TEST="forceoptional"
 VIRTUALX_REQUIRED="test"
-inherit kde5 qmake-utils
+inherit kde5
 
 DESCRIPTION="KDE Plasma workspace"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
@@ -16,6 +16,7 @@ REQUIRED_USE="gps? ( geolocation )"
 
 COMMON_DEPEND="
 	$(add_frameworks_dep kactivities)
+	$(add_frameworks_dep kactivities-stats)
 	$(add_frameworks_dep kauth)
 	$(add_frameworks_dep kbookmarks)
 	$(add_frameworks_dep kcompletion)
@@ -40,6 +41,7 @@ COMMON_DEPEND="
 	$(add_frameworks_dep knotifications)
 	$(add_frameworks_dep knotifyconfig)
 	$(add_frameworks_dep kpackage)
+	$(add_frameworks_dep kpeople)
 	$(add_frameworks_dep krunner)
 	$(add_frameworks_dep kservice)
 	$(add_frameworks_dep ktexteditor)
@@ -53,6 +55,7 @@ COMMON_DEPEND="
 	$(add_frameworks_dep solid)
 	$(add_plasma_dep kscreenlocker)
 	$(add_plasma_dep kwin)
+	$(add_plasma_dep libkscreen)
 	$(add_plasma_dep libksysguard)
 	$(add_plasma_dep libkworkspace)
 	$(add_qt_dep qtdbus)
@@ -106,18 +109,16 @@ RDEPEND="${COMMON_DEPEND}
 	x11-apps/xsetroot
 	systemd? ( sys-apps/dbus[user-session] )
 	!systemd? ( sys-apps/dbus )
-	!<kde-plasma/plasma-desktop-5.14.80:5
+	!<kde-plasma/plasma-desktop-5.16.80:5
 "
 PDEPEND="
 	$(add_plasma_dep kde-cli-tools)
 "
 
 PATCHES=(
-	"${FILESDIR}/${PN}-5.14.80-startkde-script.patch"
-	"${FILESDIR}/${PN}-5.10-startplasmacompositor-script.patch"
+	# TODO: Restore Gentoo part for FHS installs, bug 688366
 	"${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch"
-	"${FILESDIR}/${PN}-5.16.3-x11sessionrename.patch"
-	"${FILESDIR}/${PN}-5.16.4-no-share-dataengine.patch"
+	"${FILESDIR}/${P}-waylandsessionrename.patch"
 )
 
 RESTRICT+=" test"
@@ -162,7 +163,6 @@ src_install() {
 pkg_postinst () {
 	kde5_pkg_postinst
 
-	elog "To enable gpg-agent and/or ssh-agent in Plasma sessions,"
-	elog "edit ${EPREFIX}/etc/plasma/startup/10-agent-startup.sh and"
-	elog "${EPREFIX}/etc/plasma/shutdown/10-agent-shutdown.sh"
+	elog "TODO: /etc/plasma/{startup,shutdown} locations for gpg-agent/ssh-agent"
+	elog "do not currently work, see bug #688366."
 }

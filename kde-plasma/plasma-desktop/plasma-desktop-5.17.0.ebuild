@@ -10,7 +10,7 @@ inherit kde5
 
 DESCRIPTION="KDE Plasma desktop"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
-IUSE="appstream +fontconfig ibus +mouse scim +semantic-desktop touchpad"
+IUSE="+fontconfig ibus +mouse scim +semantic-desktop touchpad"
 
 COMMON_DEPEND="
 	$(add_frameworks_dep attica)
@@ -42,7 +42,6 @@ COMMON_DEPEND="
 	$(add_frameworks_dep knotifications)
 	$(add_frameworks_dep knotifyconfig)
 	$(add_frameworks_dep kparts)
-	$(add_frameworks_dep kpeople)
 	$(add_frameworks_dep krunner)
 	$(add_frameworks_dep kservice)
 	$(add_frameworks_dep kwallet)
@@ -70,9 +69,8 @@ COMMON_DEPEND="
 	x11-libs/libXcursor
 	x11-libs/libXfixes
 	x11-libs/libXi
-	x11-libs/libxcb
+	x11-libs/libxcb[xkb]
 	x11-libs/libxkbfile
-	appstream? ( >=dev-libs/appstream-0.12.2[qt5] )
 	fontconfig? (
 		media-libs/fontconfig
 		media-libs/freetype
@@ -114,7 +112,6 @@ RDEPEND="${COMMON_DEPEND}
 
 src_configure() {
 	local mycmakeargs=(
-		$(cmake-utils_use_find_package appstream AppStreamQt)
 		$(cmake-utils_use_find_package fontconfig Fontconfig)
 		$(cmake-utils_use_find_package ibus IBus)
 		$(cmake-utils_use_find_package mouse Evdev)
