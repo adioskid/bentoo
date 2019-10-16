@@ -18,7 +18,7 @@ KEYWORDS="~amd64"
 IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doc X"
 RESTRICT="bindist mirror"
 
-WX_GTK_VER="3.0"
+WX_GTK_VER="3.0-gtk3"
 
 RDEPEND="
 	sys-fs/lvm2
@@ -42,7 +42,14 @@ pkg_setup() {
 	setup-wxwidgets
 }
 
+src_prepare() {
+	eapply -p2 "${FILESDIR}"/${PN}-1.24-no-gui-fix.patch
+	default
+}
+
 src_compile() {
+	local TC_EXTRA_CFLAGS="${CFLAGS}"
+	local TC_EXTRA_CXXFLAGS="${CXXFLAGS}"
 	local myemakeargs=(
 		NOSTRIP=1
 		NOTEST=1
@@ -51,8 +58,6 @@ src_compile() {
 		CXX="$(tc-getCXX)"
 		AR="$(tc-getAR)"
 		RANLIB="$(tc-getRANLIB)"
-		TC_EXTRA_CFLAGS="${CFLAGS}"
-		TC_EXTRA_CXXFLAGS="${CXXFLAGS}"
 		TC_EXTRA_LFLAGS="${LDFLAGS}"
 		WX_CONFIG="${WX_CONFIG}"
 		$(usex X "" "NOGUI=1")
@@ -60,6 +65,18 @@ src_compile() {
 		$(usex cpu_flags_x86_sse2 "" "NOSSE2=1")
 		$(usex cpu_flags_x86_sse4_1 "SSE41=1" "")
 		$(usex cpu_flags_x86_ssse3 "SSSE3=1" "")
+	)
+
+	# We need to explicitly disable the GUI support when linking against
+	# wxwidgets, in case it was compiled with USE=X
+	if ! use X; then
+		TC_EXTRA_CFLAGS="${TC_EXTRA_CFLAGS} -DwxUSE_GUI=0"
+		TC_EXTRA_CXXFLAGS="${TC_EXTRA_CXXFLAGS} -DwxUSE_GUI=0"
+	fi
+
+	myemakeargs+=(
+		TC_EXTRA_CFLAGS="${TC_EXTRA_CFLAGS}"
+		TC_EXTRA_CXXFLAGS="${TC_EXTRA_CXXFLAGS}"
 	)
 
 	emake "${myemakeargs[@]}"
