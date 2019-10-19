@@ -66,6 +66,7 @@ src_prepare() {
 	rm -fr Modules/zlib
 
 	local PATCHES=(
+		"${FILESDIR}/python-3.7.5-hashlib.patch"
 		"${WORKDIR}/patches"
 	)
 
