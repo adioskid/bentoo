@@ -19,7 +19,7 @@ S=${WORKDIR}/${MY_P}
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="$(ver_cut 1-3)"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-fbsd ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
 IUSE="+clang test"
 RESTRICT="!test? ( test ) !clang? ( test )"
 
@@ -36,6 +36,12 @@ BDEPEND="
 
 # least intrusive of all
 CMAKE_BUILD_TYPE=RelWithDebInfo
+
+PATCHES=(
+	# Fix building broken crtbegin/crtend
+	# https://bugs.gentoo.org/698086
+	"${FILESDIR}"/9.0.0/0001-compiler-rt-crt-make-test-case-nontrivial-in-check_c.patch
+)
 
 pkg_pretend() {
 	if ! use clang && ! tc-is-clang; then
