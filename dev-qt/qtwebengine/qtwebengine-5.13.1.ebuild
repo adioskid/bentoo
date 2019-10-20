@@ -78,6 +78,11 @@ DEPEND="${RDEPEND}
 	pax_kernel? ( sys-apps/elfix )
 "
 
+PATCHES+=(
+	"${FILESDIR}/${PN}-5.12.0-nouveau-disable-gpu.patch" # bug 609752
+	"${FILESDIR}/${P}-pulseaudio-13.patch" # bug 694960
+)
+
 src_prepare() {
 	use pax_kernel && PATCHES+=( "${FILESDIR}/${PN}-5.11.2-paxmark-mksnapshot.patch" )
 
