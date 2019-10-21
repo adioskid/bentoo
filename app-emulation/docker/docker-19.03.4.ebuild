@@ -11,7 +11,7 @@ if [[ ${PV} = *9999* ]]; then
 	EGIT_CHECKOUT_DIR="${WORKDIR}/${P}/src/${EGO_PN}"
 	inherit git-r3
 else
-	DOCKER_GITCOMMIT="1576bd7"
+	DOCKER_GITCOMMIT="9013bf5"
 	MY_PV=${PV/_/-}
 	SRC_URI="https://${EGO_PN}/archive/v${MY_PV}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~arm ~arm64"
@@ -58,7 +58,7 @@ RDEPEND="
 	dev-libs/libltdl
 	~app-emulation/containerd-1.2.10
 	~app-emulation/runc-1.0.0_rc9[apparmor?,seccomp?]
-	~app-emulation/docker-proxy-0.8.0_p20190807
+	~app-emulation/docker-proxy-0.8.0_p20191011
 	container-init? ( >=sys-process/tini-0.18.0[static] )
 "
 
