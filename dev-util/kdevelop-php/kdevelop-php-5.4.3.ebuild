@@ -3,45 +3,50 @@
 
 EAPI=7
 
-KDE_TEST="forceoptional"
-KMNAME="kdev-python"
-PYTHON_COMPAT=( python3_{5,6,7} )
-inherit kde5 python-single-r1
+KDE_DOC_DIR="docs"
+KDE_HANDBOOK="forceoptional"
+KDE_TEST="true"
+KMNAME="kdev-php"
+VIRTUALX_REQUIRED="test"
+inherit kde5
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	KEYWORDS="~amd64 x86"
+	KEYWORDS="~amd64 ~x86"
 fi
 
-DESCRIPTION="Python plugin for KDevelop"
+DESCRIPTION="PHP plugin for KDevelop"
 HOMEPAGE="https://www.kdevelop.org/"
+LICENSE="GPL-2 LGPL-2"
 IUSE=""
 
-REQUIRED_USE="${PYTHON_REQUIRED_USE}"
-
-DEPEND="${PYTHON_DEPS}
-	$(add_frameworks_dep kcompletion)
+BDEPEND="
+	test? ( dev-util/kdevelop:5[test] )
+"
+DEPEND="
+	$(add_frameworks_dep kcmutils)
 	$(add_frameworks_dep kconfig)
+	$(add_frameworks_dep kconfigwidgets)
 	$(add_frameworks_dep kcoreaddons)
 	$(add_frameworks_dep ki18n)
 	$(add_frameworks_dep kio)
-	$(add_frameworks_dep kitemmodels)
-	$(add_frameworks_dep knewstuff)
-	$(add_frameworks_dep kparts)
 	$(add_frameworks_dep ktexteditor)
 	$(add_frameworks_dep kwidgetsaddons)
 	$(add_frameworks_dep kxmlgui)
 	$(add_frameworks_dep threadweaver)
 	$(add_qt_dep qtgui)
 	$(add_qt_dep qtwidgets)
+	dev-util/kdevelop-pg-qt:5
 	dev-util/kdevelop:5=
 "
-RDEPEND="${DEPEND}
-	dev-python/pycodestyle[${PYTHON_USEDEP}]
-"
+RDEPEND="${DEPEND}"
 
+# remaining tests fail for some, bug 668530
 RESTRICT+=" test"
 
-pkg_setup() {
-	python-single-r1_pkg_setup
-	kde5_pkg_setup
+src_test() {
+	# tests hang, bug 667922
+	local myctestargs=(
+		-E "(completionbenchmark|duchain_multiplefiles)"
+	)
+	kde5_src_test
 }
