@@ -12,11 +12,13 @@ inherit check-reqs chromium-2 desktop flag-o-matic multilib ninja-utils pax-util
 
 DESCRIPTION="Open-source version of Google Chrome web browser"
 HOMEPAGE="http://chromium.org/"
-SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}.tar.xz"
+SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}.tar.xz
+	https://dev.gentoo.org/~floppym/dist/chromium-78-revert-noexcept-r1.patch.gz
+"
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 ~arm64 ~x86"
+KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE="+closure-compile component-build cups cpu_flags_arm_neon gnome-keyring +hangouts jumbo-build kerberos pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="component-build? ( !suid )"
@@ -143,18 +145,19 @@ PATCHES=(
 	"${FILESDIR}/chromium-compiler-r10.patch"
 	"${FILESDIR}/chromium-widevine-r4.patch"
 	"${FILESDIR}/chromium-fix-char_traits.patch"
-	"${FILESDIR}/chromium-unbundle-zlib.patch"
-	"${FILESDIR}/chromium-77-pulseaudio-13.patch"
-	"${FILESDIR}/chromium-77-fix-gn-gen.patch"
+	"${FILESDIR}/chromium-unbundle-zlib-r1.patch"
 	"${FILESDIR}/chromium-77-system-icu.patch"
-	"${FILESDIR}/chromium-77-system-hb.patch"
 	"${FILESDIR}/chromium-77-clang.patch"
-	"${FILESDIR}/chromium-77-blink-include.patch"
-	"${FILESDIR}/chromium-77-std-string.patch"
-	"${FILESDIR}/chromium-77-no-cups.patch"
-	"${FILESDIR}/chromium-77-gcc-abstract.patch"
-	"${FILESDIR}/chromium-77-gcc-include.patch"
-	"${FILESDIR}/chromium-77-gcc-alignas.patch"
+	"${FILESDIR}/chromium-77-pulseaudio-13.patch"
+	"${FILESDIR}/chromium-78-include.patch"
+	"${FILESDIR}/chromium-78-icon.patch"
+	"${FILESDIR}/chromium-78-protobuf-export.patch"
+	"${FILESDIR}/chromium-78-pm-crash.patch"
+	"${WORKDIR}/chromium-78-revert-noexcept-r1.patch"
+	"${FILESDIR}/chromium-78-gcc-enum-range.patch"
+	"${FILESDIR}/chromium-78-gcc-std-vector.patch"
+	"${FILESDIR}/chromium-78-gcc-noexcept.patch"
+	"${FILESDIR}/chromium-78-gcc-alignas.patch"
 )
 
 pre_build_checks() {
@@ -202,7 +205,7 @@ src_prepare() {
 
 	local keeplibs=(
 		base/third_party/cityhash
-		base/third_party/dmg_fp
+		base/third_party/double_conversion
 		base/third_party/dynamic_annotations
 		base/third_party/icu
 		base/third_party/nspr
@@ -255,6 +258,7 @@ src_prepare() {
 		third_party/catapult/third_party/six
 		third_party/catapult/tracing/third_party/d3
 		third_party/catapult/tracing/third_party/gl-matrix
+		third_party/catapult/tracing/third_party/jpeg-js
 		third_party/catapult/tracing/third_party/jszip
 		third_party/catapult/tracing/third_party/mannwhitneyu
 		third_party/catapult/tracing/third_party/oboe
@@ -269,6 +273,7 @@ src_prepare() {
 		third_party/cros_system_api
 		third_party/dav1d
 		third_party/dawn
+		third_party/depot_tools
 		third_party/devscripts
 		third_party/dom_distiller_js
 		third_party/emoji-segmenter
@@ -330,6 +335,7 @@ src_prepare() {
 		third_party/pffft
 		third_party/ply
 		third_party/polymer
+		third_party/private-join-and-compute
 		third_party/protobuf
 		third_party/protobuf/third_party/six
 		third_party/pyjson5
@@ -369,6 +375,7 @@ src_prepare() {
 		third_party/widevine
 		third_party/woff2
 		third_party/zlib/google
+		tools/grit/third_party/six
 		url/third_party/mozilla
 		v8/src/third_party/siphash
 		v8/src/third_party/valgrind
@@ -422,6 +429,7 @@ src_configure() {
 		myconf_gn+=" is_clang=true clang_use_chrome_plugins=false"
 	else
 		myconf_gn+=" is_clang=false"
+		append-cxxflags -fpermissive
 	fi
 
 	# Define a custom toolchain for GN
