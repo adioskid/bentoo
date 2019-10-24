@@ -14,7 +14,7 @@ SRC_URI="https://github.com/annulen/webkit/releases/download/${MY_P}/${MY_P}.tar
 
 LICENSE="BSD LGPL-2+"
 SLOT="5/5.212"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm ~arm64 ~ppc ppc64 ~x86"
 IUSE="geolocation gles2 +gstreamer +hyphen +jit multimedia nsplugin opengl orientation +printsupport qml webp X"
 
 REQUIRED_USE="
@@ -76,6 +76,8 @@ RDEPEND="${DEPEND}"
 S="${WORKDIR}/${MY_P}"
 
 CHECKREQS_DISK_BUILD="16G" # bug 417307
+
+PATCHES=( "${FILESDIR}/${P}-icu-65.patch" )
 
 _check_reqs() {
 	if [[ ${MERGE_TYPE} != binary ]] && is-flagq "-g*" && ! is-flagq "-g*0"; then
