@@ -8,7 +8,7 @@ inherit multiprocessing pax-utils python-any-r1 qt5-build
 DESCRIPTION="Library for rendering dynamic web content in Qt5 C++ and QML applications"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
+	KEYWORDS="amd64 ~arm ~arm64 ~x86"
 fi
 
 IUSE="alsa bindist designer jumbo-build pax_kernel pulseaudio
@@ -81,6 +81,7 @@ DEPEND="${RDEPEND}
 PATCHES+=(
 	"${FILESDIR}/${PN}-5.12.0-nouveau-disable-gpu.patch" # bug 609752
 	"${FILESDIR}/${P}-pulseaudio-13.patch" # bug 694960
+	"${FILESDIR}/${P}-icu-65.patch"
 )
 
 src_prepare() {
