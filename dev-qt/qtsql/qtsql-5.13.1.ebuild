@@ -9,7 +9,7 @@ DESCRIPTION="SQL abstraction library for the Qt5 framework"
 SLOT=5/$(ver_cut 1-3) # bug 639140
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86 ~amd64-fbsd"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="freetds mysql oci8 odbc postgres +sqlite"
@@ -36,6 +36,13 @@ QT5_TARGET_SUBDIRS=(
 
 QT5_GENTOO_PRIVATE_CONFIG=(
 	:sql
+)
+
+PATCHES+=(
+	# Backport from 5.14 branch, bug #696870
+	"${FILESDIR}/${P}-postgresql-12.patch"
+	# Backport from dev branch
+	"${FILESDIR}/${PN}-5.12.4-mysql_free_results_when_qsqlquery_finished_is_called.patch"
 )
 
 src_configure() {

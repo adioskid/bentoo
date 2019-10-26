@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+LLVM_MAX_SLOT=8
 PLOCALES="cs da de fr ja pl ru sl uk zh-CN zh-TW"
 
 inherit llvm qmake-utils virtualx xdg
@@ -54,7 +55,7 @@ CDEPEND="
 	>=dev-qt/qtwidgets-${QT_PV}
 	>=dev-qt/qtx11extras-${QT_PV}
 	>=dev-qt/qtxml-${QT_PV}
-	clang? ( >=sys-devel/clang-8:= )
+	clang? ( sys-devel/clang:8= )
 	designer? ( >=dev-qt/designer-${QT_PV} )
 	help? (
 		>=dev-qt/qthelp-${QT_PV}
@@ -79,7 +80,7 @@ DEPEND="${CDEPEND}
 RDEPEND="${CDEPEND}
 	sys-devel/gdb[client,python]
 	bazaar? ( dev-vcs/bzr )
-	cmake? ( dev-util/cmake[server(+)] )
+	cmake? ( dev-util/cmake )
 	cppcheck? ( dev-util/cppcheck )
 	cvs? ( dev-vcs/cvs )
 	git? ( dev-vcs/git )
@@ -172,7 +173,7 @@ src_prepare() {
 src_configure() {
 	eqmake5 IDE_LIBRARY_BASENAME="$(get_libdir)" \
 		IDE_PACKAGE_MODE=1 \
-		$(use clang && echo LLVM_INSTALL_DIR="$(get_llvm_prefix)") \
+		$(use clang && echo LLVM_INSTALL_DIR="$(get_llvm_prefix ${LLVM_MAX_SLOT})") \
 		$(use qbs && echo QBS_INSTALL_DIR="${EPREFIX}/usr") \
 		CONFIG+=qbs_disable_rpath \
 		CONFIG+=qbs_enable_project_file_updates \
