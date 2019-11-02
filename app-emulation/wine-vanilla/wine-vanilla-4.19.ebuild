@@ -20,7 +20,7 @@ if [[ ${PV} == "9999" ]] ; then
 else
 	MAJOR_V=$(ver_cut 1)
 	SRC_URI="https://dl.winehq.org/wine/source/${MAJOR_V}.x/${MY_P}.tar.xz"
-	KEYWORDS="-* ~amd64 ~x86 ~x86-fbsd"
+	KEYWORDS="-* ~amd64 ~x86"
 fi
 S="${WORKDIR}/${MY_P}"
 
@@ -81,9 +81,9 @@ COMMON_DEPEND="
 	opencl? ( virtual/opencl[${MULTILIB_USEDEP}] )
 	opengl? (
 		virtual/glu[${MULTILIB_USEDEP}]
-		virtual/opengl
+		virtual/opengl[${MULTILIB_USEDEP}]
 	)
-	osmesa? ( >=media-libs/mesa-13[video_cards_osmesa] )
+	osmesa? ( >=media-libs/mesa-13[osmesa,${MULTILIB_USEDEP}] )
 	pcap? ( net-libs/libpcap[${MULTILIB_USEDEP}] )
 	png? ( media-libs/libpng:0=[${MULTILIB_USEDEP}] )
 	pulseaudio? ( media-sound/pulseaudio[${MULTILIB_USEDEP}] )
