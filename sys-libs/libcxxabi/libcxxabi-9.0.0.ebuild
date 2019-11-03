@@ -3,25 +3,18 @@
 
 EAPI=7
 
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
 PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
-
-inherit cmake-multilib llvm multiprocessing python-any-r1
-
-MY_P=${P/_/}.src
-LIBCXX_P=libcxx-${PV/_/}.src
+inherit cmake-multilib llvm llvm.org multiprocessing python-any-r1
 
 DESCRIPTION="Low level support for a standard C++ library"
 HOMEPAGE="https://libcxxabi.llvm.org/"
-SRC_URI="https://releases.llvm.org/${PV}/${MY_P}.tar.xz
-	https://releases.llvm.org/${PV}/${LIBCXX_P}.tar.xz"
-S=${WORKDIR}/${MY_P}
+# libcxx is needed uncondtionally for the headers
+LLVM_COMPONENTS=( libcxx{abi,} )
+llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="0"
-KEYWORDS="~amd64 ~arm ~arm64 ~x86 ~amd64-fbsd"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="+libunwind +static-libs test elibc_musl"
 RESTRICT="!test? ( test )"
 
@@ -49,11 +42,6 @@ python_check_deps() {
 pkg_setup() {
 	llvm_pkg_setup
 	use test && python-any-r1_pkg_setup
-}
-
-src_unpack() {
-	default
-	mv "${LIBCXX_P}" libcxx || die
 }
 
 multilib_src_configure() {

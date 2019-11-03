@@ -3,20 +3,16 @@
 
 EAPI=7
 
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
 PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
+inherit cmake-utils llvm.org multilib-minimal multiprocessing \
+	pax-utils python-any-r1 toolchain-funcs
 
-inherit cmake-utils multilib-minimal multiprocessing pax-utils \
-	python-any-r1 toolchain-funcs
-
-MY_P=${P}.src
 DESCRIPTION="Low Level Virtual Machine"
 HOMEPAGE="https://llvm.org/"
-SRC_URI="https://releases.llvm.org/${PV}/${MY_P}.tar.xz
+SRC_URI="
 	!doc? ( https://dev.gentoo.org/~mgorny/dist/llvm/${P}-manpages.tar.bz2 )"
-S=${WORKDIR}/${MY_P}
+LLVM_COMPONENTS=( llvm )
+llvm.org_set_globals
 
 # Keep in sync with CMakeLists.txt
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
@@ -31,7 +27,7 @@ ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA BSD public-domain rc"
 SLOT="$(ver_cut 1)"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-fbsd ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
 IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3
 	kernel_Darwin ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )"
@@ -86,6 +82,16 @@ python_check_deps() {
 
 	has_version -b "dev-python/recommonmark[${PYTHON_USEDEP}]" &&
 	has_version -b "dev-python/sphinx[${PYTHON_USEDEP}]"
+}
+
+src_unpack() {
+	llvm.org_src_unpack
+
+	if ! use doc; then
+		ebegin "Unpacking llvm-${PV}-manpages.tar.bz2"
+		tar -xf "${DISTDIR}/llvm-${PV}-manpages.tar.bz2" || die
+		eend
+	fi
 }
 
 src_prepare() {

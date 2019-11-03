@@ -3,26 +3,22 @@
 
 EAPI=7
 
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
 PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
-
-inherit cmake-utils llvm multilib-minimal multiprocessing \
+inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing \
 	pax-utils python-single-r1 toolchain-funcs
-
-MY_P=cfe-${PV/_/}.src
-EXTRA_P=clang-tools-extra-${PV/_/}.src
-LLVM_P=llvm-${PV/_/}.src
 
 DESCRIPTION="C language family frontend for LLVM"
 HOMEPAGE="https://llvm.org/"
-SRC_URI="https://releases.llvm.org/${PV}/${MY_P}.tar.xz
-	https://releases.llvm.org/${PV}/${EXTRA_P}.tar.xz
-	test? ( https://releases.llvm.org/${PV}/${LLVM_P}.tar.xz )
+SRC_URI="
 	!doc? ( https://dev.gentoo.org/~mgorny/dist/llvm/llvm-${PV}-manpages.tar.bz2 )"
+LLVM_COMPONENTS=( clang clang-tools-extra )
+LLVM_TEST_COMPONENTS=(
+	llvm/lib/Testing/Support
+	llvm/utils/{lit,llvm-lit,unittest}
+)
+llvm.org_set_globals
 # We need extra level of indirection for CLANG_RESOURCE_DIR
-S=${WORKDIR}/x/y/${MY_P}
+S=${WORKDIR}/x/y/clang
 
 # Keep in sync with sys-devel/llvm
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
@@ -35,7 +31,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA MIT"
 SLOT="$(ver_cut 1)"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-fbsd ~amd64-linux"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux"
 IUSE="debug default-compiler-rt default-libcxx doc +static-analyzer
 	test xml kernel_FreeBSD ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
@@ -73,6 +69,9 @@ PATCHES=(
 	# fix build with gcc-9.0.0
 	# https://bugs.llvm.org/show_bug.cgi?id=40547
 	"${FILESDIR}"/9.0.0/0002-Initialize-all-fields-in-ABIArgInfo.patch
+	# fix silly test failure due to '.src' in path
+	# https://bugs.llvm.org/show_bug.cgi?id=42979
+	"${FILESDIR}"/9.0.0/0003-Fix-Driver-modules.cpp-test-to-work-when-build-direc.patch
 )
 
 # Multilib notes:
@@ -95,24 +94,13 @@ src_unpack() {
 	# create extra parent dir for CLANG_RESOURCE_DIR
 	mkdir -p x/y || die
 	cd x/y || die
-
-	einfo "Unpacking ${MY_P}.tar.xz ..."
-	tar -xf "${DISTDIR}/${MY_P}.tar.xz" || die
-	einfo "Unpacking ${EXTRA_P}.tar.xz ..."
-	tar -xf "${DISTDIR}/${EXTRA_P}.tar.xz" || die
-
-	mv "${EXTRA_P}" "${S}"/tools/extra || die
-	if use test; then
-		einfo "Unpacking parts of ${LLVM_P}.tar.xz ..."
-		tar -xf "${DISTDIR}/${LLVM_P}.tar.xz" \
-			"${LLVM_P}"/lib/Testing/Support \
-			"${LLVM_P}"/utils/{lit,llvm-lit,unittest} || die
-		mv "${LLVM_P}" "${WORKDIR}"/llvm || die
-	fi
+	llvm.org_src_unpack
+	mv clang-tools-extra clang/tools/extra || die
 
 	if ! use doc; then
-		einfo "Unpacking llvm-${PV}-manpages.tar.bz2 ..."
+		ebegin "Unpacking llvm-${PV}-manpages.tar.bz2"
 		tar -xf "${DISTDIR}/llvm-${PV}-manpages.tar.bz2" || die
+		eend
 	fi
 }
 
@@ -147,7 +135,7 @@ multilib_src_configure() {
 		-DCLANG_ENABLE_STATIC_ANALYZER=$(usex static-analyzer)
 	)
 	use test && mycmakeargs+=(
-		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
+		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/x/y/llvm"
 		-DLLVM_LIT_ARGS="-vv;-j;${LIT_JOBS:-$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")}"
 	)
 

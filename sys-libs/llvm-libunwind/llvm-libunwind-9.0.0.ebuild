@@ -3,27 +3,18 @@
 
 EAPI=7
 
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
 PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
-inherit cmake-multilib llvm multiprocessing python-any-r1
-
-MY_P=libunwind-${PV/_/}.src
-LIBCXX_P=libcxx-${PV/_/}.src
-LIBCXXABI_P=libcxxabi-${PV/_/}.src
+inherit cmake-multilib llvm llvm.org multiprocessing python-any-r1
 
 DESCRIPTION="C++ runtime stack unwinder from LLVM"
 HOMEPAGE="https://github.com/llvm-mirror/libunwind"
-SRC_URI="https://releases.llvm.org/${PV}/${MY_P}.tar.xz
-	test? (
-		https://releases.llvm.org/${PV}/${LIBCXX_P}.tar.xz
-		https://releases.llvm.org/${PV}/${LIBCXXABI_P}.tar.xz )"
-S=${WORKDIR}/${MY_P}
+LLVM_COMPONENTS=( libunwind )
+LLVM_TEST_COMPONENTS=( libcxx{,abi} )
+llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="0"
-KEYWORDS="~amd64 ~arm ~arm64 ~x86 ~amd64-fbsd"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="debug +static-libs test"
 RESTRICT="!test? ( test )"
 
@@ -44,15 +35,6 @@ python_check_deps() {
 
 pkg_setup() {
 	use test && python-any-r1_pkg_setup
-}
-
-src_unpack() {
-	default
-
-	if use test; then
-		mv "${LIBCXX_P}" libcxx || die
-		mv "${LIBCXXABI_P}" libcxxabi || die
-	fi
 }
 
 multilib_src_configure() {
@@ -77,7 +59,7 @@ multilib_src_configure() {
 		mycmakeargs+=(
 			-DLLVM_EXTERNAL_LIT="${EPREFIX}/usr/bin/lit"
 			-DLLVM_LIT_ARGS="-vv;-j;${jobs};--param=cxx_under_test=${clang_path}"
-			-DLIBUNWIND_LIBCXX_PATH="${WORKDIR}"/libcxx
+			-DLIBUNWIND_LIBCXX_PATH="${WORKDIR}/libcxx"
 		)
 	fi
 

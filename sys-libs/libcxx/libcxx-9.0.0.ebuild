@@ -3,25 +3,18 @@
 
 EAPI=7
 
-# Ninja provides better scalability and cleaner verbose output, and is used
-# throughout all LLVM projects.
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
 PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
-
-inherit cmake-multilib llvm multiprocessing python-any-r1 \
+inherit cmake-multilib llvm llvm.org multiprocessing python-any-r1 \
 	toolchain-funcs
 
-MY_P=${P}.src
 DESCRIPTION="New implementation of the C++ standard library, targeting C++11"
 HOMEPAGE="https://libcxx.llvm.org/"
-SRC_URI="https://releases.llvm.org/${PV}/${MY_P}.tar.xz"
-S=${WORKDIR}/${MY_P}
+LLVM_COMPONENTS=( libcxx )
+llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="0"
-KEYWORDS="~amd64 ~arm ~arm64 ~x86 ~amd64-fbsd"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="elibc_glibc elibc_musl +libcxxabi libcxxrt +libunwind +static-libs test"
 REQUIRED_USE="libunwind? ( || ( libcxxabi libcxxrt ) )
 	?? ( libcxxabi libcxxrt )"
