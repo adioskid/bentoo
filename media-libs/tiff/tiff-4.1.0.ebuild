@@ -11,8 +11,9 @@ SRC_URI="https://download.osgeo.org/libtiff/${P}.tar.gz"
 
 LICENSE="libtiff"
 SLOT="0"
-KEYWORDS="alpha amd64 arm arm64 hppa ia64 m68k ~mips ppc ppc64 ~riscv s390 sh sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="+cxx jbig jpeg lzma static-libs test webp zlib zstd"
+RESTRICT="!test? ( test )"
 
 RDEPEND="
 	jbig? ( >=media-libs/jbigkit-2.1:=[${MULTILIB_USEDEP}] )
@@ -25,13 +26,6 @@ RDEPEND="
 DEPEND="${RDEPEND}"
 
 REQUIRED_USE="test? ( jpeg )" #483132
-
-PATCHES=(
-	"${FILESDIR}"/${PN}-4.0.10-CVE-2018-17000-tif_dirwrite-null-dereference.patch
-	"${FILESDIR}"/${PN}-4.0.10-CVE-2019-6128-pal2rgb-leak.patch
-	"${FILESDIR}"/${PN}-4.0.10-CVE-2019-7663-tiffcpIntegerOverflow.patch
-	"${FILESDIR}"/${P}-CVE-2019-14973-fix-integer-overflow.patch
-)
 
 MULTILIB_WRAPPED_HEADERS=(
 	/usr/include/tiffconf.h
@@ -80,6 +74,6 @@ multilib_src_test() {
 }
 
 multilib_src_install_all() {
-	find "${ED}" -name '*.la' -delete || die
+	find "${ED}" -type f -name '*.la' -delete || die
 	rm "${ED}"/usr/share/doc/${PF}/{COPYRIGHT,README*,RELEASE-DATE,TODO,VERSION} || die
 }
