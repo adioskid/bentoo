@@ -9,12 +9,11 @@ inherit multibuild python-r1 qmake-utils
 DESCRIPTION="Python bindings for the Qt framework"
 HOMEPAGE="https://www.riverbankcomputing.com/software/pyqt/intro"
 
-MY_PN=PyQt5
-MY_P=${MY_PN}_gpl-${PV/_pre/.dev}
+MY_P=${PN}-${PV/_pre/.dev}
 if [[ ${PV} == *_pre* ]]; then
 	SRC_URI="https://dev.gentoo.org/~pesa/distfiles/${MY_P}.tar.gz"
 else
-	SRC_URI="https://www.riverbankcomputing.com/static/Downloads/${MY_PN}/${PV}/${MY_P}.tar.gz"
+	SRC_URI="https://www.riverbankcomputing.com/static/Downloads/${PN}/${PV}/${MY_P}.tar.gz"
 fi
 
 LICENSE="GPL-3"
@@ -155,10 +154,10 @@ src_configure() {
 		"${myconf[@]}" || die
 
 		# Fix parallel install failure
-		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets' ${MY_PN}.pro || die
+		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets' ${PN}.pro || die
 
 		# Run eqmake to respect toolchain and build flags
-		eqmake5 -recursive ${MY_PN}.pro
+		eqmake5 -recursive ${PN}.pro
 	}
 	python_foreach_impl run_in_build_dir configuration
 }
@@ -169,7 +168,7 @@ src_compile() {
 
 src_install() {
 	installation() {
-		local tmp_root=${D}/${MY_PN}_tmp_root
+		local tmp_root=${D}/${PN}_tmp_root
 		emake INSTALL_ROOT="${tmp_root}" install
 
 		local bin_dir=${tmp_root}${EPREFIX}/usr/bin
@@ -179,7 +178,7 @@ src_install() {
 			rm "${bin_dir}/${exe}" || die
 		done
 
-		local uic_dir=${tmp_root}$(python_get_sitedir)/${MY_PN}/uic
+		local uic_dir=${tmp_root}$(python_get_sitedir)/${PN}/uic
 		if python_is_python3; then
 			rm -r "${uic_dir}"/port_v2 || die
 		else

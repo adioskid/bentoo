@@ -9,12 +9,11 @@ inherit python-r1 qmake-utils
 DESCRIPTION="Python bindings for QtWebEngine"
 HOMEPAGE="https://www.riverbankcomputing.com/software/pyqtwebengine/intro"
 
-MY_PN=PyQtWebEngine
-MY_P=${MY_PN}_gpl-${PV/_pre/.dev}
+MY_P=${PN}-${PV/_pre/.dev}
 if [[ ${PV} == *_pre* ]]; then
 	SRC_URI="https://dev.gentoo.org/~pesa/distfiles/${MY_P}.tar.gz"
 else
-	SRC_URI="https://www.riverbankcomputing.com/static/Downloads/${MY_PN}/${PV}/${MY_P}.tar.gz"
+	SRC_URI="https://www.riverbankcomputing.com/static/Downloads/${PN}/${PV}/${MY_P}.tar.gz"
 fi
 
 LICENSE="GPL-3"
@@ -22,7 +21,9 @@ SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="debug"
 
-REQUIRED_USE="${PYTHON_REQUIRED_USE}"
+REQUIRED_USE="
+	${PYTHON_REQUIRED_USE}
+"
 
 RDEPEND="
 	${PYTHON_DEPS}
@@ -50,10 +51,10 @@ src_configure() {
 		"${myconf[@]}" || die
 
 		# Fix parallel install failure
-		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets' ${MY_PN}.pro || die
+		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets' ${PN}.pro || die
 
 		# Run eqmake to respect toolchain and build flags
-		eqmake5 -recursive ${MY_PN}.pro
+		eqmake5 -recursive ${PN}.pro
 	}
 	python_foreach_impl run_in_build_dir configuration
 }
