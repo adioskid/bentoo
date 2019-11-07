@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{5,6} )
+PYTHON_COMPAT=( python3_{5,6,7} )
 PYTHON_REQ_USE="xml"
 
 inherit cmake-utils flag-o-matic xdg-utils xdg toolchain-funcs python-single-r1
@@ -52,7 +52,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	exif? ( media-libs/libexif )
 	gnome? ( >=gnome-base/gnome-vfs-2.0 )
 	graphicsmagick? ( media-gfx/graphicsmagick:=[cxx] )
-	imagemagick? ( <media-gfx/imagemagick-7:=[cxx] )
+	imagemagick? ( media-gfx/imagemagick:=[cxx] )
 	jpeg? ( virtual/jpeg:0 )
 	lcms? ( media-libs/lcms:2 )
 	spell? (
