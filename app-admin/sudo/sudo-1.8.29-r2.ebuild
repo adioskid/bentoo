@@ -75,6 +75,10 @@ REQUIRED_USE="
 
 MAKEOPTS+=" SAMPLES="
 
+PATCHES=(
+	"${FILESDIR}/${PN}-1.8.28-no_pam_error_message_fix.patch" #698946
+)
+
 src_prepare() {
 	default
 	elibtoolize
