@@ -89,8 +89,6 @@ REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
 QA_FLAGS_IGNORED="usr/bin/* usr/lib*/${P}"
 
 PATCHES=(
-	"${FILESDIR}"/1.38.0-fix-custom-libdir.patch
-	"${FILESDIR}"/1.38.0-fix-multiple-llvm-rebuilds.patch
 	"${FILESDIR}"/1.36.0-libressl.patch
 )
 

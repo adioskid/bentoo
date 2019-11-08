@@ -9,7 +9,7 @@ inherit kernel-2
 detect_version
 
 PATCH_PV=${PV} # to ease testing new versions against not existing patches
-PATCH_VER="1"
+PATCH_VER="2"
 SRC_URI="${KERNEL_URI}
 	${PATCH_VER:+mirror://gentoo/gentoo-headers-${PATCH_PV}-${PATCH_VER}.tar.xz}
 	${PATCH_VER:+https://dev.gentoo.org/~slyfox/distfiles/gentoo-headers-${PATCH_PV}-${PATCH_VER}.tar.xz}
@@ -28,9 +28,9 @@ src_unpack() {
 }
 
 src_prepare() {
-	default
-
 	[[ -n ${PATCH_VER} ]] && eapply "${WORKDIR}"/${PATCH_PV}/*.patch
+
+	default
 }
 
 src_install() {
