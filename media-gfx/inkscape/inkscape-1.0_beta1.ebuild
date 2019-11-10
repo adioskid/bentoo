@@ -61,7 +61,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	exif? ( media-libs/libexif )
 	gnome? ( >=gnome-base/gnome-vfs-2.0 )
 	imagemagick? (
-		!graphicsmagick? ( <media-gfx/imagemagick-7:=[cxx] )
+		!graphicsmagick? ( media-gfx/imagemagick:=[cxx] )
 		graphicsmagick? ( media-gfx/graphicsmagick:=[cxx] )
 	)
 	jemalloc? ( dev-libs/jemalloc )
