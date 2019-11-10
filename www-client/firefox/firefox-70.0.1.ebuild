@@ -103,7 +103,7 @@ CDEPEND="
 		>=media-libs/libaom-1.0.0:=
 	)
 	system-harfbuzz? ( >=media-libs/harfbuzz-2.5.3:0= >=media-gfx/graphite2-1.3.13 )
-	system-icu? ( >=dev-libs/icu-63.1:= )
+	system-icu? ( >=dev-libs/icu-64.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
 	system-libvpx? ( =media-libs/libvpx-1.7*:0=[postproc] )
@@ -170,7 +170,6 @@ DEPEND="${CDEPEND}
 	)
 	pulseaudio? ( media-sound/pulseaudio )
 	>=virtual/rust-1.36.0
-	<virtual/rust-1.39.0
 	wayland? ( >=x11-libs/gtk+-3.11:3[wayland] )
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	x86? ( >=dev-lang/yasm-1.1 virtual/opengl )
@@ -267,6 +266,8 @@ src_prepare() {
 	use !wayland && rm -f "${WORKDIR}/firefox/2019_mozilla-bug1539471.patch"
 	eapply "${WORKDIR}/firefox"
 	eapply "${FILESDIR}/${PN}-69.0-lto-gcc-fix.patch"
+
+	eapply "${FILESDIR}"/${PN}-70.0.1-rust-1.39+.patch
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
