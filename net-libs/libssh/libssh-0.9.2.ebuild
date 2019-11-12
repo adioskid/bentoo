@@ -13,7 +13,7 @@ if [[ "${PV}" == *9999 ]] ; then
 	EGIT_REPO_URI="https://git.libssh.org/projects/libssh.git"
 else
 	SRC_URI="https://www.libssh.org/files/$(ver_cut 1-2)/${P}.tar.xz"
-	KEYWORDS="alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 ~s390 sparc x86 ~amd64-linux ~x86-linux"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux"
 fi
 
 LICENSE="LGPL-2.1"
@@ -23,6 +23,9 @@ IUSE="debug doc examples gcrypt gssapi libressl mbedtls pcap server +sftp static
 
 REQUIRED_USE="?? ( gcrypt mbedtls ) test? ( static-libs )"
 
+BDEPEND="
+	doc? ( app-doc/doxygen[dot] )
+"
 RDEPEND="
 	!gcrypt? (
 		!mbedtls? (
@@ -36,16 +39,12 @@ RDEPEND="
 	zlib? ( >=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}] )
 "
 DEPEND="${RDEPEND}
-	doc? ( app-doc/doxygen[dot] )
 	test? ( >=dev-util/cmocka-0.3.1[${MULTILIB_USEDEP}] )
 "
 
 DOCS=( AUTHORS README ChangeLog )
 
-PATCHES=(
-	"${FILESDIR}/${PN}-0.8.0-tests.patch"
-	"${FILESDIR}/${PN}-0.9.0-libressl.patch"
-)
+PATCHES=( "${FILESDIR}/${PN}-0.8.0-tests.patch" )
 
 src_prepare() {
 	cmake-utils_src_prepare
@@ -80,7 +79,7 @@ multilib_src_configure() {
 		-DWITH_PCAP="$(usex pcap)"
 		-DWITH_SERVER="$(usex server)"
 		-DWITH_SFTP="$(usex sftp)"
-		-DWITH_STATIC_LIB="$(usex static-libs)"
+		-DBUILD_SHARED_LIBS="$(usex !static-libs)"
 		-DUNIT_TESTING="$(usex test)"
 		-DWITH_ZLIB="$(usex zlib)"
 	)

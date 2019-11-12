@@ -7,16 +7,16 @@ WANT_LIBTOOL="none"
 inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
-PATCHSET_VERSION="2.7.16"
+PATCHSET_VERSION="2.7.17"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
 SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~floppym/python/python-gentoo-patches-${PATCHSET_VERSION}.tar.xz"
+	https://dev.gentoo.org/~mgorny/dist/python-gentoo-patches-${PATCHSET_VERSION}.tar.xz"
 
 LICENSE="PSF-2"
 SLOT="2.7"
-KEYWORDS="alpha amd64 arm ~arm64 ~hppa ia64 m68k ~mips ppc ppc64 s390 sh sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 IUSE="-berkdb bluetooth build doc elibc_uclibc examples gdbm hardened ipv6 libressl +ncurses +readline sqlite +ssl +threads tk +wide-unicode wininst +xml"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
@@ -294,8 +294,8 @@ src_install() {
 	dodoc "${S}"/Misc/{ACKS,HISTORY,NEWS}
 
 	if use examples; then
-		insinto /usr/share/doc/${PF}/examples
-		doins -r "${S}"/Tools
+		docinto examples
+		dodoc -r "${S}"/Tools
 	fi
 	insinto /usr/share/gdb/auto-load/usr/$(get_libdir) #443510
 	local libname=$(printf 'e:\n\t@echo $(INSTSONAME)\ninclude Makefile\n' | \
