@@ -61,7 +61,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	exif? ( media-libs/libexif )
 	gnome? ( >=gnome-base/gnome-vfs-2.0 )
 	imagemagick? (
-		!graphicsmagick? ( media-gfx/imagemagick:=[cxx] )
+		!graphicsmagick? ( <media-gfx/imagemagick-7:=[cxx] )
 		graphicsmagick? ( media-gfx/graphicsmagick:=[cxx] )
 	)
 	jemalloc? ( dev-libs/jemalloc )
@@ -99,8 +99,6 @@ S="${WORKDIR}/${MY_P}"
 RESTRICT="test"
 
 PATCHES=(
-	"${FILESDIR}"/${P}-detect-imagemagick.patch
-	"${FILESDIR}"/${P}-do-not-compress-man.patch
 	"${FILESDIR}"/${P}-poppler-0.82.patch
 	"${FILESDIR}"/${P}-avoid-reordering-cmake-cxx-flags.patch
 )
