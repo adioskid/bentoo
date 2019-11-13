@@ -27,6 +27,8 @@ DEPEND="${RDEPEND}
 	test? ( >=dev-qt/qtconcurrent-${QTMIN}:5 )
 "
 
+PATCHES=( "${FILESDIR}/${P}-udisks2-media-change-detection.patch" )
+
 pkg_postinst() {
 	ecm_pkg_postinst
 
