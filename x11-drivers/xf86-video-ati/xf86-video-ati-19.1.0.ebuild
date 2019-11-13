@@ -15,11 +15,11 @@ fi
 DESCRIPTION="ATI video driver"
 HOMEPAGE="https://www.x.org/wiki/ati/"
 
-IUSE="udev"
+IUSE="+glamor udev"
 
 RDEPEND=">=x11-libs/libdrm-2.4.89[video_cards_radeon]
 	>=x11-libs/libpciaccess-0.8.0
-	x11-base/xorg-server[-minimal]
+	glamor? ( x11-base/xorg-server[-minimal, glamor] )
 	udev? ( virtual/libudev:= )"
 DEPEND="${RDEPEND}
 	x11-base/xorg-proto"
@@ -38,6 +38,7 @@ pkg_pretend() {
 pkg_setup() {
 	XORG_CONFIGURE_OPTIONS=(
 		--enable-glamor
+		$(use_enable glamor)
 		$(use_enable udev)
 	)
 }
