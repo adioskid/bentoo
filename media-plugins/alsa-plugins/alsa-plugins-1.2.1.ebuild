@@ -36,9 +36,9 @@ src_prepare() {
 	# For some reasons the polyp/pulse plugin does fail with alsaplayer with a
 	# failed assert. As the code works just fine with asserts disabled, for now
 	# disable them waiting for a better solution.
-	sed -i \
+	sed \
 		-e '/AM_CFLAGS/s:-Wall:-DNDEBUG -Wall:' \
-		pulse/Makefile.am || die
+		-i pulse/Makefile.am || die
 
 	eautoreconf
 }
@@ -83,14 +83,14 @@ multilib_src_install_all() {
 		doins "${FILESDIR}"/51-pulseaudio-probe.conf
 		# bug #410261, comment 5+
 		# seems to work fine without any path
-		sed -i \
+		sed \
 			-e "s:/usr/lib/alsa-lib/::" \
-			"${ED%/}"/usr/share/alsa/alsa.conf.d/51-pulseaudio-probe.conf || die #410261
-		dosym "${ED%/}"/usr/share/alsa/alsa.conf.d/51-pulseaudio-probe.conf \
+			-i "${ED}"/usr/share/alsa/alsa.conf.d/51-pulseaudio-probe.conf || die #410261
+		dosym ../../../usr/share/alsa/alsa.conf.d/51-pulseaudio-probe.conf \
 			/etc/alsa/conf.d/51-pulseaudio-probe.conf #670960
 	fi
 
-	find "${ED}" \( -name '*.a' -o -name '*.la' \) -delete || die
+	find "${ED}" -type f \( -name '*.a' -o -name '*.la' \) -delete || die
 }
 
 pkg_postinst() {
