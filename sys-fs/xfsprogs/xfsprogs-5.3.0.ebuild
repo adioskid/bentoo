@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit flag-o-matic toolchain-funcs systemd
+inherit flag-o-matic toolchain-funcs systemd usr-ldscript
 
 DESCRIPTION="xfs filesystem utilities"
 HOMEPAGE="https://xfs.wiki.kernel.org/"
@@ -26,9 +26,8 @@ BDEPEND="
 "
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-4.9.0-underlinking.patch
-	"${FILESDIR}"/${PN}-4.15.0-sharedlibs.patch
 	"${FILESDIR}"/${PN}-4.15.0-docdir.patch
+	"${FILESDIR}"/${PN}-5.3.0-libdir.patch
 )
 
 pkg_setup() {
@@ -51,8 +50,17 @@ src_prepare() {
 }
 
 src_configure() {
+	# include/builddefs.in will add FCFLAGS to CFLAGS which will
+	# unnecessarily clutter CFLAGS (and fortran isn't used)
+	unset FCFLAGS
+
 	export DEBUG=-DNDEBUG
-	export OPTIMIZER=${CFLAGS}
+
+	# Package is honoring CFLAGS; No need to use OPTIMIZER anymore.
+	# However, we have to provide an empty value to avoid default
+	# flags.
+	export OPTIMIZER=" "
+
 	unset PLATFORM # if set in user env, this breaks configure
 
 	# Upstream does NOT support --disable-static anymore,
@@ -88,11 +96,6 @@ src_configure() {
 }
 
 src_compile() {
-	# Unset {CF,LD}FLAGS which are already set via configure
-	# but will cause problems when available during make.
-	# Fixed in >=xfsprogs-5.3.0.
-	unset CFLAGS LDFLAGS
-
 	emake V=1
 }
 
@@ -100,6 +103,5 @@ src_install() {
 	emake DIST_ROOT="${ED}" install
 	emake DIST_ROOT="${ED}" install-dev
 
-	# removing unnecessary .la files if not needed
-	find "${ED}" -type f -name '*.la' -delete || die
+	gen_usr_ldscript -a handle
 }
