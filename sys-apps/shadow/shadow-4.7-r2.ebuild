@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit libtool pam
+inherit autotools libtool pam
 
 DESCRIPTION="Utilities to deal with user accounts"
 HOMEPAGE="https://github.com/shadow-maint/shadow"
@@ -12,51 +12,60 @@ SRC_URI="https://github.com/shadow-maint/shadow/releases/download/${PV}/${P}.tar
 LICENSE="BSD GPL-2"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
-IUSE="acl audit +cracklib nls pam selinux skey split-usr xattr"
+IUSE="acl audit +cracklib nls pam selinux skey split-usr +su xattr"
 # Taken from the man/Makefile.am file.
 LANGS=( cs da de es fi fr hu id it ja ko pl pt_BR ru sv tr zh_CN zh_TW )
 
-DEPEND="acl? ( sys-apps/acl:0= )
+DEPEND="
+	acl? ( sys-apps/acl:0= )
 	audit? ( >=sys-process/audit-2.6:0= )
 	cracklib? ( >=sys-libs/cracklib-2.7-r3:0= )
+	nls? ( virtual/libintl )
 	pam? ( sys-libs/pam:0= )
 	skey? ( sys-auth/skey:0= )
 	selinux? (
 		>=sys-libs/libselinux-1.28:0=
 		sys-libs/libsemanage:0=
 	)
-	nls? ( virtual/libintl )
-	xattr? ( sys-apps/attr:0= )"
+	su? ( !sys-apps/util-linux[su] )
+	xattr? ( sys-apps/attr:0= )
+"
 BDEPEND="
 	app-arch/xz-utils
-	nls? ( sys-devel/gettext )"
-RDEPEND="${DEPEND}
-	pam? ( >=sys-auth/pambase-20150213 )"
+	nls? ( sys-devel/gettext )
+"
+RDEPEND="
+	${DEPEND}
+	pam? ( >=sys-auth/pambase-20150213 )
+"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.1.3-dots-in-usernames.patch"
+	"${FILESDIR}/${PN}-4.7-optional_su.patch"
 )
 
 src_prepare() {
 	default
-	#eautoreconf
-	elibtoolize
+	eautoreconf
+	#elibtoolize
 }
 
 src_configure() {
 	local myeconfargs=(
+		--with-btrfs
 		--without-group-name-max-length
 		--without-tcb
 		--enable-shared=no
 		--enable-static=yes
+		$(use_enable nls)
 		$(use_with acl)
 		$(use_with audit)
 		$(use_with cracklib libcrack)
-		$(use_with pam libpam)
-		$(use_with skey)
-		$(use_with selinux)
-		$(use_enable nls)
 		$(use_with elibc_glibc nscd)
+		$(use_with pam libpam)
+		$(use_with selinux)
+		$(use_with skey)
+		$(use_with su)
 		$(use_with xattr attr)
 	)
 	econf "${myeconfargs[@]}"
@@ -111,6 +120,9 @@ src_install() {
 
 	if use split-usr ; then
 		# move passwd to / to help recover broke systems #64441
+		# We cannot simply remove this or else net-misc/scponly
+		# and other tools will break because of hardcoded passwd
+		# location
 		dodir /bin
 		mv "${ED}"/usr/bin/passwd "${ED}"/bin/ || die
 		dosym ../../bin/passwd /usr/bin/passwd
@@ -174,12 +186,15 @@ src_install() {
 
 		# remove manpages that pam will install for us
 		# and/or don't apply when using pam
-		find "${ED}"/usr/share/man \
+		find "${ED}"/usr/share/man -type f \
 			'(' -name 'limits.5*' -o -name 'suauth.5*' ')' \
 			-delete
 
 		# Remove pam.d files provided by pambase.
-		rm "${ED}"/etc/pam.d/{login,passwd,su} || die
+		rm "${ED}"/etc/pam.d/{login,passwd} || die
+		if use su ; then
+			rm "${ED}"/etc/pam.d/su || die
+		fi
 	fi
 
 	# Remove manpages that are handled by other packages
