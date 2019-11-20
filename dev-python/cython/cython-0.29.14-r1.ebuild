@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{5,6,7} pypy{,3} )
+PYTHON_COMPAT=( python2_7 python3_{5,6,7,8} pypy{,3} )
 PYTHON_REQ_USE="threads(+)"
 
 inherit distutils-r1 toolchain-funcs elisp-common
@@ -22,13 +22,17 @@ RESTRICT="!test? ( test )"
 RDEPEND="
 	emacs? ( virtual/emacs )
 "
-DEPEND="${RDEPEND}
+BDEPEND="${RDEPEND}
 	dev-python/setuptools[${PYTHON_USEDEP}]
-	doc? ( dev-python/sphinx[${PYTHON_USEDEP}] )
+	doc? ( $(python_gen_any_dep 'dev-python/sphinx[${PYTHON_USEDEP}]') )
 	test? (
 		$(python_gen_cond_dep 'dev-python/numpy[${PYTHON_USEDEP}]' \
-			'python*')
+			'python3*')
 	)"
+
+PATCHES=(
+	"${FILESDIR}/cython-0.29.14-sphinx-update.patch"
+)
 
 SITEFILE=50cython-gentoo.el
 
