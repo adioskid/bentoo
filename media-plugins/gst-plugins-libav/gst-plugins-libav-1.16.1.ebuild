@@ -22,7 +22,7 @@ KEYWORDS="alpha amd64 arm arm64 ~hppa ia64 ~mips ~ppc ~ppc64 x86"
 IUSE="libav +orc"
 
 RDEPEND="
-	>=dev-libs/glib-2.40.0:2[${MULTILIB_USEDEP}]
+	>=dev-libs/glib-2.40.0:2
 	>=media-libs/gstreamer-${MY_PV}:1.0[${MULTILIB_USEDEP}]
 	>=media-libs/gst-plugins-base-${MY_PV}:1.0[${MULTILIB_USEDEP}]
 	!libav? ( >=media-video/ffmpeg-4:0=[${MULTILIB_USEDEP}] )

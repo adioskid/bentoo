@@ -47,7 +47,7 @@ GL_DEPS="
 	media-libs/mesa[gles2?,egl?,X(+)]
 "
 RDEPEND="
-	>=dev-libs/glib-2.40:2[${MULTILIB_USEDEP}]
+	>=dev-libs/glib-2.40:2
 	>=media-libs/gstreamer-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]
 	>=media-libs/gst-plugins-base-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]
 	>=media-libs/gst-plugins-bad-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]

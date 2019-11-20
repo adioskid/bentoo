@@ -32,8 +32,8 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc ~x86"
 # wpa_supplicant-0.7.3-r3 is needed due to bug 359271
 COMMON_DEPEND="
 	>=sys-apps/dbus-1.2[${MULTILIB_USEDEP}]
-	>=dev-libs/dbus-glib-0.100[${MULTILIB_USEDEP}]
-	>=dev-libs/glib-2.40:2[${MULTILIB_USEDEP}]
+	>=dev-libs/dbus-glib-0.100
+	>=dev-libs/glib-2.40:2
 	policykit? ( >=sys-auth/polkit-0.106 )
 	net-libs/libndp[${MULTILIB_USEDEP}]
 	>=net-misc/curl-7.24
