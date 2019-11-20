@@ -11,7 +11,7 @@ if [[ ${PV} = *9999* ]]; then
 	EGIT_CHECKOUT_DIR="${WORKDIR}/${P}/src/${EGO_PN}"
 	inherit git-r3
 else
-	DOCKER_GITCOMMIT="9013bf5"
+	DOCKER_GITCOMMIT="633a0ea"
 	MY_PV=${PV/_/-}
 	SRC_URI="https://${EGO_PN}/archive/v${MY_PV}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~arm ~arm64"
