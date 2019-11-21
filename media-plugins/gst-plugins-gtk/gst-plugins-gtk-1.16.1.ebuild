@@ -19,7 +19,7 @@ GL_DEPS="
 	>=x11-libs/gtk+-3.15:3[X?,wayland?,${MULTILIB_USEDEP}]
 "
 RDEPEND="
-	>=media-libs/gst-plugins-base-${PV}:${SLOT}[${MULTILIB_USEDEP},egl=,gles2=,opengl=,wayland=,X=]
+	>=media-libs/gst-plugins-base-${PV}:${SLOT}[egl=,gles2=,opengl=,wayland=,X=]
 	>=x11-libs/gtk+-3.15:3
 	gles2? ( ${GL_DEPS} )
 	opengl? ( ${GL_DEPS} )
