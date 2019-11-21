@@ -13,7 +13,7 @@ IUSE=""
 COMMON_DEPEND=">=media-libs/opus-1.1:=[${MULTILIB_USEDEP}]"
 
 RDEPEND="${COMMON_DEPEND}
-	>=media-libs/gst-plugins-base-${PV}:${SLOT}[${MULTILIB_USEDEP},ogg]
+	>=media-libs/gst-plugins-base-${PV}:${SLOT}[ogg]
 "
 DEPEND="${COMMON_DEPEND}"
 

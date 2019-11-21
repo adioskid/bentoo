@@ -15,8 +15,8 @@ IUSE="+orc"
 
 RDEPEND="
 	>=dev-libs/glib-2.40.0:2
-	>=media-libs/gst-plugins-base-${PV}:${SLOT}[${MULTILIB_USEDEP}]
-	>=media-libs/gstreamer-${PV}:${SLOT}[${MULTILIB_USEDEP}]
+	>=media-libs/gst-plugins-base-${PV}:${SLOT}
+	>=media-libs/gstreamer-${PV}:${SLOT}
 	>=app-arch/bzip2-1.0.6-r4[${MULTILIB_USEDEP}]
 	>=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}]
 	orc? ( >=dev-lang/orc-0.4.17[${MULTILIB_USEDEP}] )

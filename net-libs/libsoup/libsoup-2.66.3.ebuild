@@ -18,7 +18,7 @@ REQUIRED_USE="vala? ( introspection )"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
 
 DEPEND="
-	>=dev-libs/glib-2.38:2[${MULTILIB_USEDEP}]
+	>=dev-libs/glib-2.38:2
 	>=dev-db/sqlite-3.8.2:3[${MULTILIB_USEDEP}]
 	>=dev-libs/libxml2-2.9.1-r4:2[${MULTILIB_USEDEP}]
 	>=net-libs/libpsl-0.20[${MULTILIB_USEDEP}]

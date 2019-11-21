@@ -11,7 +11,7 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sh ~sparc ~x8
 IUSE=""
 
 RDEPEND="
-	>=media-libs/gst-plugins-base-${PV}:${SLOT}[${MULTILIB_USEDEP}]
+	>=media-libs/gst-plugins-base-${PV}:${SLOT}
 	>=media-sound/pulseaudio-2.1-r1[${MULTILIB_USEDEP}]
 "
 DEPEND="${RDEPEND}"
