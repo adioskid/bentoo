@@ -26,6 +26,11 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
+PATCHES=(
+	"${FILESDIR}/${P}-fix-touch-ignored.patch" # QTBUG-79744
+	"${FILESDIR}/${P}-fix-crash.patch" # QTBUG-79674
+)
+
 src_prepare() {
 	qt_use_disable_config libinput xkbcommon-evdev \
 		src/client/client.pro \
