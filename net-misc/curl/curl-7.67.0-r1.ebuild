@@ -239,7 +239,7 @@ multilib_src_configure() {
 	fi
 	if use quiche; then
 		libs+=( "-lquiche" )
-		priv+=( "libquiche" )
+		priv+=( "quiche" )
 	fi
 	if use nghttp3; then
 		libs+=( "-lnghttp3" "-lngtcp2" )
