@@ -58,7 +58,6 @@ PATCHES=(
 
 src_unpack() {
 	default
-	[ -n "${EGIT_REPO_URI}" ] && git-r3_src_unpack
 }
 
 src_prepare() {
