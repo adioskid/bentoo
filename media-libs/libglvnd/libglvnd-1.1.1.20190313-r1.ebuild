@@ -11,7 +11,7 @@ inherit autotools multilib-minimal python-any-r1
 DESCRIPTION="The GL Vendor-Neutral Dispatch library"
 HOMEPAGE="https://github.com/NVIDIA/libglvnd"
 #EGIT_REPO_URI="${HOMEPAGE}.git"
-SRC_URI="${HOMEPAGE}/releases/download/v${PV}/${P}.tar.gz"
+SRC_URI="${HOMEPAGE}/archive/v1.1.1.tar.gz"
 
 PV_L=${PV##*.}
 if [ ${PV_L} -gt 9000 ] ; then
