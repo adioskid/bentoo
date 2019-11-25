@@ -25,7 +25,7 @@ RDEPEND="
 		sys-libs/zlib[${MULTILIB_USEDEP}]
 		virtual/jpeg:0=[${MULTILIB_USEDEP}]
 		>=x11-libs/gtk+-2.18:2[${MULTILIB_USEDEP}]
-		x11-libs/gdk-pixbuf[${MULTILIB_USEDEP}]
+		x11-libs/gdk-pixbuf
 		x11-libs/libSM[${MULTILIB_USEDEP}]
 		x11-libs/libXxf86vm[${MULTILIB_USEDEP}]
 		x11-libs/pango[${MULTILIB_USEDEP}]

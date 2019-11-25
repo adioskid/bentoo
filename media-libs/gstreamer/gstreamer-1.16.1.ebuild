@@ -34,10 +34,6 @@ DEPEND="${RDEPEND}
 "
 # gtk-doc-am to install API docs
 
-PATCHES=(
-	"${FILESDIR}"/1.14-glib-2.60-tests-compat.patch
-)
-
 src_configure() {
 	if [[ ${CHOST} == *-interix* ]] ; then
 		export ac_cv_lib_dl_dladdr=no
