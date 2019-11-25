@@ -29,7 +29,7 @@ RDEPEND="
 		media-libs/libpng:0=[${MULTILIB_USEDEP}]
 		sys-libs/zlib[${MULTILIB_USEDEP}]
 		virtual/jpeg:0=[${MULTILIB_USEDEP}]
-		x11-libs/cairo[${MULTILIB_USEDEP}]
+		x11-libs/cairo
 		x11-libs/gtk+:3[${MULTILIB_USEDEP}]
 		x11-libs/gdk-pixbuf[${MULTILIB_USEDEP}]
 		x11-libs/libSM[${MULTILIB_USEDEP}]
