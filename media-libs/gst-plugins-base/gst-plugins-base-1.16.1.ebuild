@@ -10,7 +10,7 @@ DESCRIPTION="Basepack of plugins for gstreamer"
 HOMEPAGE="https://gstreamer.freedesktop.org/"
 
 LICENSE="GPL-2+ LGPL-2+"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sh ~sparc ~x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
 
 # For OpenGL we have three separate concepts, with a list of possibilities in each:
 #  * opengl APIs - opengl and/or gles2; USE=opengl and USE=gles2 enable these accordingly; if neither is enabled, OpenGL helper library and elements are not built at all and all the other options aren't relevant
@@ -43,7 +43,7 @@ REQUIRED_USE="
 # Dependencies needed by opengl library and plugin (enabled via USE gles2 and/or opengl)
 # dmabuf automagic from libdrm headers (drm_fourcc.h) and EGL, so ensure it with USE=egl (platform independent header used only, thus no MULTILIB_USEDEP); provides dmabuf based upload/download/eglimage options
 GL_DEPS="
-	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland]
+	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland?]
 	egl? (
 		x11-libs/libdrm
 	)
@@ -55,15 +55,15 @@ GL_DEPS="
 		dev-libs/wayland[${MULTILIB_USEDEP}]
 	)
 
+	>=media-libs/graphene-1.4.0[${MULTILIB_USEDEP}]
 	media-libs/libpng:0[${MULTILIB_USEDEP}]
 	virtual/jpeg:0[${MULTILIB_USEDEP}]
 " # graphene for optional gltransformation and glvideoflip elements and more GLSL Uniforms support in glshader; libpng/jpeg for gloverlay element
-# >=media-libs/graphene-1.4.0[${MULTILIB_USEDEP}]
 
 RDEPEND="
 	app-text/iso-codes
-	>=dev-libs/glib-2.40.0:2
-	>=media-libs/gstreamer-${PV}:1.0[introspection?]
+	>=dev-libs/glib-2.40.0:2[${MULTILIB_USEDEP}]
+	>=media-libs/gstreamer-${PV}:1.0[introspection?,${MULTILIB_USEDEP}]
 	>=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}]
 	alsa? ( >=media-libs/alsa-lib-1.0.27.2[${MULTILIB_USEDEP}] )
 	introspection? ( >=dev-libs/gobject-introspection-1.31.1:= )
