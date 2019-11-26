@@ -8,8 +8,10 @@ VIRTUALX_REQUIRED="test"
 PYTHON_COMPAT=( python3_{6,7} )
 inherit kde5 python-single-r1
 
+PV_R="${PV}[:-2]"
+
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	SRC_URI="mirror://kde/stable/${PN}/${PV}/${P}.tar.xz"
+	SRC_URI="mirror://kde/stable/${PN}/PV_R/${P}.tar.xz"
 	KEYWORDS="amd64 ~x86"
 fi
 
