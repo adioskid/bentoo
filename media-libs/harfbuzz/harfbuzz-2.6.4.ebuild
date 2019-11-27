@@ -15,7 +15,7 @@ if [[ ${PV} = 9999 ]] ; then
 	inherit git-r3 autotools
 else
 	SRC_URI="https://www.freedesktop.org/software/${PN}/release/${P}.tar.xz"
-	KEYWORDS="alpha amd64 ~arm arm64 ~hppa ia64 ~mips ppc ppc64 s390 ~sh sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+	KEYWORDS="alpha amd64 arm arm64 ~hppa ia64 ~mips ppc ppc64 s390 ~sh sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 fi
 
 LICENSE="Old-MIT ISC icu"
@@ -26,7 +26,7 @@ REQUIRED_USE="introspection? ( glib )"
 
 RDEPEND="
 	cairo? ( x11-libs/cairo:= )
-	glib? ( >=dev-libs/glib-2.38:2 )
+	glib? ( >=dev-libs/glib-2.38:2[${MULTILIB_USEDEP}] )
 	graphite? ( >=media-gfx/graphite2-1.2.1:=[${MULTILIB_USEDEP}] )
 	icu? ( >=dev-libs/icu-51.2-r1:=[${MULTILIB_USEDEP}] )
 	introspection? ( >=dev-libs/gobject-introspection-1.34:= )
