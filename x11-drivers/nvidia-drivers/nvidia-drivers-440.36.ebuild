@@ -68,7 +68,7 @@ if [ ${PV%%.*} -ge 384 ] ; then
 			glvnd? ( >=media-libs/libglvnd-1.0.0.20180424 )
 		)
 	"
-	RDEPEND="wayland? ( dev-libs/wayland[${MULTILIB_USEDEP}] )"
+	RDEPEND="wayland? ( dev-libs/wayland )"
 fi
 
 DEPEND="
@@ -82,14 +82,13 @@ RDEPEND="
 	acpi? ( sys-power/acpid )
 	X? (
 		<x11-base/xorg-server-1.20.99:=
-		>=x11-libs/libX11-1.6.2[${MULTILIB_USEDEP}]
-		>=x11-libs/libXext-1.3.2[${MULTILIB_USEDEP}]
-		>=x11-libs/libvdpau-1.0[${MULTILIB_USEDEP}]
-		sys-libs/zlib[${MULTILIB_USEDEP}]
+		>=x11-libs/libX11-1.6.2
+		>=x11-libs/libXext-1.3.2
+		>=x11-libs/libvdpau-1.0
+		sys-libs/zlib
+		x11-libs/gtk+:3
 	)
 "
-
-
 
 S="${WORKDIR}/"
 
@@ -475,7 +474,9 @@ src_install() {
 
 	# If 'tools' flag is enabled, link nvidia-settings utility into /usr/bin, install an xinitrc.d file to start it, and link it's desktop file.
 	if use tools; then
-		[ -f "${D}${NV_ROOT}/bin/nvidia-settings" ] && dosym "${NV_ROOT}/bin/nvidia-settings" "/usr/bin/nvidia-settings"
+		for tool in settings xconfig; do
+			[ -f "${D}${NV_ROOT}/bin/nvidia-${tool}" ] && dosym "${NV_ROOT}/bin/nvidia-${tool}" "/usr/bin/nvidia-${tool}"
+		done
 		exeinto /etc/X11/xinit/xinitrc.d
 		newexe "${FILESDIR}"/95-nvidia-settings.xinitrc 95-nvidia-settings
 		dosym "${NV_ROOT}/share/applications/nvidia-settings.desktop" "/usr/share/applications/nvidia-settings.desktop"
@@ -533,6 +534,12 @@ src_install() {
 	# Run fixups specific to this driver (defined at top)
 	nv_do_fixups
 
+	for x in ${D}/${NV_ROOT}/share/man/man1/*; do
+		gzip -d $x
+		doman ${x%.gz}
+	done
+	rm -rf ${D}/${NV_ROOT}/share/man || die
+
 }
 
 
@@ -569,7 +576,7 @@ pkg_postinst() {
 }
 
 pkg_prerm() {
-	 ! use_if_iuse glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
+	! use_if_iuse glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
 }
 
 pkg_postrm() {
