@@ -7,8 +7,14 @@ inherit desktop systemd xdg-utils
 
 DESCRIPTION="Feature rich multi-platform remote desktop application"
 HOMEPAGE="https://anydesk.com"
-SRC_URI="amd64? ( https://download.anydesk.com/linux/${P}-amd64.tar.gz )
-	x86? ( https://download.anydesk.com/linux/${P}-i386.tar.gz )"
+SRC_URI="amd64? (
+	https://download.anydesk.com/linux/${P}-amd64.tar.gz
+	https://download.anydesk.com/linux/generic-linux/${P}-amd64.tar.gz
+)
+x86? (
+	https://download.anydesk.com/linux/${P}-i386.tar.gz
+	https://download.anydesk.com/linux/generic-linux/${P}-i386.tar.gz
+)"
 
 # OpeSSL/SSLeay, libvpx, zlib, Xiph, xxHash
 LICENSE="AnyDesk-TOS BSD BSD-2 openssl ZLIB"
@@ -30,15 +36,17 @@ RDEPEND="
 	x11-libs/libICE
 	x11-libs/libSM
 	x11-libs/libX11
+	x11-libs/libxcb
 	x11-libs/libXdamage
 	x11-libs/libXext
 	x11-libs/libXfixes
 	x11-libs/libXi
+	x11-libs/libxkbfile
 	x11-libs/libXmu
 	x11-libs/libXrandr
+	x11-libs/libXrender
 	x11-libs/libXt
 	x11-libs/libXtst
-	x11-libs/libxcb
 	x11-libs/pango
 	x11-libs/pangox-compat
 "
