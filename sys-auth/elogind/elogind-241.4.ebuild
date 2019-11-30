@@ -9,7 +9,7 @@ if [[ ${PV} = *9999* ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://github.com/${PN}/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+	KEYWORDS="~alpha amd64 ~arm arm64 ~ia64 ~ppc ~ppc64 ~sparc x86"
 fi
 
 inherit linux-info meson pam udev xdg-utils
@@ -48,7 +48,10 @@ PDEPEND="
 
 DOCS=( NEWS README.md src/libelogind/sd-bus/GVARIANT-SERIALIZATION )
 
-PATCHES=( "${FILESDIR}/${P}-nodocs.patch" )
+PATCHES=(
+	"${FILESDIR}/${P}-nodocs.patch"
+	"${FILESDIR}/${P}-broken-test.patch" # bug 699116
+)
 
 pkg_setup() {
 	local CONFIG_CHECK="~CGROUPS ~EPOLL ~INOTIFY_USER ~SIGNALFD ~TIMERFD"

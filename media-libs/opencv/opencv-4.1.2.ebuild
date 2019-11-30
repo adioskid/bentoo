@@ -67,8 +67,8 @@ RDEPEND="
 		media-libs/gst-plugins-base:1.0[${MULTILIB_USEDEP}]
 	)
 	gtk? (
-		dev-libs/glib:2[${MULTILIB_USEDEP}]
-		x11-libs/gtk+:3[${MULTILIB_USEDEP}]
+		dev-libs/glib:2
+		x11-libs/gtk+:3
 	)
 	ieee1394? (
 		media-libs/libdc1394[${MULTILIB_USEDEP}]
@@ -228,8 +228,6 @@ MULTILIB_WRAPPED_HEADERS=(
 PATCHES=(
 	"${FILESDIR}/${PN}-3.0.0-gles.patch"
 	"${FILESDIR}/${PN}-3.4.0-disable-download.patch"
-	"${FILESDIR}/${PN}-3.4.1-python-lib-suffix-hack.patch"
-	"${FILESDIR}/${PN}-3.4.1-cuda-add-relaxed-constexpr.patch"
 )
 
 pkg_pretend() {
