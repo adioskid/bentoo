@@ -10,7 +10,7 @@ HOMEPAGE="https://phonon.kde.org/"
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
 	SRC_URI="mirror://kde/stable/phonon/${PV}/${P}.tar.xz"
-	KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
+	KEYWORDS="amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 LICENSE="|| ( LGPL-2.1 LGPL-3 ) !pulseaudio? ( || ( GPL-2 GPL-3 ) )"
@@ -41,14 +41,13 @@ src_configure() {
 		-DPHONON_BUILD_DESIGNER_PLUGIN=$(usex designer)
 		-DCMAKE_DISABLE_FIND_PACKAGE_GLIB2=$(usex !pulseaudio)
 		-DCMAKE_DISABLE_FIND_PACKAGE_PulseAudio=$(usex !pulseaudio)
-		-DPHONON_BUILD_SETTINGS=$(usex !pulseaudio)
+		-DPHONON_BUILD_SETTINGS=ON
 	)
 	ecm_src_configure
 }
 
 src_install() {
 	ecm_src_install
-	use pulseaudio || \
-		make_desktop_entry "${PN}settings" \
-			"Phonon Audio and Video" preferences-desktop-sound
+	make_desktop_entry "${PN}settings" \
+		"Phonon Audio and Video" preferences-desktop-sound
 }
