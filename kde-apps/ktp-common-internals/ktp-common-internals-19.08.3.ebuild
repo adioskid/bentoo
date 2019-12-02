@@ -14,7 +14,7 @@ HOMEPAGE="https://community.kde.org/Real-Time_Communication_and_Collaboration"
 
 LICENSE="LGPL-2.1"
 SLOT="5"
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="amd64 ~arm64 ~x86"
 IUSE="otr +sso"
 
 RDEPEND="
@@ -55,6 +55,8 @@ DEPEND="${RDEPEND}
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=dev-qt/qtnetwork-${QTMIN}:5
 "
+
+PATCHES=( "${FILESDIR}/${P}-telepathy-0.9.8.patch" )
 
 src_configure() {
 	local mycmakeargs=(
