@@ -7,12 +7,12 @@ inherit autotools libtool pam
 
 DESCRIPTION="Utilities to deal with user accounts"
 HOMEPAGE="https://github.com/shadow-maint/shadow"
-SRC_URI="https://github.com/shadow-maint/shadow/releases/download/${PV}/${P}.tar.gz"
+SRC_URI="https://github.com/shadow-maint/shadow/releases/download/${PV}/${P}.tar.xz"
 
 LICENSE="BSD GPL-2"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
-IUSE="acl audit +cracklib nls pam selinux skey split-usr +su xattr"
+IUSE="acl audit bcrypt +cracklib nls pam selinux skey split-usr +su xattr"
 # Taken from the man/Makefile.am file.
 LANGS=( cs da de es fi fr hu id it ja ko pl pt_BR ru sv tr zh_CN zh_TW )
 
@@ -32,7 +32,7 @@ DEPEND="
 "
 BDEPEND="
 	app-arch/xz-utils
-	nls? ( sys-devel/gettext )
+	sys-devel/gettext
 "
 RDEPEND="
 	${DEPEND}
@@ -41,7 +41,7 @@ RDEPEND="
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.1.3-dots-in-usernames.patch"
-	"${FILESDIR}/${PN}-4.7-optional_su.patch"
+	"${FILESDIR}/shadow-4.8-revert-bin-merge.patch"
 )
 
 src_prepare() {
@@ -60,6 +60,7 @@ src_configure() {
 		$(use_enable nls)
 		$(use_with acl)
 		$(use_with audit)
+		$(use_with bcrypt)
 		$(use_with cracklib libcrack)
 		$(use_with elibc_glibc nscd)
 		$(use_with pam libpam)
