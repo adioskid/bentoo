@@ -27,7 +27,7 @@ if [[ ${MOZ_ESR} == 1 ]] ; then
 fi
 
 # Patch version
-PATCH="${PN}-70.0-patches-03"
+PATCH="${PN}-71.0-patches-04"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/releases"
 MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.xz"
@@ -42,7 +42,7 @@ LLVM_MAX_SLOT=9
 
 inherit check-reqs eapi7-ver flag-o-matic toolchain-funcs eutils \
 		gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
-		autotools mozlinguas-v2 virtualx multiprocessing eapi7-ver
+		autotools mozlinguas-v2 virtualx eapi7-ver
 
 DESCRIPTION="Firefox Web Browser"
 HOMEPAGE="https://www.mozilla.com/firefox"
@@ -52,8 +52,8 @@ KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="bindist clang cpu_flags_x86_avx2 debug eme-free geckodriver
-	+gmp-autoupdate hardened hwaccel jack lto neon pgo pulseaudio
-	+screenshot selinux startup-notification +system-av1
+	+gmp-autoupdate hardened hwaccel jack lto cpu_flags_arm_neon pgo
+	pulseaudio +screenshot selinux startup-notification +system-av1
 	+system-harfbuzz +system-icu +system-jpeg +system-libevent
 	+system-sqlite +system-libvpx +system-webp test wayland wifi"
 
@@ -68,8 +68,8 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.46.1
-	>=dev-libs/nspr-4.22
+	>=dev-libs/nss-3.47.1
+	>=dev-libs/nspr-4.23
 	dev-libs/atk
 	dev-libs/expat
 	>=x11-libs/cairo-1.10[X]
@@ -267,16 +267,8 @@ src_prepare() {
 	eapply "${WORKDIR}/firefox"
 	eapply "${FILESDIR}/${PN}-69.0-lto-gcc-fix.patch"
 
-	eapply "${FILESDIR}"/${PN}-70.0.1-rust-1.39+.patch
-
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
-
-	local n_jobs=$(makeopts_jobs)
-	if [[ ${n_jobs} == 1 ]]; then
-		einfo "Building with MAKEOPTS=-j1 is known to fail (bug #687028); Forcing MAKEOPTS=-j2 ..."
-		export MAKEOPTS=-j2
-	fi
 
 	# Enable gnomebreakpad
 	if use debug ; then
@@ -462,7 +454,7 @@ src_configure() {
 	fi
 
 	# Modifications to better support ARM, bug 553364
-	if use neon ; then
+	if use cpu_flags_arm_neon ; then
 		mozconfig_annotate '' --with-fpu=neon
 
 		if ! tc-is-clang ; then
@@ -471,6 +463,7 @@ src_configure() {
 			mozconfig_annotate '' --with-thumb-interwork=no
 		fi
 	fi
+
 	if [[ ${CHOST} == armv*h* ]] ; then
 		mozconfig_annotate '' --with-float-abi=hard
 		if ! use system-libvpx ; then
@@ -566,7 +559,7 @@ src_configure() {
 	# when they would normally be larger than 2GiB.
 	append-ldflags "-Wl,--compress-debug-sections=zlib"
 
-	if use clang ; then
+	if use clang && ! use arm64; then
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1482204
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1483822
 		mozconfig_annotate 'elf-hack is broken when using Clang' --disable-elf-hack
