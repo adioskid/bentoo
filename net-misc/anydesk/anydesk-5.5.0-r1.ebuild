@@ -3,18 +3,18 @@
 
 EAPI="7"
 
-inherit desktop systemd xdg-utils
+inherit desktop eutils systemd xdg-utils
 
 DESCRIPTION="Feature rich multi-platform remote desktop application"
 HOMEPAGE="https://anydesk.com"
 SRC_URI="amd64? (
-	https://download.anydesk.com/linux/${P}-amd64.tar.gz
-	https://download.anydesk.com/linux/generic-linux/${P}-amd64.tar.gz
-)
-x86? (
-	https://download.anydesk.com/linux/${P}-i386.tar.gz
-	https://download.anydesk.com/linux/generic-linux/${P}-i386.tar.gz
-)"
+		https://download.anydesk.com/linux/${P}-amd64.tar.gz
+		https://download.anydesk.com/linux/generic-linux/${P}-amd64.tar.gz
+	)
+	x86? (
+		https://download.anydesk.com/linux/${P}-i386.tar.gz
+		https://download.anydesk.com/linux/generic-linux/${P}-i386.tar.gz
+	)"
 
 # OpeSSL/SSLeay, libvpx, zlib, Xiph, xxHash
 LICENSE="AnyDesk-TOS BSD BSD-2 openssl ZLIB"
@@ -99,11 +99,15 @@ pkg_postinst() {
 		elog "Please see README at /usr/share/doc/${PF}/README.bz2 for"
 		elog "further information about the linux version of AnyDesk."
 		elog
-		elog "AnyDesk might require the following commands/packages"
-		elog "for some functions:"
-		elog "* lsb_release	(sys-apps/lsb-release)"
-		elog "* lsusb		(sys-apps/usbutils)"
 	fi
+
+	elog "For querying information about the host PC AnyDesk calls"
+	elog "the following commands. Feel free to install them, but it"
+	elog "should run without as well."
+	elog
+	optfeature "lsb_release" sys-apps/lsb-release
+	optfeature "lspci" sys-apps/pciutils
+	optfeature "lsusb" sys-apps/usbutils
 }
 
 pkg_postrm() {

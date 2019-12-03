@@ -12,14 +12,18 @@ IUSE="udev"
 
 RDEPEND="
 	>=media-libs/libv4l-0.9.5[${MULTILIB_USEDEP}]
-	>=media-libs/gst-plugins-base-${PV}:${SLOT}
-	udev? ( >=virtual/libgudev-208:=[${MULTILIB_USEDEP}] )
+	>=media-libs/gst-plugins-base-${PV}:${SLOT}[${MULTILIB_USEDEP}]
+	udev? ( >=dev-libs/libgudev-208:=[${MULTILIB_USEDEP}] )
 "
 DEPEND="${RDEPEND}
 	virtual/os-headers
 "
 
 GST_PLUGINS_BUILD="gst_v4l2"
+
+PATCHES=(
+	"${FILESDIR}"/${PV}-glibc-2.30-compat.patch #691882
+)
 
 multilib_src_configure() {
 	gstreamer_multilib_src_configure \
