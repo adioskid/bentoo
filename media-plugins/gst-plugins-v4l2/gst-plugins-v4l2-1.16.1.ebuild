@@ -21,10 +21,6 @@ DEPEND="${RDEPEND}
 
 GST_PLUGINS_BUILD="gst_v4l2"
 
-PATCHES=(
-	"${FILESDIR}"/${PV}-glibc-2.30-compat.patch #691882
-)
-
 multilib_src_configure() {
 	gstreamer_multilib_src_configure \
 		--with-libv4l2 \
