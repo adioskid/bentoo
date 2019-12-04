@@ -95,7 +95,7 @@ COMMON_DEPEND="
 		virtual/glu[${MULTILIB_USEDEP}]
 		virtual/opengl[${MULTILIB_USEDEP}]
 	)
-	osmesa? ( >=media-libs/mesa-13[osmesa,${MULTILIB_USEDEP}] )
+	osmesa? ( >=media-libs/mesa-13[osmesa] )
 	pcap? ( net-libs/libpcap[${MULTILIB_USEDEP}] )
 	png? ( media-libs/libpng:0=[${MULTILIB_USEDEP}] )
 	pulseaudio? ( media-sound/pulseaudio[${MULTILIB_USEDEP}] )
