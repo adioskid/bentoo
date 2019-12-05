@@ -36,14 +36,14 @@ LLVM_MAX_SLOT=9
 DESCRIPTION="Thunderbird Mail Client"
 HOMEPAGE="https://www.mozilla.org/thunderbird"
 
-KEYWORDS="amd64 ~ppc64 x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~amd64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="bindist clang cpu_flags_x86_avx2 dbus debug eme-free
-	+gmp-autoupdate hardened jack lightning lto neon pgo pulseaudio
-	 selinux startup-notification +system-av1 +system-harfbuzz +system-icu
-	+system-jpeg +system-libevent +system-sqlite +system-libvpx
-	+system-webp test wayland wifi"
+	+gmp-autoupdate hardened jack lightning lto cpu_flags_arm_neon pgo
+	pulseaudio selinux startup-notification +system-av1 +system-harfbuzz
+	+system-icu +system-jpeg +system-libevent +system-sqlite
+	+system-libvpx +system-webp test wayland wifi"
 RESTRICT="!bindist? ( bindist )
 	!test? ( test )"
 
@@ -456,7 +456,7 @@ src_configure() {
 	fi
 
 	# Modifications to better support ARM, bug 553364
-	if use neon ; then
+	if use cpu_flags_arm_neon ; then
 		mozconfig_annotate '' --with-fpu=neon
 
 		if ! tc-is-clang ; then
@@ -465,6 +465,7 @@ src_configure() {
 			mozconfig_annotate '' --with-thumb-interwork=no
 		fi
 	fi
+
 	if [[ ${CHOST} == armv*h* ]] ; then
 		mozconfig_annotate '' --with-float-abi=hard
 		if ! use system-libvpx ; then
