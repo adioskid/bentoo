@@ -18,36 +18,36 @@ KEYWORDS="-* ~amd64"
 IUSE="ayatana gnome-keyring"
 RESTRICT="bindist mirror"
 
-RDEPEND="app-accessibility/at-spi2-atk:2[${MULTILIB_USEDEP}]
-	dev-libs/atk:0[${MULTILIB_USEDEP}]
-	dev-libs/expat:0[${MULTILIB_USEDEP}]
-	dev-libs/glib:2[${MULTILIB_USEDEP}]
-	dev-libs/nspr:0[${MULTILIB_USEDEP}]
-	dev-libs/nss:0[${MULTILIB_USEDEP}]
-	media-libs/alsa-lib:0[${MULTILIB_USEDEP}]
-	media-libs/mesa:0[${MULTILIB_USEDEP}]
-	net-print/cups:0[${MULTILIB_USEDEP}]
-	sys-apps/dbus:0[${MULTILIB_USEDEP}]
-	sys-apps/util-linux:0[${MULTILIB_USEDEP}]
-	x11-libs/cairo:0[${MULTILIB_USEDEP}]
-	x11-libs/gdk-pixbuf:2[${MULTILIB_USEDEP}]
-	x11-libs/gtk+:3[${MULTILIB_USEDEP}]
-	x11-libs/libX11:0[${MULTILIB_USEDEP}]
-	x11-libs/libxcb:0/1.12[${MULTILIB_USEDEP}]
-	x11-libs/libXcomposite:0[${MULTILIB_USEDEP}]
-	x11-libs/libXcursor:0[${MULTILIB_USEDEP}]
-	x11-libs/libXdamage:0[${MULTILIB_USEDEP}]
-	x11-libs/libXext:0[${MULTILIB_USEDEP}]
-	x11-libs/libXfixes:0[${MULTILIB_USEDEP}]
-	x11-libs/libXi:0[${MULTILIB_USEDEP}]
-	x11-libs/libxkbfile:0[${MULTILIB_USEDEP}]
-	x11-libs/libXrandr:0[${MULTILIB_USEDEP}]
-	x11-libs/libXrender:0[${MULTILIB_USEDEP}]
-	x11-libs/libXScrnSaver:0[${MULTILIB_USEDEP}]
-	x11-libs/libXtst:0[${MULTILIB_USEDEP}]
-	x11-libs/pango:0[${MULTILIB_USEDEP}]
-	ayatana? ( dev-libs/libappindicator:3[${MULTILIB_USEDEP}] )
-	gnome-keyring? ( app-crypt/libsecret:0[${MULTILIB_USEDEP}] )"
+RDEPEND="app-accessibility/at-spi2-atk:2
+	dev-libs/atk:0
+	dev-libs/expat:0
+	dev-libs/glib:2
+	dev-libs/nspr:0
+	dev-libs/nss:0
+	media-libs/alsa-lib:0
+	media-libs/mesa:0
+	net-print/cups:0
+	sys-apps/dbus:0
+	sys-apps/util-linux:0
+	x11-libs/cairo:0
+	x11-libs/gdk-pixbuf:2
+	x11-libs/gtk+:3
+	x11-libs/libX11:0
+	x11-libs/libxcb:0/1.12
+	x11-libs/libXcomposite:0
+	x11-libs/libXcursor:0
+	x11-libs/libXdamage:0
+	x11-libs/libXext:0
+	x11-libs/libXfixes:0
+	x11-libs/libXi:0
+	x11-libs/libxkbfile:0
+	x11-libs/libXrandr:0
+	x11-libs/libXrender:0
+	x11-libs/libXScrnSaver:0
+	x11-libs/libXtst:0
+	x11-libs/pango:0
+	ayatana? ( dev-libs/libappindicator:3 )
+	gnome-keyring? ( app-crypt/libsecret:0 )"
 
 QA_PREBUILT="/opt/slack/chrome-sandbox
 	opt/slack/slack
