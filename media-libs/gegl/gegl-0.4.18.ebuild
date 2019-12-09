@@ -15,7 +15,7 @@ if [[ ${PV} == *9999* ]]; then
 	SRC_URI=""
 else
 	SRC_URI="http://download.gimp.org/pub/${PN}/${PV:0:3}/${P}.tar.xz"
-	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
 fi
 
 DESCRIPTION="A graph based image processing framework"
@@ -24,11 +24,14 @@ HOMEPAGE="http://www.gegl.org/"
 LICENSE="|| ( GPL-3+ LGPL-3 )"
 SLOT="0.4"
 
-IUSE="cairo debug ffmpeg introspection lcms lensfun libav openexr pdf raw sdl svg test tiff umfpack vala v4l webp"
+IUSE="cairo debug ffmpeg +introspection lcms lensfun libav openexr pdf raw sdl svg test tiff umfpack vala v4l webp"
 REQUIRED_USE="
 	svg? ( cairo )
+	test? ( introspection )
 	vala? ( introspection )
 "
+
+RESTRICT="!test? ( test )"
 
 # NOTE: Even current libav 11.4 does not have AV_CODEC_CAP_VARIABLE_FRAME_SIZE
 #       so there is no chance to support libav right now (Gentoo bug #567638)
@@ -39,6 +42,7 @@ RDEPEND="
 	>=media-libs/babl-0.1.72[introspection?]
 	media-libs/libnsgif
 	>=media-libs/libpng-1.6.0:0=
+	>=sys-libs/zlib-1.2.0
 	virtual/jpeg:0=
 	>=x11-libs/gdk-pixbuf-2.32:2
 	>=x11-libs/pango-1.38.0
@@ -59,19 +63,19 @@ RDEPEND="
 	umfpack? ( sci-libs/umfpack )
 	v4l? ( >=media-libs/libv4l-1.0.1 )
 	webp? ( >=media-libs/libwebp-0.5.0:= )
-	>=sys-libs/zlib-1.2.0
 "
-DEPEND="${RDEPEND}
+
+DEPEND="
+	${RDEPEND}
+"
+
+BDEPEND="
 	dev-lang/perl
 	>=dev-util/gtk-doc-am-1
 	>=sys-devel/gettext-0.19.8
-	virtual/pkgconfig
 	>=sys-devel/libtool-2.2
-	test? ( ffmpeg? ( media-libs/gexiv2 )
-		introspection? (
-			$(python_gen_any_dep '>=dev-python/pygobject-3.2[${PYTHON_USEDEP}]')
-		)
-	)
+	virtual/pkgconfig
+	test? ( $(python_gen_any_dep '>=dev-python/pygobject-3.2:3[${PYTHON_USEDEP}]') )
 	vala? ( $(vala_depend) )
 "
 
@@ -83,8 +87,12 @@ PATCHES=(
 	"${FILESDIR}"/${P}-meson_cpu_detection.patch
 )
 
+python_check_deps() {
+	has_version -b ">=dev-python/pygobject-3.2:3[${PYTHON_USEDEP}]"
+}
+
 pkg_setup() {
-	use test && use introspection && python-any-r1_pkg_setup
+	use test && python-any-r1_pkg_setup
 }
 
 src_prepare() {
@@ -100,6 +108,12 @@ src_prepare() {
 		-e '/composite-transform.xml/d' \
 		-i tests/compositions/meson.build || die
 
+	# fix skipping mipmap tests due to executable not found
+	for item in "invert-crop.sh" "invert.sh" "rotate-crop.sh" "rotate.sh" "unsharp-crop.sh" "unsharp.sh"; do
+		sed -i "s:/bin/gegl:/bin/gegl-0.4:g" "${S}/tests/mipmap/${item}" || die
+		sed -i "s:/tools/gegl-imgcmp:/tools/gegl-imgcmp-0.4:g" "${S}/tests/mipmap/${item}" || die
+	done
+
 	gnome2_environment_reset
 
 	use vala && vala_src_prepare
@@ -107,13 +121,9 @@ src_prepare() {
 
 src_configure() {
 	local emesonargs=(
-		# disable documentation as the generating is bit automagic
+		#  - Disable documentation as the generating is bit automagic
 		#    if anyone wants to work on it just create bug with patch
 		-Ddocs=false
-		#  - Parameter -Dworkshop=false disables any use of Lua, effectivly
-		-Dworkshop=false
-		$(meson_use introspection)
-
 		-Dexiv2=disabled
 		-Dgdk-pixbuf=enabled
 		-Dgexiv2=disabled
@@ -121,32 +131,35 @@ src_configure() {
 		#    which toggles HAVE_GRAPHVIZ that is not used anywhere.  Yes.
 		-Dgraphviz=disabled
 		-Djasper=disabled
-		$(meson_feature lcms)
-		$(meson_feature lensfun)
-		$(meson_feature ffmpeg libav)
 		-Dlibjpeg=enabled
 		-Dlibpng=enabled
-		$(meson_feature raw libraw)
-		$(meson_feature svg librsvg)
-		# libspiro: not in portage main tree
+		#  - libspiro: not in portage main tree
 		-Dlibspiro=disabled
+		-Dlua=disabled
+		-Dmrg=disabled
+		-Dpango=enabled
+		-Dsdl2=disabled
+		#  - Parameter -Dworkshop=false disables any use of Lua, effectivly
+		-Dworkshop=false
+		$(meson_feature cairo)
+		$(meson_feature cairo pangocairo)
+		$(meson_feature ffmpeg libav)
+		$(meson_feature lcms)
+		$(meson_feature lensfun)
+		$(meson_feature openexr)
+		$(meson_feature raw libraw)
+		$(meson_feature sdl sdl1)
+		$(meson_feature svg librsvg)
+		$(meson_feature test pygobject)
 		$(meson_feature tiff libtiff)
+		$(meson_feature umfpack)
 		#  - v4l support does not work with our media-libs/libv4l-0.8.9,
 		#    upstream bug at https://bugzilla.gnome.org/show_bug.cgi?id=654675
 		$(meson_feature v4l libv4l)
 		$(meson_feature v4l libv4l2)
-		-Dlua=disabled
-		-Dmrg=disabled
-		$(meson_feature openexr)
-		$(meson_feature cairo)
-		-Dpango=enabled
-		$(meson_feature cairo pangocairo)
-		$(meson_feature introspection pygobject)
-		$(meson_feature sdl sdl1)
-		-Dsdl2=disabled
-		$(meson_feature umfpack)
 		$(meson_feature vala vapigen)
 		$(meson_feature webp)
+		$(meson_use introspection)
 	)
 	meson_src_configure
 }
