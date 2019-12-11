@@ -8,7 +8,7 @@ ansi_term-0.11.0
 atty-0.2.11
 autocfg-0.1.4
 bitflags-1.1.0
-cbindgen-0.10.1
+cbindgen-0.11.1
 cfg-if-0.1.9
 clap-2.33.0
 cloudabi-0.0.3

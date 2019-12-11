@@ -100,21 +100,16 @@ RDEPEND="${COMMON_DEPEND}
 	selinux? ( sec-policy/selinux-exim )
 	"
 
-PATCHES=(
-	"${FILESDIR}"/exim-4.69-r1.27021.patch
-	"${FILESDIR}"/exim-4.92-localscan_dlopen.patch
-)
-
 S=${WORKDIR}/${P//rc/RC}
 
 src_prepare() {
 	# Legacy patches which need a respin for -p1
 	eapply -p0 "${FILESDIR}"/exim-4.14-tail.patch
 	eapply -p0 "${FILESDIR}"/exim-4.74-radius-db-ENV-clash.patch # 287426
-	eapply -p0 "${FILESDIR}"/exim-4.82-makefile-freebsd.patch # 235785
-	eapply -p0 "${FILESDIR}"/exim-4.89-as-needed-ldflags.patch # 352265, 391279
+	eapply     "${FILESDIR}"/exim-4.93-as-needed-ldflags.patch # 352265, 391279
 	eapply -p0 "${FILESDIR}"/exim-4.76-crosscompile.patch # 266591
-	eapply -p2 "${FILESDIR}"/exim-4.92-fix-eval-expansion-32bit.patch #687554
+	eapply     "${FILESDIR}"/exim-4.69-r1.27021.patch
+	eapply     "${FILESDIR}"/exim-4.93-localscan_dlopen.patch
 
 	if use maildir ; then
 		eapply "${FILESDIR}"/exim-4.20-maildir.patch
@@ -122,7 +117,7 @@ src_prepare() {
 		eapply -p0 "${FILESDIR}"/exim-4.80-spool-mail-group.patch # 438606
 	fi
 
-	default
+	eapply_user
 
 	# user Exim believes it should be
 	MAILUSER=mail
@@ -340,14 +335,17 @@ src_configure() {
 
 	# starttls support (ssl)
 	if use ssl; then
-		echo "SUPPORT_TLS=yes" >> Makefile
 		if use gnutls; then
 			echo "USE_GNUTLS=yes" >> Makefile
-			echo "USE_GNUTLS_PC=gnutls" >> Makefile
+			echo "USE_GNUTLS_PC=gnutls $(use dane && echo gnutls-dane)" \
+				>> Makefile
 			use pkcs11 || echo "AVOID_GNUTLS_PKCS11=yes" >> Makefile
 		else
+			echo "USE_OPENSSL=yes" >> Makefile
 			echo "USE_OPENSSL_PC=openssl" >> Makefile
 		fi
+	else
+		echo "DISABLE_TLS=yes" >> Makefile
 	fi
 
 	# TCP wrappers
@@ -487,8 +485,7 @@ src_configure() {
 
 src_compile() {
 	emake CC="$(tc-getCC)" HOSTCC="$(tc-getBUILD_CC)" \
-		AR="$(tc-getAR) cq" RANLIB="$(tc-getRANLIB)" FULLECHO='' \
-		|| die "make failed"
+		AR="$(tc-getAR) cq" RANLIB="$(tc-getRANLIB)" FULLECHO=''
 }
 
 src_install () {
