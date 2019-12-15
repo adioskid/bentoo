@@ -113,6 +113,7 @@ multilib_src_configure() {
 		$(use_with idn)
 		$(use_with pkcs11 p11-kit)
 		--disable-rpath
+		--with-default-trust-store-file="${EPREFIX}/etc/ssl/certs/ca-certificates.crt"
 		--with-unbound-root-key-file="${EPREFIX}/etc/dnssec/root-anchors.txt"
 		--without-included-libtasn1
 		$("${S}/configure" --help | grep -o -- '--without-.*-prefix')
