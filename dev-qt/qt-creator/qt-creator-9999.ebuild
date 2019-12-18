@@ -24,18 +24,21 @@ else
 	S=${WORKDIR}/${MY_P}
 fi
 
-# TODO: unbundle sqlite and KSyntaxHighlighting
+# TODO: unbundle sqlite, yaml-cpp, and KSyntaxHighlighting
 
-QTC_PLUGINS=(android +autotest baremetal bazaar beautifier
+QTC_PLUGINS=(android +autotest baremetal bazaar beautifier boot2qt
 	'+clang:clangcodemodel|clangformat|clangpchmanager|clangrefactoring|clangtools' clearcase
-	cmake:cmakeprojectmanager cppcheck cvs +designer git glsl:glsleditor +help ios lsp:languageclient
-	mercurial modeling:modeleditor nim perforce perfprofiler python:pythoneditor qbs:qbsprojectmanager
-	+qmldesigner qmlprofiler qnx remotelinux scxml:scxmleditor serialterminal silversearcher subversion
-	valgrind winrt)
+	cmake:cmakeprojectmanager cppcheck ctfvisualizer cvs +designer git glsl:glsleditor +help ios
+	lsp:languageclient mcu:mcusupport mercurial modeling:modeleditor nim perforce perfprofiler python
+	qbs:qbsprojectmanager +qmldesigner qmlprofiler qnx remotelinux scxml:scxmleditor serialterminal
+	silversearcher subversion valgrind webassembly winrt)
 IUSE="doc systemd test +webengine ${QTC_PLUGINS[@]%:*}"
 RESTRICT="!test? ( test )"
 REQUIRED_USE="
+	boot2qt? ( remotelinux )
 	clang? ( test? ( qbs ) )
+	mcu? ( cmake )
+	python? ( lsp )
 	qnx? ( remotelinux )
 "
 
@@ -130,7 +133,7 @@ src_prepare() {
 	fi
 	if ! use perfprofiler; then
 		rm -rf src/tools/perfparser || die
-		if ! use qmlprofiler; then
+		if ! use ctfvisualizer && ! use qmlprofiler; then
 			sed -i -e '/tracing/d' src/libs/libs.pro tests/auto/auto.pro || die
 		fi
 	fi

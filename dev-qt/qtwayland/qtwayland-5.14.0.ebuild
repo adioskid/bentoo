@@ -26,12 +26,7 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
-PATCHES=(
-	"${FILESDIR}/${P}-fix-touch-ignored.patch" # QTBUG-79744
-	"${FILESDIR}/${P}-fix-crash.patch" # QTBUG-79674
-	# Pending upstream:
-	"${FILESDIR}/${P}-fix-linuxdmabuf-build.patch" # bug 699190, QTBUG-79709
-)
+PATCHES=( "${FILESDIR}/${PN}-5.13.2-fix-linuxdmabuf-build.patch" )
 
 src_prepare() {
 	qt_use_disable_config libinput xkbcommon-evdev \

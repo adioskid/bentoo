@@ -27,11 +27,6 @@ RDEPEND="${DEPEND}
 	!<dev-qt/qtquickcontrols-5.7:5
 "
 
-PATCHES=(
-	"${FILESDIR}/${P}-read-QQmlPropertyMap-correctly.patch" # QTBUG-79614
-	"${FILESDIR}/${P}-fix-deadlock-on-exit.patch" # QTBUG-79573
-)
-
 src_prepare() {
 	use jit || PATCHES+=("${FILESDIR}/${PN}-5.4.2-disable-jit.patch")
 
