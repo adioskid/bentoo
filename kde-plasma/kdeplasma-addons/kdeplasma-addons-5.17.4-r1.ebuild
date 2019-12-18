@@ -51,6 +51,8 @@ RDEPEND="${DEPEND}
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
 "
 
+PATCHES=( "${FILESDIR}"/${P}-weather-applet-size-regression.patch )
+
 src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package share KF5Purpose)

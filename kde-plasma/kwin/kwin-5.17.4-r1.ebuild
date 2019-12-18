@@ -91,6 +91,8 @@ PDEPEND="
 
 RESTRICT+=" test"
 
+PATCHES=( "${FILESDIR}"/${P}-possible-kdecoration-crash-in-systemsettings.patch )
+
 src_prepare() {
 	ecm_src_prepare
 	use multimedia || eapply "${FILESDIR}/${PN}-5.16.80-gstreamer-optional.patch"

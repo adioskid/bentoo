@@ -45,3 +45,5 @@ RDEPEND="${DEPEND}
 
 # requires running kde environment
 RESTRICT+=" test"
+
+PATCHES=( "${FILESDIR}"/${P}-fix-filedialog-size.patch )
