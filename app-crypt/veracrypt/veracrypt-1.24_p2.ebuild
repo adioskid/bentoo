@@ -6,13 +6,13 @@ inherit eutils linux-info pax-utils toolchain-funcs wxwidgets
 
 DESCRIPTION="Disk encryption with strong security based on TrueCrypt"
 HOMEPAGE="https://www.veracrypt.fr/en/Home.html"
-SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_${PV}.tar.gz"
+SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_1.24-Update2.tar.gz -> ${P}.tar.gz"
 
 # The modules not linked against in Linux include (but not limited to):
-#   libzip, chacha-xmm, chacha256, chachaRng, jitterentropy, rdrand, t1ha2
+#   libzip, chacha-xmm, chacha256, chachaRng, rdrand, t1ha2
 # Tested by actually removing the source files and performing a build
-# For this reason, We don't have to worry about their licenses
-LICENSE="Apache-2.0 truecrypt-3.0"
+# For this reason, we don't have to worry about their licenses
+LICENSE="Apache-2.0 BSD truecrypt-3.0"
 SLOT="0"
 KEYWORDS="~amd64"
 IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doc X"
@@ -33,7 +33,7 @@ DEPEND="
 	asm? ( dev-lang/yasm )
 "
 
-S="${WORKDIR}/VeraCrypt-VeraCrypt_${PV}/src"
+S="${WORKDIR}/VeraCrypt-VeraCrypt_1.24-Update2/src"
 
 pkg_setup() {
 	local CONFIG_CHECK="~BLK_DEV_DM ~CRYPTO ~CRYPTO_XTS ~DM_CRYPT ~FUSE_FS"
@@ -43,6 +43,9 @@ pkg_setup() {
 }
 
 src_prepare() {
+	# 1.24_p2 breaks the compilation against wxGTK[-X]
+	# See: https://github.com/veracrypt/VeraCrypt/issues/531
+	eapply -p2 "${FILESDIR}"/${PN}-1.24_p2-revert-wxwidgets-breakage.patch
 	eapply -p2 "${FILESDIR}"/${PN}-1.24-no-gui-fix.patch
 	default
 }
