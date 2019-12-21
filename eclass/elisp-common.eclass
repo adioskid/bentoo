@@ -1,4 +1,4 @@
-# Copyright 2002-2019 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: elisp-common.eclass
@@ -10,7 +10,6 @@
 # Mamoru Komachi <usata@gentoo.org>
 # Christian Faulhammer <fauli@gentoo.org>
 # Ulrich Müller <ulm@gentoo.org>
-# @SUPPORTED_EAPIS: 4 5 6 7
 # @BLURB: Emacs-related installation utilities
 # @DESCRIPTION:
 #
@@ -24,26 +23,25 @@
 # When relying on the emacs USE flag, you need to add
 #
 # @CODE
-# 	emacs? ( virtual/emacs )
+# 	emacs? ( >=app-editors/emacs-23.1:* )
 # @CODE
 #
 # to your DEPEND/RDEPEND line and use the functions provided here to
 # bring the files to the correct locations.
 #
-# If your package requires a minimum Emacs version, e.g. Emacs 24, then
-# the dependency should be on >=virtual/emacs-24 instead.  Because the
-# user can select the Emacs executable with eselect, you should also
-# make sure that the active Emacs version is sufficient.  This can be
-# tested with function elisp-need-emacs(), which would typically be
-# called from pkg_setup(), as in the following example:
+# If your package requires a minimum Emacs version, e.g. Emacs 26.1,
+# then the dependency should be on >=app-editors/emacs-26.1:* instead.
+# Because the user can select the Emacs executable with eselect, you
+# should also make sure that the active Emacs version is sufficient.
+# The eclass will automatically ensure this if you assign variable
+# NEED_EMACS with the Emacs version, as in the following example:
 #
 # @CODE
-# 	elisp-need-emacs 24 || die "Emacs version too low"
+# 	NEED_EMACS=26.1
 # @CODE
 #
-# Please note that such tests should be limited to packages that are
-# known to fail with lower Emacs versions; the standard case is to
-# depend on virtual/emacs without version.
+# Please note that this should be done only for packages that are known
+# to fail with lower Emacs versions.
 #
 # @ROFF .SS
 # src_compile() usage:
@@ -135,6 +133,23 @@
 # the differing name as second argument.
 #
 # @ROFF .SS
+# pkg_setup() usage:
+#
+# If your ebuild uses the elisp-compile eclass function to compile
+# its elisp files (see above), then you don't need a pkg_setup phase,
+# because elisp-compile and elisp-make-autoload-file do their own sanity
+# checks.  On the other hand, if the elisp files are compiled by the
+# package's build system, then there is often no check for the Emacs
+# version.  In this case, you can add an explicit check in pkg_setup:
+#
+# @CODE
+# 	elisp-check-emacs-version
+# @CODE
+#
+# When having optional Emacs support, you should prepend "use emacs &&"
+# to above call of elisp-check-emacs-version().
+#
+# @ROFF .SS
 # pkg_postinst() / pkg_postrm() usage:
 #
 # After that you need to recreate the start-up file of Emacs after
@@ -150,15 +165,12 @@
 # 	}
 # @CODE
 #
-# When having optional Emacs support, you should prepend "use emacs &&"
+# Again, with optional Emacs support, you should prepend "use emacs &&"
 # to above calls of elisp-site-regen().
-# Don't use "has_version virtual/emacs"!  When unmerging the state of
-# the emacs USE flag is taken from the package database and not from the
-# environment, so it is no problem when you unset USE=emacs between
-# merge and unmerge of a package.
 
 case ${EAPI:-0} in
-	4|5|6|7) ;;
+	4|5|6) inherit eapi7-ver ;;
+	7) ;;
 	*) die "${ECLASS}: EAPI ${EAPI:-0} not supported" ;;
 esac
 
@@ -187,6 +199,17 @@ EMACSFLAGS="-batch -q --no-site-file"
 # @DESCRIPTION:
 # Emacs flags used for byte-compilation in elisp-compile().
 BYTECOMPFLAGS="-L ."
+
+# @ECLASS-VARIABLE: NEED_EMACS
+# @DESCRIPTION:
+# The minimum Emacs version required for the package.
+: ${NEED_EMACS:=23.1}
+
+# @ECLASS-VARIABLE: _ELISP_EMACS_VERSION
+# @INTERNAL
+# @DESCRIPTION:
+# Cached value of Emacs version detected in elisp-check-emacs-version().
+_ELISP_EMACS_VERSION=""
 
 # @FUNCTION: elisp-emacs-version
 # @RETURN: exit status of Emacs
@@ -218,12 +241,39 @@ elisp-emacs-version() {
 	echo "${version}"
 }
 
-# @FUNCTION: elisp-need-emacs
-# @USAGE: <version>
-# @RETURN: 0 if true, 1 if false, 2 if trouble
+# @FUNCTION: elisp-check-emacs-version
+# @USAGE: [version]
 # @DESCRIPTION:
+# Test if the eselected Emacs version is at least the version of
+# GNU Emacs specified in the NEED_EMACS variable, or die otherwise.
+
+elisp-check-emacs-version() {
+	if [[ -z ${_ELISP_EMACS_VERSION} ]]; then
+		local have_emacs
+		have_emacs=$(elisp-emacs-version) \
+			|| die "Could not determine Emacs version"
+		einfo "Emacs version: ${have_emacs}"
+		if [[ ${have_emacs} =~ XEmacs|Lucid ]]; then
+			die "XEmacs detected. This package needs GNU Emacs."
+		fi
+		# GNU Emacs versions have only numeric components.
+		if ! [[ ${have_emacs} =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+			die "Malformed version string: ${have_emacs}"
+		fi
+		_ELISP_EMACS_VERSION=${have_emacs}
+	fi
+
+	if ! ver_test "${_ELISP_EMACS_VERSION}" -ge "${NEED_EMACS}"; then
+		eerror "This package needs at least Emacs ${NEED_EMACS}."
+		eerror "Use \"eselect emacs\" to select the active version."
+		die "Emacs version too low"
+	fi
+}
+
 # Test if the eselected Emacs version is at least the major version
 # of GNU Emacs specified as argument.
+# Return 0 if true, 1 if false, 2 if trouble.
+# Deprecated, use elisp-check-emacs-version instead.
 
 elisp-need-emacs() {
 	local need_emacs=$1 have_emacs
@@ -255,6 +305,8 @@ elisp-need-emacs() {
 # in case they require or load one another.
 
 elisp-compile() {
+	elisp-check-emacs-version
+
 	ebegin "Compiling GNU Emacs Elisp files"
 	${EMACS} ${EMACSFLAGS} ${BYTECOMPFLAGS} -f batch-byte-compile "$@"
 	eend $? "elisp-compile: batch-byte-compile failed" || die
@@ -268,6 +320,8 @@ elisp-compile() {
 elisp-make-autoload-file() {
 	local f="${1:-${PN}-autoloads.el}" null="" page=$'\f'
 	shift
+	elisp-check-emacs-version
+
 	ebegin "Generating autoload file for GNU Emacs"
 
 	cat >"${f}" <<-EOF
@@ -304,11 +358,12 @@ elisp-make-autoload-file() {
 elisp-install() {
 	local subdir="$1"
 	shift
-	einfo "Installing Elisp files for GNU Emacs support"
+	ebegin "Installing Elisp files for GNU Emacs support"
 	( # subshell to avoid pollution of calling environment
 		insinto "${SITELISP}/${subdir}"
 		doins "$@"
 	)
+	eend $? "elisp-install: doins failed" || die
 }
 
 # @FUNCTION: elisp-site-file-install
@@ -321,14 +376,14 @@ elisp-install() {
 # respectively.
 
 elisp-site-file-install() {
-	local sf="${1##*/}" my_pn="${2:-${PN}}"
+	local sf="${1##*/}" my_pn="${2:-${PN}}" ret
 	local header=";;; ${PN} site-lisp configuration"
 
 	[[ ${sf} == [0-9][0-9]*-gentoo*.el ]] \
 		|| ewarn "elisp-site-file-install: bad name of site-init file"
 	[[ ${sf%-gentoo*.el} != "${sf}" ]] && sf="${sf%-gentoo*.el}-gentoo.el"
-	einfo "Installing site-init file ${sf} for GNU Emacs"
 	sf="${T}/${sf}"
+	ebegin "Installing site initialisation file for GNU Emacs"
 	[[ $1 = "${sf}" ]] || cp "$1" "${sf}"
 	sed -i -e "1{:x;/^\$/{n;bx;};/^;.*${PN}/I!s:^:${header}\n\n:;1s:^:\n:;}" \
 		-e "s:@SITELISP@:${EPREFIX}${SITELISP}/${my_pn}:g" \
@@ -337,7 +392,9 @@ elisp-site-file-install() {
 		insinto "${SITELISP}/site-gentoo.d"
 		doins "${sf}"
 	)
+	ret=$?
 	rm -f "${sf}"
+	eend ${ret} "elisp-site-file-install: doins failed" || die
 }
 
 # @FUNCTION: elisp-site-regen

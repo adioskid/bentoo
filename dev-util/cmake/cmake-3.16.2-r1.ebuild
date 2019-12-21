@@ -5,7 +5,8 @@ EAPI=7
 
 CMAKE_MAKEFILE_GENERATOR="emake"
 CMAKE_REMOVE_MODULES="no"
-inherit bash-completion-r1 elisp-common flag-o-matic toolchain-funcs virtualx xdg cmake-utils
+inherit bash-completion-r1 elisp-common flag-o-matic multiprocessing \
+	toolchain-funcs virtualx xdg cmake-utils
 
 MY_P="${P/_/-}"
 
@@ -17,25 +18,25 @@ LICENSE="CMake"
 SLOT="0"
 [[ "${PV}" = *_rc* ]] || \
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
-IUSE="doc emacs system-jsoncpp ncurses qt5 test"
+IUSE="doc emacs ncurses qt5 test"
 RESTRICT="!test? ( test )"
 
 RDEPEND="
 	app-crypt/rhash
 	>=app-arch/libarchive-3.0.0:=
 	>=dev-libs/expat-2.0.1
+	>=dev-libs/jsoncpp-1.9.2-r2:0=
 	>=dev-libs/libuv-1.10.0:=
 	>=net-misc/curl-7.21.5[ssl]
 	sys-libs/zlib
 	virtual/pkgconfig
-	emacs? ( virtual/emacs )
+	emacs? ( >=app-editors/emacs-23.1:* )
 	ncurses? ( sys-libs/ncurses:0= )
 	qt5? (
 		dev-qt/qtcore:5
 		dev-qt/qtgui:5
 		dev-qt/qtwidgets:5
 	)
-	system-jsoncpp? ( >=dev-libs/jsoncpp-0.6.0_rc2:0= )
 "
 DEPEND="${RDEPEND}"
 BDEPEND="
@@ -69,16 +70,6 @@ PATCHES=(
 )
 
 cmake_src_bootstrap() {
-	# Cleanup args to extract only JOBS.
-	# Because bootstrap does not know anything else.
-	grep -Eo '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' <<< "${MAKEOPTS}" > /dev/null
-	if [[ $? -eq 0 ]] ; then
-		par_arg=$(grep -Eo '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' <<< "${MAKEOPTS}" | tail -n1 | grep -o '[[:digit:]]+')
-		par_arg="--parallel=${par_arg}"
-	else
-		par_arg="--parallel=1"
-	fi
-
 	# disable running of cmake in boostrap command
 	sed -i \
 		-e '/"${cmake_bootstrap_dir}\/cmake"/s/^/#DONOTRUN /' \
@@ -95,7 +86,7 @@ cmake_src_bootstrap() {
 	# bootstrap script isn't exactly /bin/sh compatible
 	${CONFIG_SHELL:-sh} ./bootstrap \
 		--prefix="${T}/cmakestrap/" \
-		${par_arg} \
+		--parallel=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)") \
 		|| die "Bootstrap failed"
 }
 
@@ -160,7 +151,6 @@ src_configure() {
 
 	local mycmakeargs=(
 		-DCMAKE_USE_SYSTEM_LIBRARIES=ON
-		-DCMAKE_USE_SYSTEM_LIBRARY_JSONCPP=$(usex system-jsoncpp)
 		-DCMAKE_INSTALL_PREFIX="${EPREFIX}"/usr
 		-DCMAKE_DOC_DIR=/share/doc/${PF}
 		-DCMAKE_MAN_DIR=/share/man
