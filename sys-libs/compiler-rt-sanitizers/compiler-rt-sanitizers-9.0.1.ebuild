@@ -10,7 +10,7 @@ inherit check-reqs cmake-utils flag-o-matic llvm llvm.org \
 DESCRIPTION="Compiler runtime libraries for clang (sanitizers & xray)"
 HOMEPAGE="https://llvm.org/"
 LLVM_COMPONENTS=( compiler-rt )
-LLVM_TEST_COMPONENTS=( llvm/utils/unittest )
+LLVM_TEST_COMPONENTS=( llvm/lib/Testing/Support llvm/utils/unittest )
 llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
