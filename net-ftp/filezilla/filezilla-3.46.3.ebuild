@@ -23,7 +23,7 @@ IUSE="dbus nls test"
 RDEPEND=">=app-eselect/eselect-wxwidgets-0.7-r1
 	>=dev-libs/nettle-3.1:=
 	>=dev-db/sqlite-3.7
-	>=dev-libs/libfilezilla-0.19.1:=
+	>=dev-libs/libfilezilla-0.19.3:=
 	<dev-libs/libfilezilla-0.20.0:=
 	>=dev-libs/pugixml-1.7
 	>=net-libs/gnutls-3.5.7
