@@ -11,7 +11,7 @@ if [[ ${PV} == "99999999" ]] ; then
 	SRC_URI=""
 else
 	SRC_URI="https://github.com/Winetricks/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="amd64 x86"
+	KEYWORDS="~amd64 ~x86"
 fi
 
 wtg="winetricks-gentoo-2012.11.24"
@@ -47,6 +47,8 @@ RDEPEND="${DEPEND}
 	kde? ( kde-apps/kdialog )
 	rar? ( app-arch/unrar )
 "
+
+RESTRICT="!test? ( test )"
 
 # Test targets include syntax checks only, not the "heavy duty" tests
 # that would require a lot of disk space, as well as network access.
