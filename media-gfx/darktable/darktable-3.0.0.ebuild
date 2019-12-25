@@ -12,13 +12,12 @@ MY_P="${P/_/.}"
 DESCRIPTION="A virtual lighttable and darkroom for photographers"
 HOMEPAGE="https://www.darktable.org/"
 SRC_URI="https://github.com/darktable-org/${PN}/releases/download/release-${MY_PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~asturm/distfiles/${P}-gcc9.patch.tar.xz
 	doc? ( https://github.com/darktable-org/${PN}/releases/download/release-${DOC_PV}/${PN}-usermanual.pdf -> ${PN}-usermanual-${DOC_PV}.pdf )"
 
 LICENSE="GPL-3 CC-BY-3.0"
 SLOT="0"
-KEYWORDS="amd64 x86"
-LANGS=" ca cs de es fi fr hu ja nb nl pl pt-BR ru sl"
+KEYWORDS="~amd64 ~x86"
+LANGS=" ca cs da de es fr he hu it ja nb nl pl ru sl"
 # TODO add lua once dev-lang/lua-5.2 is unmasked
 IUSE="colord cups cpu_flags_x86_sse3 doc flickr geolocation gnome-keyring gphoto2 graphicsmagick jpeg2k kwallet
 nls opencl openmp openexr pax_kernel webp
@@ -33,7 +32,7 @@ COMMON_DEPEND="
 	dev-db/sqlite:3
 	dev-libs/json-glib
 	dev-libs/libxml2:2
-	dev-libs/pugixml:0=
+	>=dev-libs/pugixml-1.8:0=
 	gnome-base/librsvg:2
 	>=media-gfx/exiv2-0.25-r2:0=[xmp]
 	media-libs/lcms:2
@@ -45,7 +44,7 @@ COMMON_DEPEND="
 	sys-libs/zlib:=
 	virtual/jpeg:0
 	x11-libs/cairo
-	>=x11-libs/gtk+-3.14:3
+	>=x11-libs/gtk+-3.22:3
 	x11-libs/pango
 	colord? ( x11-libs/colord-gtk:0= )
 	cups? ( net-print/cups )
@@ -64,6 +63,7 @@ DEPEND="${COMMON_DEPEND}
 		>=sys-devel/clang-4
 		>=sys-devel/llvm-4
 	)
+	openmp? ( sys-devel/gcc[openmp,graphite] )
 "
 RDEPEND="${COMMON_DEPEND}
 	kwallet? ( >=kde-frameworks/kwallet-5.34.0-r1 )
@@ -71,8 +71,6 @@ RDEPEND="${COMMON_DEPEND}
 
 PATCHES=(
 	"${FILESDIR}"/"${PN}"-find-opencl-header.patch
-	"${WORKDIR}"/"${P}"-gcc9.patch
-	"${FILESDIR}"/"${P}"-exiv2-0.27.patch
 )
 
 S="${WORKDIR}/${P/_/~}"
@@ -137,9 +135,9 @@ src_install() {
 pkg_postinst() {
 	xdg_pkg_postinst
 
-	elog "when updating from the currently stable 1.6 series,"
+	elog "when updating a major version,"
 	elog "please bear in mind that your edits will be preserved during this process,"
-	elog "but it will not be possible to downgrade from 2.0 to 1.6 any more."
+	elog "but it will not be possible to downgrade any more."
 	echo
 	ewarn "It will not be possible to downgrade!"
 }

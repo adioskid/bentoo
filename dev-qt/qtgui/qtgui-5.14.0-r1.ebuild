@@ -24,7 +24,7 @@ REQUIRED_USE="
 	xcb? ( gles2? ( egl ) )
 "
 
-RDEPEND="
+COMMON_DEPEND="
 	dev-libs/glib:2
 	~dev-qt/qtcore-${PV}
 	dev-util/gtk-update-icon-cache
@@ -47,7 +47,7 @@ RDEPEND="
 		>=x11-libs/libxkbcommon-0.5.0
 	)
 	png? ( media-libs/libpng:0= )
-	tslib? ( x11-libs/tslib )
+	tslib? ( >=x11-libs/tslib-1.21 )
 	tuio? ( ~dev-qt/qtnetwork-${PV} )
 	udev? ( virtual/libudev:= )
 	vnc? ( ~dev-qt/qtnetwork-${PV} )
@@ -63,16 +63,21 @@ RDEPEND="
 		x11-libs/xcb-util-wm
 	)
 "
-DEPEND="${RDEPEND}
+DEPEND="${COMMON_DEPEND}
 	evdev? ( sys-kernel/linux-headers )
 	udev? ( sys-kernel/linux-headers )
+"
+# bug 703306, _populate_Gui_plugin_properties breaks installed cmake modules
+RDEPEND="${COMMON_DEPEND}
+	!<dev-qt/qtimageformats-5.14.0:5
+	!<dev-qt/qtsvg-5.14.0:5
+	!<dev-qt/qtvirtualkeyboard-5.14.0:5
+	!<dev-qt/qtwayland-5.14.0:5
 "
 PDEPEND="
 	ibus? ( app-i18n/ibus )
 	wayland? ( ~dev-qt/qtwayland-${PV} )
 "
-
-PATCHES=( "${FILESDIR}/qt-5.12-gcc-avx2.patch" ) # bug 672946
 
 QT5_TARGET_SUBDIRS=(
 	src/tools/qvkgen
@@ -126,7 +131,10 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 	:gui
 )
 
-PATCHES=( "${FILESDIR}/${PN}-5.13.2-no-xcb-no-xkbcommon.patch" ) # bug 699110
+PATCHES=(
+	"${FILESDIR}/qt-5.12-gcc-avx2.patch" # bug 672946
+	"${FILESDIR}/${PN}-5.13.2-no-xcb-no-xkbcommon.patch" # bug 699110
+)
 
 src_prepare() {
 	# don't add -O3 to CXXFLAGS, bug 549140
