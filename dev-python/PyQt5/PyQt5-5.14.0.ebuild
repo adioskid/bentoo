@@ -13,7 +13,7 @@ MY_P=${PN}-${PV/_pre/.dev}
 if [[ ${PV} == *_pre* ]]; then
 	SRC_URI="https://dev.gentoo.org/~pesa/distfiles/${MY_P}.tar.gz"
 else
-	SRC_URI="https://www.riverbankcomputing.com/static/Downloads/${PN}/${PV}/${MY_P}.tar.gz"
+	SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
 fi
 
 LICENSE="GPL-3"
@@ -56,7 +56,7 @@ QT_PV="5.10:5"
 
 RDEPEND="
 	${PYTHON_DEPS}
-	>=dev-python/PyQt5-sip-4.19.19:=[${PYTHON_USEDEP}]
+	>=dev-python/PyQt5-sip-4.19.20:=[${PYTHON_USEDEP}]
 	>=dev-qt/qtcore-${QT_PV}
 	>=dev-qt/qtxml-${QT_PV}
 	virtual/python-enum34[${PYTHON_USEDEP}]
@@ -89,7 +89,7 @@ RDEPEND="
 	xmlpatterns? ( >=dev-qt/qtxmlpatterns-${QT_PV} )
 "
 DEPEND="${RDEPEND}
-	>=dev-python/sip-4.19.19[${PYTHON_USEDEP}]
+	>=dev-python/sip-4.19.20[${PYTHON_USEDEP}]
 	dbus? ( virtual/pkgconfig )
 "
 
