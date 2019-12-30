@@ -1,9 +1,9 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
-inherit linux-info bash-completion-r1
+inherit linux-info bash-completion-r1 systemd
 
 DESCRIPTION="Required tools for WireGuard, such as wg(8) and wg-quick(8)"
 HOMEPAGE="https://www.wireguard.com/"
@@ -19,11 +19,16 @@ fi
 
 LICENSE="GPL-2"
 SLOT="0"
+IUSE="+wg-quick"
 
+BDEPEND="virtual/pkgconfig"
 DEPEND="net-libs/libmnl"
 RDEPEND="${DEPEND}
-	|| ( net-firewall/nftables net-firewall/iptables )
-	!<=net-vpn/wireguard-0.0.20191219
+	wg-quick? (
+		|| ( net-firewall/nftables net-firewall/iptables )
+		virtual/resolvconf
+	)
+	!<virtual/wireguard-1
 "
 
 wg_quick_optional_config_nob() {
@@ -32,12 +37,28 @@ wg_quick_optional_config_nob() {
 }
 
 pkg_setup() {
+	use wg-quick || return 0
 	wg_quick_optional_config_nob IP_ADVANCED_ROUTER
 	wg_quick_optional_config_nob IP_MULTIPLE_TABLES
-	wg_quick_optional_config_nob NETFILTER_XT_MARK
-	wg_quick_optional_config_nob NETFILTER_XT_CONNMARK
-	wg_quick_optional_config_nob IP6_NF_RAW
-	wg_quick_optional_config_nob IP_NF_RAW
+	wg_quick_optional_config_nob IPV6_MULTIPLE_TABLES
+	if has_version net-firewall/nftables; then
+		wg_quick_optional_config_nob NF_TABLES
+		wg_quick_optional_config_nob NF_TABLES_IPV4
+		wg_quick_optional_config_nob NF_TABLES_IPV6
+		wg_quick_optional_config_nob NFT_CT
+		wg_quick_optional_config_nob NFT_FIB
+		wg_quick_optional_config_nob NFT_FIB_IPV4
+		wg_quick_optional_config_nob NFT_FIB_IPV6
+	elif has_version net-firewall/iptables; then
+		wg_quick_optional_config_nob NETFILTER_XTABLES
+		wg_quick_optional_config_nob NETFILTER_XT_MARK
+		wg_quick_optional_config_nob NETFILTER_XT_CONNMARK
+		wg_quick_optional_config_nob NETFILTER_XT_MATCH_COMMENT
+		wg_quick_optional_config_nob IP6_NF_RAW
+		wg_quick_optional_config_nob IP_NF_RAW
+		wg_quick_optional_config_nob IP6_NF_FILTER
+		wg_quick_optional_config_nob IP_NF_FILTER
+	fi
 	linux-info_pkg_setup
 }
 
@@ -51,9 +72,10 @@ src_install() {
 	emake \
 		WITH_BASHCOMPLETION=yes \
 		WITH_SYSTEMDUNITS=yes \
-		WITH_WGQUICK=yes \
+		WITH_WGQUICK=$(usex wg-quick) \
 		DESTDIR="${D}" \
 		BASHCOMPDIR="$(get_bashcompdir)" \
+		SYSTEMDUNITDIR="$(systemd_get_systemunitdir)" \
 		PREFIX="${EPREFIX}/usr" \
 		-C src install
 }
@@ -64,7 +86,7 @@ pkg_postinst() {
 	einfo "WireGuard, you may use, for testing purposes only, the insecure client.sh"
 	einfo "test example script:"
 	einfo
-	einfo "  \$ bzcat ${ROOT}usr/share/doc/${PF}/contrib/ncat-client-server/client.sh.bz2 | sudo bash -"
+	einfo "  \$ bzcat ${ROOT}/usr/share/doc/${PF}/contrib/ncat-client-server/client.sh.bz2 | sudo bash -"
 	einfo
 	einfo "This will automatically setup interface wg0, through a very insecure transport"
 	einfo "that is only suitable for demonstration purposes. You can then try loading the"

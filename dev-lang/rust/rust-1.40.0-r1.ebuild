@@ -26,8 +26,10 @@ RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).0"
 DESCRIPTION="Systems programming language from Mozilla"
 HOMEPAGE="https://www.rust-lang.org/"
 
-SRC_URI="https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz
-	$(rust_all_arch_uris rust-${RUST_STAGE0_VERSION})"
+SRC_URI="
+	https://static.rust-lang.org/dist/${SRC} -> rustc-${PV}-src.tar.xz
+	!system-bootstrap? ( $(rust_all_arch_uris rust-${RUST_STAGE0_VERSION}) )
+"
 
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
 	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore )
@@ -36,7 +38,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 
-IUSE="clippy cpu_flags_x86_sse2 debug doc libressl nightly rls rustfmt system-llvm wasm ${ALL_LLVM_TARGETS[*]}"
+IUSE="clippy cpu_flags_x86_sse2 debug doc libressl nightly parallel-compiler rls rustfmt system-bootstrap system-llvm wasm ${ALL_LLVM_TARGETS[*]}"
 
 # Please keep the LLVM dependency block separate. Since LLVM is slotted,
 # we need to *really* make sure we're not pulling more than one slot
@@ -44,8 +46,8 @@ IUSE="clippy cpu_flags_x86_sse2 debug doc libressl nightly rls rustfmt system-ll
 
 # How to use it:
 # 1. List all the working slots (with min versions) in ||, newest first.
-# 2. Update the := to specify *max* version, e.g. < 9.
-# 3. Specify LLVM_MAX_SLOT, e.g. 8.
+# 2. Update the := to specify *max* version, e.g. < 10.
+# 3. Specify LLVM_MAX_SLOT, e.g. 9.
 LLVM_DEPEND="
 	|| (
 		sys-devel/llvm:9[llvm_targets_WebAssembly?]
@@ -54,6 +56,11 @@ LLVM_DEPEND="
 	<sys-devel/llvm-10:=
 "
 LLVM_MAX_SLOT=9
+
+# FIXME:
+# this should be '>=virtual/rust-1.$(($(ver_cut 2) - 1))', but we can't do it yet
+# as the first gentoo-built rust that can bootstap new compiler is 1.40.0-r1
+BOOTSTRAP_DEPEND="|| ( =dev-lang/rust-${PVR} =dev-lang/rust-bin-${PV}* )"
 
 COMMON_DEPEND="
 	sys-libs/zlib
@@ -64,6 +71,8 @@ COMMON_DEPEND="
 	net-misc/curl[ssl]
 	system-llvm? (
 		${LLVM_DEPEND}
+		dev-util/cmake
+		dev-util/ninja
 	)
 "
 
@@ -73,23 +82,31 @@ DEPEND="${COMMON_DEPEND}
 		>=sys-devel/gcc-4.7
 		>=sys-devel/clang-3.5
 	)
-	dev-util/cmake
+	system-bootstrap? ( ${BOOTSTRAP_DEPEND}	)
 "
 
 RDEPEND="${COMMON_DEPEND}
 	>=app-eselect/eselect-rust-20190311
-	!dev-util/cargo
-	rustfmt? ( !dev-util/rustfmt )
 "
 
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
+	parallel-compiler? ( nightly )
 	wasm? ( llvm_targets_WebAssembly )
 	x86? ( cpu_flags_x86_sse2 )
 "
-QA_FLAGS_IGNORED="usr/bin/* usr/lib*/${P}"
+
+QA_FLAGS_IGNORED="
+	usr/bin/*-${PV}
+	usr/lib*/lib*.so
+	usr/lib/rurstlib/*/codegen-backends/librustc_codegen_llvm-llvm.so
+	usr/lib/rustlib/*/lib/lib*.so
+"
+
+QA_SONAME="usr/lib*/librustc_macros*.so"
 
 PATCHES=(
 	"${FILESDIR}"/1.36.0-libressl.patch
+	"${FILESDIR}"/1.40.0-add-soname.patch
 )
 
 S="${WORKDIR}/${MY_P}-src"
@@ -119,11 +136,13 @@ pkg_setup() {
 }
 
 src_prepare() {
-	local rust_stage0_root="${WORKDIR}"/rust-stage0
+	if ! use system-bootstrap; then
+		local rust_stage0_root="${WORKDIR}"/rust-stage0
+		local rust_stage0="rust-${RUST_STAGE0_VERSION}-$(rust_abi)"
 
-	local rust_stage0="rust-${RUST_STAGE0_VERSION}-$(rust_abi)"
-
-	"${WORKDIR}/${rust_stage0}"/install.sh --disable-ldconfig --destdir="${rust_stage0_root}" --prefix=/ || die
+		"${WORKDIR}/${rust_stage0}"/install.sh --disable-ldconfig \
+			--destdir="${rust_stage0_root}" --prefix=/ || die
+	fi
 
 	default
 }
@@ -151,7 +170,12 @@ src_configure() {
 		tools="\"rustfmt\",$tools"
 	fi
 
-	local rust_stage0_root="${WORKDIR}"/rust-stage0
+	local rust_stage0_root
+	if use system-bootstrap; then
+		rust_stage0_root="$(rustc --print sysroot)"
+	else
+		rust_stage0_root="${WORKDIR}"/rust-stage0
+	fi
 
 	rust_target="$(rust_abi)"
 
@@ -170,6 +194,7 @@ src_configure() {
 		cargo = "${rust_stage0_root}/bin/cargo"
 		rustc = "${rust_stage0_root}/bin/rustc"
 		docs = $(toml_usex doc)
+		compiler-docs = $(toml_usex doc)
 		submodules = false
 		python = "${EPYTHON}"
 		locked-deps = true
@@ -179,17 +204,20 @@ src_configure() {
 		verbose = 2
 		[install]
 		prefix = "${EPREFIX}/usr"
-		libdir = "$(get_libdir)/${P}"
-		docdir = "share/doc/${P}"
-		mandir = "share/${P}/man"
+		libdir = "lib"
+		docdir = "share/doc/${PF}"
+		mandir = "share/man"
 		[rust]
 		optimize = $(toml_usex !debug)
 		debug = $(toml_usex debug)
 		debug-assertions = $(toml_usex debug)
 		default-linker = "$(tc-getCC)"
+		parallel-compiler = $(toml_usex parallel-compiler)
 		channel = "$(usex nightly nightly stable)"
 		rpath = false
 		lld = $(usex system-llvm false $(toml_usex wasm))
+		[dist]
+		src-tarball = false
 	EOF
 
 	for v in $(multilib_get_enabled_abi_pairs); do
@@ -229,8 +257,6 @@ src_compile() {
 }
 
 src_install() {
-	local rust_target abi_libdir
-
 	env DESTDIR="${D}" "${EPYTHON}" ./x.py install -vv --config="${S}"/config.toml \
 	--exclude src/tools/miri || die
 
@@ -257,29 +283,14 @@ src_install() {
 		mv "${ED}/usr/bin/cargo-fmt" "${ED}/usr/bin/cargo-fmt-${PV}" || die
 	fi
 
-	# Copy shared library versions of standard libraries for all targets
-	# into the system's abi-dependent lib directories because the rust
-	# installer only does so for the native ABI.
-	for v in $(multilib_get_enabled_abi_pairs); do
-		if [ ${v##*.} = ${DEFAULT_ABI} ]; then
-			continue
-		fi
-		abi_libdir=$(get_abi_LIBDIR ${v##*.})
-		rust_target=$(rust_abi $(get_abi_CHOST ${v##*.}))
-		mkdir -p "${ED}/usr/${abi_libdir}/${P}"
-		cp "${ED}/usr/$(get_libdir)/${P}/rustlib/${rust_target}/lib"/*.so \
-		   "${ED}/usr/${abi_libdir}/${P}" || die
-	done
+	# Move public shared libs to abi specific libdir
+	# Private and target specific libs MUST stay in /usr/lib/rustlib/${rust_target}/lib
+	if [[ $(get_libdir) != lib ]]; then
+		dodir /usr/$(get_libdir)
+		mv "${ED}/usr/lib"/*.so "${ED}/usr/$(get_libdir)/" || die
+	fi
 
 	dodoc COPYRIGHT
-
-	# FIXME:
-	# Really not sure if that env is needed, specailly LDPATH
-	cat <<-EOF > "${T}"/50${P}
-		LDPATH="${EPREFIX}/usr/$(get_libdir)/${P}"
-		MANPATH="${EPREFIX}/usr/share/${P}/man"
-	EOF
-	doenvd "${T}"/50${P}
 
 	# note: eselect-rust adds EROOT to all paths below
 	cat <<-EOF > "${T}/provider-${P}"
