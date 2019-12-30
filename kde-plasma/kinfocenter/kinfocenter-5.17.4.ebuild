@@ -3,7 +3,6 @@
 
 EAPI=7
 
-CMAKE_MIN_VERSION=3.14.3
 ECM_HANDBOOK="forceoptional"
 KFMIN=5.64.0
 PVCUT=$(ver_cut 1-3)
@@ -12,14 +11,15 @@ inherit ecm kde.org
 
 DESCRIPTION="Utility providing information about the computer hardware"
 HOMEPAGE="https://userbase.kde.org/KInfoCenter"
-SRC_URI+=" http://www.bentoo.info/assets/img/bentoo-icon.png -> logo.png"
+SRC_URI+=" https://www.gentoo.org/assets/img/logo/gentoo-3d-small.png -> glogo-small.png"
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 x86"
+KEYWORDS="amd64 ~arm arm64 x86"
 IUSE="gles2 ieee1394 +opengl +pci wayland"
 
 REQUIRED_USE="wayland? ( || ( gles2 opengl ) )"
 
+BDEPEND=">=dev-util/cmake-3.14.3"
 COMMON_DEPEND="
 	>=kde-frameworks/kcmutils-${KFMIN}:5
 	>=kde-frameworks/kcompletion-${KFMIN}:5
@@ -87,7 +87,7 @@ src_install() {
 	doins "${FILESDIR}"/kcm-about-distrorc
 
 	insinto /usr/share/${PN}
-	doins "${DISTDIR}"/logo.png
+	doins "${DISTDIR}"/glogo-small.png
 }
 
 pkg_postinst() {

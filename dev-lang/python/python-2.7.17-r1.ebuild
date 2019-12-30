@@ -1,31 +1,33 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="6"
+EAPI="7"
 WANT_LIBTOOL="none"
 
 inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
-PATCHSET_VERSION="2.7.17"
+PYVER=$(ver_cut 1-2)
+PATCHSET="python-gentoo-patches-2.7.17-r1"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
 SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~mgorny/dist/python-gentoo-patches-${PATCHSET_VERSION}.tar.xz"
+	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
+S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="2.7"
-KEYWORDS="~alpha amd64 arm arm64 hppa ia64 ~m68k ~mips ppc ppc64 s390 ~sh sparc x86"
-IUSE="-berkdb bluetooth build doc elibc_uclibc examples gdbm hardened ipv6 libressl +ncurses +readline sqlite +ssl +threads tk +wide-unicode wininst +xml"
+SLOT="${PYVER}"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
+IUSE="-berkdb bluetooth build elibc_uclibc examples gdbm hardened ipv6 libressl +ncurses +readline sqlite +ssl +threads tk +wide-unicode wininst +xml"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
 # If you need to apply a patch which requires python for bootstrapping, please
 # run the bootstrap code on your dev box and include the results in the
 # patchset. See bug 447752.
 
-RDEPEND="app-arch/bzip2:0=
-	>=sys-libs/zlib-1.1.3:0=
+RDEPEND="app-arch/bzip2:=
+	>=sys-libs/zlib-1.1.3:=
 	virtual/libffi:=
 	virtual/libintl
 	berkdb? ( || (
@@ -39,33 +41,28 @@ RDEPEND="app-arch/bzip2:0=
 		sys-libs/db:4.3
 		sys-libs/db:4.2
 	) )
-	gdbm? ( sys-libs/gdbm:0=[berkdb] )
-	ncurses? ( >=sys-libs/ncurses-5.2:0= )
-	readline? ( >=sys-libs/readline-4.1:0= )
+	gdbm? ( sys-libs/gdbm:=[berkdb] )
+	ncurses? ( >=sys-libs/ncurses-5.2:= )
+	readline? ( >=sys-libs/readline-4.1:= )
 	sqlite? ( >=dev-db/sqlite-3.3.8:3= )
 	ssl? (
-		!libressl? ( dev-libs/openssl:0= )
-		libressl? ( dev-libs/libressl:0= )
+		!libressl? ( dev-libs/openssl:= )
+		libressl? ( dev-libs/libressl:= )
 	)
 	tk? (
-		>=dev-lang/tcl-8.0:0=
-		>=dev-lang/tk-8.0:0=
-		dev-tcltk/blt:0=
+		>=dev-lang/tcl-8.0:=
+		>=dev-lang/tk-8.0:=
+		dev-tcltk/blt:=
 		dev-tcltk/tix
 	)
-	xml? ( >=dev-libs/expat-2.1 )
-	!!<sys-apps/portage-2.1.9"
+	xml? ( >=dev-libs/expat-2.1:= )"
 # bluetooth requires headers from bluez
 DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
 	virtual/pkgconfig
-	>=sys-devel/autoconf-2.65
 	!sys-devel/gcc[libffi(-)]"
-RDEPEND+=" !build? ( app-misc/mime-types )
-	doc? ( dev-python/python-docs:${SLOT} )"
+RDEPEND+=" !build? ( app-misc/mime-types )"
 PDEPEND=">=app-eselect/eselect-python-20140125-r1"
-
-S="${WORKDIR}/${MY_P}"
 
 pkg_setup() {
 	if use berkdb; then
@@ -84,21 +81,12 @@ pkg_setup() {
 
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
-	rm -r Modules/expat || die
-	rm -r Modules/_ctypes/libffi* || die
-	rm -r Modules/zlib || die
-
-	if tc-is-cross-compiler; then
-		rm "${WORKDIR}/patches/0006-Regenerate-platform-specific-modules.patch" || die
-	fi
+	rm -fr Modules/expat || die
+	rm -fr Modules/_ctypes/libffi* || die
+	rm -fr Modules/zlib || die
 
 	local PATCHES=(
-		"${WORKDIR}/patches"
-		# Fix for cross-compiling.
-		"${FILESDIR}/python-2.7.5-nonfatal-compileall.patch"
-		"${FILESDIR}/python-2.7.9-ncurses-pkg-config.patch"
-		"${FILESDIR}/python-2.7.10-cross-compile-warn-test.patch"
-		"${FILESDIR}/python-2.7.10-system-libffi.patch"
+		"${WORKDIR}/${PATCHSET}"
 	)
 
 	default
@@ -118,27 +106,27 @@ src_prepare() {
 }
 
 src_configure() {
-		# dbm module can be linked against berkdb or gdbm.
-		# Defaults to gdbm when both are enabled, #204343.
-		local disable
-		use berkdb   || use gdbm || disable+=" dbm"
-		use berkdb   || disable+=" _bsddb"
-		# disable automagic bluetooth headers detection
-		use bluetooth || export ac_cv_header_bluetooth_bluetooth_h=no
-		use gdbm     || disable+=" gdbm"
-		use ncurses  || disable+=" _curses _curses_panel"
-		use readline || disable+=" readline"
-		use sqlite   || disable+=" _sqlite3"
-		use ssl      || export PYTHON_DISABLE_SSL="1"
-		use tk       || disable+=" _tkinter"
-		use xml      || disable+=" _elementtree pyexpat" # _elementtree uses pyexpat.
-		export PYTHON_DISABLE_MODULES="${disable}"
+	# dbm module can be linked against berkdb or gdbm.
+	# Defaults to gdbm when both are enabled, #204343.
+	local disable
+	use berkdb    || use gdbm || disable+=" dbm"
+	use berkdb    || disable+=" _bsddb"
+	# disable automagic bluetooth headers detection
+	use bluetooth || export ac_cv_header_bluetooth_bluetooth_h=no
+	use gdbm      || disable+=" gdbm"
+	use ncurses   || disable+=" _curses _curses_panel"
+	use readline  || disable+=" readline"
+	use sqlite    || disable+=" _sqlite3"
+	use ssl       || export PYTHON_DISABLE_SSL="1"
+	use tk        || disable+=" _tkinter"
+	use xml       || disable+=" _elementtree pyexpat" # _elementtree uses pyexpat.
+	export PYTHON_DISABLE_MODULES="${disable}"
 
-		if ! use xml; then
-			ewarn "You have configured Python without XML support."
-			ewarn "This is NOT a recommended configuration as you"
-			ewarn "may face problems parsing any XML documents."
-		fi
+	if ! use xml; then
+		ewarn "You have configured Python without XML support."
+		ewarn "This is NOT a recommended configuration as you"
+		ewarn "may face problems parsing any XML documents."
+	fi
 
 	if [[ -n "${PYTHON_DISABLE_MODULES}" ]]; then
 		einfo "Disabled modules: ${PYTHON_DISABLE_MODULES}"
@@ -203,7 +191,7 @@ src_configure() {
 		--without-ensurepip
 	)
 
-	OPT= econf "${myeconfargs[@]}"
+	OPT="" econf "${myeconfargs[@]}"
 
 	if use threads && grep -q "#define POSIX_SEMAPHORES_NOT_ENABLED 1" pyconfig.h; then
 		eerror "configure has detected that the sem_open function is broken."
@@ -213,6 +201,10 @@ src_configure() {
 }
 
 src_compile() {
+	# Ensure sed works as expected
+	# https://bugs.gentoo.org/594768
+	local -x LC_ALL=C
+
 	# Avoid invoking pgen for cross-compiles.
 	touch Include/graminit.h Python/graminit.c
 
@@ -262,52 +254,53 @@ src_test() {
 	done
 
 	elog "If you would like to run them, you may:"
-	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${SLOT}/test'"
+	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${PYVER}/test'"
 	elog "and run the tests separately."
 
-	if [[ "${result}" -ne 0 ]]; then
+	if [[ ${result} -ne 0 ]]; then
 		die "emake test failed"
 	fi
 }
 
 src_install() {
-	local libdir=${ED}/usr/$(get_libdir)/python${SLOT}
+	local libdir=${ED}/usr/$(get_libdir)/python${PYVER}
 
 	emake DESTDIR="${D}" altinstall
 
-	sed -e "s/\(LDFLAGS=\).*/\1/" -i "${libdir}/config/Makefile" || die "sed failed"
+	sed -e "s/\(LDFLAGS=\).*/\1/" -i "${libdir}/config/Makefile" || die
 
 	# Fix collisions between different slots of Python.
-	mv "${ED}usr/bin/2to3" "${ED}usr/bin/2to3-${SLOT}"
-	mv "${ED}usr/bin/pydoc" "${ED}usr/bin/pydoc${SLOT}"
-	mv "${ED}usr/bin/idle" "${ED}usr/bin/idle${SLOT}"
-	rm -f "${ED}usr/bin/smtpd.py"
+	mv "${ED}/usr/bin/2to3" "${ED}/usr/bin/2to3-${PYVER}" || die
+	mv "${ED}/usr/bin/pydoc" "${ED}/usr/bin/pydoc${PYVER}" || die
+	mv "${ED}/usr/bin/idle" "${ED}/usr/bin/idle${PYVER}" || die
+	rm "${ED}/usr/bin/smtpd.py" || die
 
 	use berkdb || rm -r "${libdir}/"{bsddb,dbhash.py*,test/test_bsddb*} || die
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
-	use tk || rm -r "${ED}usr/bin/idle${SLOT}" "${libdir}/"{idlelib,lib-tk} || die
+	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,lib-tk} || die
 	use elibc_uclibc && rm -fr "${libdir}/"{bsddb/test,test}
 
 	use threads || rm -r "${libdir}/multiprocessing" || die
-	use wininst || rm -r "${libdir}/distutils/command/"wininst-*.exe || die
+	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
 
-	dodoc "${S}"/Misc/{ACKS,HISTORY,NEWS}
+	dodoc Misc/{ACKS,HISTORY,NEWS}
 
 	if use examples; then
 		docinto examples
-		dodoc -r "${S}"/Tools
+		dodoc -r Tools
 	fi
 	insinto /usr/share/gdb/auto-load/usr/$(get_libdir) #443510
 	local libname=$(printf 'e:\n\t@echo $(INSTSONAME)\ninclude Makefile\n' | \
 		emake --no-print-directory -s -f - 2>/dev/null)
 	newins "${S}"/Tools/gdb/libpython.py "${libname}"-gdb.py
 
-	newconfd "${FILESDIR}/pydoc.conf" pydoc-${SLOT}
-	newinitd "${FILESDIR}/pydoc.init" pydoc-${SLOT}
+	newconfd "${FILESDIR}/pydoc.conf" pydoc-${PYVER}
+	newinitd "${FILESDIR}/pydoc.init" pydoc-${PYVER}
 	sed \
-		-e "s:@PYDOC_PORT_VARIABLE@:PYDOC${SLOT/./_}_PORT:" \
-		-e "s:@PYDOC@:pydoc${SLOT}:" \
-		-i "${ED}etc/conf.d/pydoc-${SLOT}" "${ED}etc/init.d/pydoc-${SLOT}" || die "sed failed"
+		-e "s:@PYDOC_PORT_VARIABLE@:PYDOC${PYVER/./_}_PORT:" \
+		-e "s:@PYDOC@:pydoc${PYVER}:" \
+		-i "${ED}/etc/conf.d/pydoc-${PYVER}" \
+		"${ED}/etc/init.d/pydoc-${PYVER}" || die "sed failed"
 
 	# for python-exec
 	local vars=( EPYTHON PYTHON_SITEDIR PYTHON_SCRIPTDIR )
@@ -320,34 +313,43 @@ src_install() {
 		vars=( PYTHON "${vars[@]}" )
 	fi
 
-	python_export "python${SLOT}" "${vars[@]}"
+	python_export "python${PYVER}" "${vars[@]}"
 	echo "EPYTHON='${EPYTHON}'" > epython.py || die
 	python_domodule epython.py
 
 	# python-exec wrapping support
-	local pymajor=${SLOT%.*}
+	local pymajor=${PYVER%.*}
 	mkdir -p "${D}${PYTHON_SCRIPTDIR}" || die
 	# python and pythonX
-	ln -s "../../../bin/python${SLOT}" "${D}${PYTHON_SCRIPTDIR}/python${pymajor}" || die
+	ln -s "../../../bin/python${PYVER}" \
+		"${D}${PYTHON_SCRIPTDIR}/python${pymajor}" || die
 	ln -s "python${pymajor}" "${D}${PYTHON_SCRIPTDIR}/python" || die
 	# python-config and pythonX-config
-	ln -s "../../../bin/python${SLOT}-config" "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
-	ln -s "python${pymajor}-config" "${D}${PYTHON_SCRIPTDIR}/python-config" || die
+	ln -s "../../../bin/python${PYVER}-config" \
+		"${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
+	ln -s "python${pymajor}-config" \
+		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
 	# 2to3, pydoc, pyvenv
-	ln -s "../../../bin/2to3-${SLOT}" "${D}${PYTHON_SCRIPTDIR}/2to3" || die
-	ln -s "../../../bin/pydoc${SLOT}" "${D}${PYTHON_SCRIPTDIR}/pydoc" || die
+	ln -s "../../../bin/2to3-${PYVER}" \
+		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
+	ln -s "../../../bin/pydoc${PYVER}" \
+		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
 	# idle
 	if use tk; then
-		ln -s "../../../bin/idle${SLOT}" "${D}${PYTHON_SCRIPTDIR}/idle" || die
+		ln -s "../../../bin/idle${PYVER}" \
+			"${D}${PYTHON_SCRIPTDIR}/idle" || die
 	fi
 }
 
 eselect_python_update() {
-	if [[ -z "$(eselect python show)" || ! -f "${EROOT}usr/bin/$(eselect python show)" ]]; then
+	if [[ -z "$(eselect python show)" || \
+			! -f "${EROOT}/usr/bin/$(eselect python show)" ]]; then
 		eselect python update
 	fi
 
-	if [[ -z "$(eselect python show --python${PV%%.*})" || ! -f "${EROOT}usr/bin/$(eselect python show --python${PV%%.*})" ]]; then
+	if [[ -z "$(eselect python show --python${PV%%.*})" || \
+			! -f "${EROOT}/usr/bin/$(eselect python show --python${PV%%.*})" ]]
+	then
 		eselect python update --python${PV%%.*}
 	fi
 }

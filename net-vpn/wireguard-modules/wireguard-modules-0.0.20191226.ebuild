@@ -1,7 +1,7 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 MODULES_OPTIONAL_USE="module"
 inherit linux-mod bash-completion-r1
@@ -62,7 +62,7 @@ pkg_postinst() {
 		einfo
 		einfo "You have enabled the module-src USE flag without the module USE"
 		einfo "flag. This means that sources are installed to"
-		einfo "${ROOT}usr/src/wireguard instead of having the"
+		einfo "${ROOT}/usr/src/wireguard instead of having the"
 		einfo "kernel module compiled. You will need to compile the module"
 		einfo "yourself. Most likely, you don't want this USE flag, and should"
 		einfo "rather use USE=module"

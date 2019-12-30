@@ -1,4 +1,4 @@
 [General]
-Name=Bentoo OS
-LogoPath=/usr/share/kinfocenter/logo.png
-Website=https://bentoo.info/
+Name=Gentoo Linux
+LogoPath=/usr/share/kinfocenter/glogo-small.png
+Website=https://www.gentoo.org/
