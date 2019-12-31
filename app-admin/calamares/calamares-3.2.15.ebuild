@@ -84,6 +84,7 @@ src_prepare() {
 src_configure() {
 	local mycmakeargs=(
 		-DWEBVIEW_FORCE_WEBKIT=OFF
+		-DCMAKE_DISABLE_FIND_PACKAGE_LIBPARTED=ON
 		-DWITH_PYTHONQT=$(usex pythonqt)
 		-DSKIP_MODULES="services-systemd dracut dracutlukscfg webview"
 	)
