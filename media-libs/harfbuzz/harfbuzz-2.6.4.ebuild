@@ -26,11 +26,11 @@ REQUIRED_USE="introspection? ( glib )"
 
 RDEPEND="
 	cairo? ( x11-libs/cairo:= )
-	glib? ( >=dev-libs/glib-2.38:2[${MULTILIB_USEDEP}] )
-	graphite? ( >=media-gfx/graphite2-1.2.1:=[${MULTILIB_USEDEP}] )
-	icu? ( >=dev-libs/icu-51.2-r1:=[${MULTILIB_USEDEP}] )
+	glib? ( >=dev-libs/glib-2.38:2 )
+	graphite? ( >=media-gfx/graphite2-1.2.1:= )
+	icu? ( >=dev-libs/icu-51.2-r1:= )
 	introspection? ( >=dev-libs/gobject-introspection-1.34:= )
-	truetype? ( >=media-libs/freetype-2.5.0.1:2=[${MULTILIB_USEDEP}] )
+	truetype? ( >=media-libs/freetype-2.5.0.1:2= )
 "
 DEPEND="${RDEPEND}
 	test? ( ${PYTHON_DEPS} )
