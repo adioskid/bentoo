@@ -5,7 +5,7 @@ EAPI=7
 
 KDE_TEST="true"
 PYTHON_COMPAT=( python3_{5,6} )
-inherit kde5 python-r1
+inherit kde5 python-r1 cmake-utils
 
 DESCRIPTION="Distribution-independent installer framework"
 HOMEPAGE="https://calamares.io"
@@ -67,7 +67,8 @@ RDEPEND="${COMMON_DEPEND}
 	upower? ( sys-power/upower )
 "
 
-src_prepare() {
+cmake_src_prepare() {
+	eapply_user
 	cmake-utils_src_prepare
 	python_setup
 	export PYTHON_INCLUDE_DIRS="$(python_get_includedir)" \
@@ -81,7 +82,7 @@ src_prepare() {
 		calamares.desktop || die
 }
 
-src_configure() {
+cmake_src_configure() {
 	local mycmakeargs=(
 		-DWEBVIEW_FORCE_WEBKIT=OFF
 		-DCMAKE_DISABLE_FIND_PACKAGE_LIBPARTED=ON
@@ -92,7 +93,7 @@ src_configure() {
 	kde5_src_configure
 }
 
-src_install() {
+cmake_src_install() {
 	kde5_src_install
 	dobin "${FILESDIR}"/calamares-pkexec
 }
