@@ -16,6 +16,7 @@ LICENSE="GPL-2+"
 SLOT="0" # add subslot if libnm-util.so.2 or libnm-glib.so.4 bumps soname version
 
 IUSE="audit bluetooth connection-sharing consolekit +dhclient dhcpcd elogind gnutls +introspection iwd json kernel_linux +nss +modemmanager ncurses ofono ovs policykit +ppp resolvconf selinux systemd teamd test vala +wext +wifi"
+RESTRICT="!test? ( test )"
 
 REQUIRED_USE="
 	bluetooth? ( modemmanager )
@@ -31,16 +32,16 @@ KEYWORDS="~alpha amd64 arm arm64 ~ia64 ppc ppc64 ~sparc x86"
 # gobject-introspection-0.10.3 is needed due to gnome bug 642300
 # wpa_supplicant-0.7.3-r3 is needed due to bug 359271
 COMMON_DEPEND="
-	>=sys-apps/dbus-1.2[${MULTILIB_USEDEP}]
-	>=dev-libs/dbus-glib-0.100[${MULTILIB_USEDEP}]
-	>=dev-libs/glib-2.40:2[${MULTILIB_USEDEP}]
+	>=sys-apps/dbus-1.2
+	>=dev-libs/dbus-glib-0.100
+	>=dev-libs/glib-2.40:2
 	policykit? ( >=sys-auth/polkit-0.106 )
-	net-libs/libndp[${MULTILIB_USEDEP}]
+	net-libs/libndp
 	>=net-misc/curl-7.24
 	net-misc/iputils
-	sys-apps/util-linux[${MULTILIB_USEDEP}]
+	sys-apps/util-linux
 	sys-libs/readline:0=
-	>=virtual/libudev-175:=[${MULTILIB_USEDEP}]
+	>=virtual/libudev-175:=
 	audit? ( sys-process/audit )
 	bluetooth? ( >=net-wireless/bluez-5 )
 	connection-sharing? (
@@ -51,13 +52,13 @@ COMMON_DEPEND="
 	dhcpcd? ( net-misc/dhcpcd )
 	elogind? ( >=sys-auth/elogind-219 )
 	introspection? ( >=dev-libs/gobject-introspection-0.10.3:= )
-	json? ( >=dev-libs/jansson-2.5[${MULTILIB_USEDEP}] )
+	json? ( >=dev-libs/jansson-2.5 )
 	modemmanager? ( >=net-misc/modemmanager-0.7.991:0= )
 	ncurses? ( >=dev-libs/newt-0.52.15 )
-	nss? ( >=dev-libs/nss-3.11:=[${MULTILIB_USEDEP}] )
+	nss? ( >=dev-libs/nss-3.11:= )
 	!nss? ( gnutls? (
-		dev-libs/libgcrypt:0=[${MULTILIB_USEDEP}]
-		>=net-libs/gnutls-2.12:=[${MULTILIB_USEDEP}] ) )
+		dev-libs/libgcrypt:0=
+		>=net-libs/gnutls-2.12:= ) )
 	ofono? ( net-misc/ofono )
 	ovs? ( dev-libs/jansson )
 	ppp? ( >=net-dialup/ppp-2.4.5:=[ipv6] )
@@ -87,7 +88,7 @@ DEPEND="${COMMON_DEPEND}
 	>=dev-util/intltool-0.40
 	>=sys-devel/gettext-0.17
 	>=sys-kernel/linux-headers-3.18
-	virtual/pkgconfig[${MULTILIB_USEDEP}]
+	virtual/pkgconfig
 	introspection? (
 		$(python_gen_any_dep 'dev-python/pygobject:3[${PYTHON_USEDEP}]')
 		dev-lang/perl
