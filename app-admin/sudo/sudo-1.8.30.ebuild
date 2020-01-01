@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -74,10 +74,6 @@ REQUIRED_USE="
 "
 
 MAKEOPTS+=" SAMPLES="
-
-PATCHES=(
-	"${FILESDIR}/${PN}-1.8.28-no_pam_error_message_fix.patch" #698946
-)
 
 src_prepare() {
 	default
