@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -38,7 +38,7 @@ RDEPEND="
 	dev-python/python-evdev[${PYTHON_USEDEP}]
 	dev-python/pyyaml[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
-	gnome-base/gnome-desktop[introspection]
+	gnome-base/gnome-desktop:3[introspection]
 	media-sound/fluid-soundfont
 	net-libs/libsoup
 	net-libs/webkit-gtk:4[introspection]
@@ -49,13 +49,15 @@ RDEPEND="
 	x11-libs/libnotify
 "
 
+PATCHES=( "${FILESDIR}/${P}-gtk.patch" )
+
 python_install_all() {
 	local DOCS=( AUTHORS README.rst docs/installers.rst )
 	distutils-r1_python_install_all
 }
 
 python_test() {
-	virtx nosetests -v || die
+	virtx nosetests -v
 }
 
 pkg_preinst() {

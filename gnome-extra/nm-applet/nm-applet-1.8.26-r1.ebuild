@@ -9,6 +9,9 @@ inherit autotools eutils gnome2
 
 DESCRIPTION="GNOME applet for NetworkManager"
 HOMEPAGE="https://wiki.gnome.org/Projects/NetworkManager"
+SRC_URI="https://gitlab.gnome.org/GNOME/network-manager-applet/-/archive/master/network-manager-applet-master.tar.gz -> network-manager-applet-1.8.26.tar.gz"
+
+S="${WORKDIR}/network-manager-applet-master"
 
 LICENSE="GPL-2+"
 SLOT="0"
@@ -47,9 +50,17 @@ DEPEND="${RDEPEND}
 
 PDEPEND="virtual/notification-daemon" #546134
 
+
+src_prepare() {
+	eautoreconf
+	gnome2_src_prepare
+}
+
 src_configure() {
 	local myconf=(
 		--with-appindicator=$(usex ayatana ubuntu no)
+		--without-libnm-gtk
+		--without-libnma-gtk4
 		--disable-lto
 		--disable-ld-gc
 		--disable-more-warnings
@@ -62,4 +73,8 @@ src_configure() {
 		$(use_with teamd team)
 	)
 	gnome2_src_configure "${myconf[@]}"
+}
+
+src_install() {
+	gnome2_src_install
 }

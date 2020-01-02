@@ -47,9 +47,13 @@ src_prepare() {
 }
 
 src_configure() {
+	local myeconfargs=(
+		
+	)
 	# --localstatedir=/var needed per bug #536248
 	gnome2_src_configure \
 		--localstatedir=/var \
+		--without-libnm-glib \
 		--disable-more-warnings \
 		--disable-static \
 		--with-dist-version=Gentoo \
