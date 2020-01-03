@@ -1,16 +1,22 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
+if [[ ${PV} != 9999 ]]; then
+	KEYWORDS="~amd64 ~x86"
+	SRC_URI="https://github.com/netblue30/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
+else
+	inherit git-r3
+	EGIT_REPO_URI="https://github.com/netblue30/firejail.git"
+	EGIT_BRANCH="master"
+fi
+
 DESCRIPTION="Security sandbox for any type of processes"
 HOMEPAGE="https://firejail.wordpress.com/"
 
-SRC_URI="https://github.com/netblue30/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="amd64 ~x86"
 IUSE="apparmor +chroot contrib debug +file-transfer +globalcfg +network +overlayfs +private-home +seccomp +suid test +userns vim-syntax +whitelist x11"
 
 DEPEND="!sys-apps/firejail-lts
@@ -19,9 +25,8 @@ DEPEND="!sys-apps/firejail-lts
 
 RDEPEND="apparmor? ( sys-libs/libapparmor )"
 
+# TODO: enable tests
 RESTRICT="test"
-
-PATCHES=( "${FILESDIR}/${PN}-compressed-manpages.patch" )
 
 src_prepare() {
 	default
@@ -33,10 +38,16 @@ src_prepare() {
 			--expression='/CFLAGS/s: (-O2|-ggdb) : :g' || die
 
 	sed --in-place --regexp-extended '/CFLAGS/s: (-O2|-ggdb) : :g' ./src/common.mk.in || die
+
+	# remove compression of man pages
+	sed --in-place '/gzip -9n $$man; \\/d' Makefile.in || die
+	sed --in-place '/rm -f $$man.gz; \\/d' Makefile.in || die
+	sed --in-place --regexp-extended 's|\*\.([[:digit:]])\) install -c -m 0644 \$\$man\.gz|\*\.\1\) install -c -m 0644 \$\$man|g' Makefile.in || die
 }
 
 src_configure() {
 	econf \
+		--disable-firetunnel \
 		$(use_enable apparmor) \
 		$(use_enable chroot) \
 		$(use_enable contrib contrib-install) \
