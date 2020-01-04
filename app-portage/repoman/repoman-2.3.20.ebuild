@@ -3,7 +3,7 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python2_7 python3_{5,6,7} )
+PYTHON_COMPAT=( python2_7 python3_{5,6,7,8} )
 PYTHON_REQ_USE='bzip2(+)'
 
 inherit distutils-r1
@@ -25,7 +25,7 @@ SLOT="0"
 IUSE=""
 
 RDEPEND="
-	>=sys-apps/portage-2.3.72[${PYTHON_USEDEP}]
+	>=sys-apps/portage-2.3.80[${PYTHON_USEDEP}]
 	>=dev-python/lxml-3.6.0[${PYTHON_USEDEP}]
 	dev-python/pyyaml[${PYTHON_USEDEP}]
 "
