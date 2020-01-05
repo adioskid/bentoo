@@ -24,10 +24,10 @@ BDEPEND="
 	virtual/pkgconfig
 	doc? (
 		>=app-doc/doxygen-1.6[dot]
+		app-text/xmlto
+		>=media-gfx/graphviz-2.26.0
+		sys-apps/grep[pcre]
 	)
-	app-text/xmlto
-	>=media-gfx/graphviz-2.26.0
-	sys-apps/grep[pcre]
 "
 DEPEND="
 	>=dev-libs/expat-2.1.0-r3:=
@@ -46,6 +46,7 @@ src_prepare() {
 my_src_configure() {
 	local myeconfargs=(
 		--disable-static
+		--disable-documentation
 		$(multilib_native_use_enable doc documentation)
 		$(multilib_native_enable dtd-validation)
 	)
