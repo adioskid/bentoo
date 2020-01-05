@@ -11,10 +11,10 @@ MY_P="${MY_PN}-${MY_PV}"
 FFMPEG_PV="$(ver_cut 4- ${PV%_*})"
 
 DESCRIPTION="FFmpeg based gstreamer plugin"
-HOMEPAGE="https://gstreamer.freedesktop.org/modules/gst-libav.html"
+HOMEPAGE="	html"
 SRC_URI="https://gstreamer.freedesktop.org/src/${MY_PN}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~leio/distfiles/${MY_P}-ffmpeg4-patchset.tar.xz
-	libav? ( https://ffmpeg.org/releases/ffmpeg-${FFMPEG_PV}.tar.bz2 )"
+	https://dev.gentoo.org/~leio/distfiles/gst-libav-1.14.4-ffmpeg4-patchset.tar.xz
+	libav? ( https://ffmpeg.org/releases/ffmpeg-4.2.2.tar.bz2 )"
 
 LICENSE="LGPL-2+"
 SLOT="1.0"
