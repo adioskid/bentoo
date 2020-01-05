@@ -569,8 +569,8 @@ cmake_build() {
 		emake)
 			[[ -e Makefile ]] || die "Makefile not found. Error during configure stage."
 			case ${CMAKE_VERBOSE} in
-				OFF) emake VERBOSE=1 "$@" ;;
-				*) emake "$@" ;;
+				OFF) emake "$@" ;;
+				*) emake VERBOSE=1 "$@" ;;
 			esac
 			;;
 		ninja)
@@ -587,7 +587,7 @@ cmake_build() {
 # @DESCRIPTION:
 # Banned. Use cmake_build instead.
 cmake-utils_src_make() {
-	die "cmake_src_make is banned. Use cmake_build instead"
+	die "cmake-utils_src_make is banned. Use cmake_build instead"
 }
 
 # @FUNCTION: cmake_src_test
