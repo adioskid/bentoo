@@ -12,7 +12,7 @@ SRC_URI="https://gstreamer.freedesktop.org/src/${MY_PN}/${MY_PN}-${PV}.tar.xz"
 
 LICENSE="LGPL-2.1+"
 SLOT="1.0"
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="amd64 arm64 x86"
 IUSE="+drm +egl gles2 +opengl wayland +X" # Keep default enabled IUSE in sync with gst-plugins-base and libva
 
 # gst-vaapi configure is based around GL platform mainly, unlike gst-plugins-bad that goes by GL API mainly; for less surprises,
@@ -44,10 +44,10 @@ REQUIRED_USE="
 GST_REQ="${PV}"
 GL_DEPS="
 	>=media-libs/gst-plugins-base-${GST_REQ}:${SLOT}[egl?,gles2?,opengl?,wayland?,X?]
-	media-libs/mesa[gles2?,egl?,X(+)]
+	media-libs/mesa[gles2?,egl?,X(+),${MULTILIB_USEDEP}]
 "
 RDEPEND="
-	>=dev-libs/glib-2.40:2
+	>=dev-libs/glib-2.40:2[${MULTILIB_USEDEP}]
 	>=media-libs/gstreamer-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]
 	>=media-libs/gst-plugins-base-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]
 	>=media-libs/gst-plugins-bad-${GST_REQ}:${SLOT}[${MULTILIB_USEDEP}]
