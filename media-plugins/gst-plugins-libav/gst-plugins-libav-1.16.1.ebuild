@@ -40,9 +40,6 @@ DEPEND="${RDEPEND}
 S="${WORKDIR}/${MY_P}"
 
 PATCHES=(
-	"${WORKDIR}"/patches # ffmpeg-4 compat and more from git up to 20181115; requires eautoreconf
-	"${FILESDIR}"/AVOptionsRanges-leak-fix.patch # extra patch from Jan 2019 for a leak fix
-	"${FILESDIR}"/fix-negative-pts.patch # extra patch from Feb 2019 to fix negative pts if start_time is bigger than the ts
 	"${FILESDIR}"/external-ffmpeg4-dep.patch # Automatically rescan available elements for registry when system ffmpeg changes
 )
 
