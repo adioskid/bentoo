@@ -24,10 +24,10 @@ BDEPEND="
 	virtual/pkgconfig
 	doc? (
 		>=app-doc/doxygen-1.6[dot]
-		app-text/xmlto
-		>=media-gfx/graphviz-2.26.0
-		sys-apps/grep[pcre]
 	)
+	app-text/xmlto
+	>=media-gfx/graphviz-2.26.0
+	sys-apps/grep[pcre]
 "
 DEPEND="
 	>=dev-libs/expat-2.1.0-r3:=
