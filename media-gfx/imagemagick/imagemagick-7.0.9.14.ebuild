@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -12,8 +12,8 @@ if [[ ${PV} == "9999" ]] ; then
 else
 	MY_PV="$(ver_rs 3 '-')"
 	MY_P="ImageMagick-${MY_PV}"
-	SRC_URI="http://mirror.checkdomain.de/imagemagick/ImageMagick-7.0.9-9.tar.xz"
-	KEYWORDS="alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 ~s390 ~sh sparc x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+	SRC_URI="mirror://imagemagick/${MY_P}.tar.xz"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 fi
 
 DESCRIPTION="A collection of tools and libraries for many image formats"
