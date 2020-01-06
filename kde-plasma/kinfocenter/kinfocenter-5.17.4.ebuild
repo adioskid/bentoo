@@ -11,7 +11,7 @@ inherit ecm kde.org
 
 DESCRIPTION="Utility providing information about the computer hardware"
 HOMEPAGE="https://userbase.kde.org/KInfoCenter"
-SRC_URI+=" https://www.gentoo.org/assets/img/logo/gentoo-3d-small.png -> glogo-small.png"
+SRC_URI+=" http://www.bentoo.info/assets/img/bentoo-icon.png -> logo.png"
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
 KEYWORDS="amd64 ~arm arm64 x86"
@@ -87,7 +87,7 @@ src_install() {
 	doins "${FILESDIR}"/kcm-about-distrorc
 
 	insinto /usr/share/${PN}
-	doins "${DISTDIR}"/glogo-small.png
+	doins "${DISTDIR}"/logo.png
 }
 
 pkg_postinst() {
