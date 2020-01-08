@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -25,7 +25,7 @@ SRC_URI+="
 	"${uri}${PN}/desktop/${PV}/linux/${PN}-stable_${PV}_amd64.deb"
 "
 done
-KEYWORDS="amd64"
+KEYWORDS="~amd64"
 
 RDEPEND="
 	dev-libs/expat
