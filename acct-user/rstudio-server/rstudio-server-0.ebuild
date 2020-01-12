@@ -5,8 +5,8 @@ EAPI=7
 
 inherit acct-user
 
-DESCRIPTION="A user for pcsc-lite"
-ACCT_USER_ID=47
-ACCT_USER_GROUPS=( pcscd openct usb )
+DESCRIPTION="user for sci-mathematics/rstudio"
+ACCT_USER_ID=466
+ACCT_USER_GROUPS=( rstudio-server )
 
 acct-user_add_deps

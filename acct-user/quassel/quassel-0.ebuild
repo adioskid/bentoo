@@ -5,8 +5,8 @@ EAPI=7
 
 inherit acct-user
 
-DESCRIPTION="A user for pcsc-lite"
-ACCT_USER_ID=47
-ACCT_USER_GROUPS=( pcscd openct usb )
+ACCT_USER_ID=472
+ACCT_USER_HOME=/var/lib/quassel
+ACCT_USER_GROUPS=( quassel )
 
 acct-user_add_deps
