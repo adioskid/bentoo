@@ -7,10 +7,12 @@ inherit kernel-build
 
 MY_P=linux-${PV%.*}
 GENPATCHES_P=genpatches-${PV%.*}-${PV##*.}
+# https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
 AMD64_CONFIG_VER=5.4.7.arch1-1
 AMD64_CONFIG_HASH=ff79453bc0451a9083bdaa02c3901372d61a9982
-I686_CONFIG_VER=5.4.3-arch1
-I686_CONFIG_HASH=076a52d43a08c4b3a3eacd1f2f9a855fb3b62f42
+# https://git.archlinux32.org/packages/log/core/linux/config.i686
+I686_CONFIG_VER=5.4.7-arch1
+I686_CONFIG_HASH=f888688da499e17f3c7a5f15a3c44482a29acc2c
 
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"

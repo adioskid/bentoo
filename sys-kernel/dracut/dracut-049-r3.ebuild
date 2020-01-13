@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -10,7 +10,7 @@ if [[ ${PV} == 9999 ]] ; then
 	EGIT_REPO_URI="https://github.com/dracutdevs/dracut"
 else
 	[[ "${PV}" = *_rc* ]] || \
-	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
+	KEYWORDS="~alpha amd64 ~arm ~arm64 ia64 ~mips ppc ppc64 ~sparc x86"
 	SRC_URI="https://github.com/dracutdevs/dracut/archive/${PV}.tar.gz -> ${P}.tar.gz"
 fi
 
@@ -38,13 +38,17 @@ RDEPEND="
 	virtual/pkgconfig
 	virtual/udev
 
+	elibc_musl? ( sys-libs/fts-standalone )
 	selinux? (
 		sec-policy/selinux-dracut
 		sys-libs/libselinux
 		sys-libs/libsepol
 	)
-	"
-DEPEND=">=sys-apps/kmod-23"
+"
+DEPEND="
+	>=sys-apps/kmod-23
+	elibc_musl? ( sys-libs/fts-standalone )
+"
 
 BDEPEND="
 	app-text/asciidoc
@@ -52,7 +56,7 @@ BDEPEND="
 	>=app-text/docbook-xsl-stylesheets-1.75.2
 	>=dev-libs/libxslt-1.1.26
 	virtual/pkgconfig
-	"
+"
 
 DOCS=( AUTHORS HACKING NEWS README README.generic README.kernel README.modules
 	README.testsuite TODO )
@@ -63,6 +67,18 @@ PATCHES=(
 	"${FILESDIR}"/048-dracut-install-simplify-ldd-parsing-logic.patch
 	"${FILESDIR}"/049-40network-Don-t-include-40network-by-default.patch
 	"${FILESDIR}"/049-remove-bashism-in-various-boot-scripts.patch
+	"${FILESDIR}"/049-network-manager-call-the-online-hook-for-connected-d.patch
+	"${FILESDIR}"/049-install-dracut-install.c-install-module-dependencies.patch
+	"${FILESDIR}"/049-install-string_hash_func-should-not-be-fed-with-NULL.patch
+	"${FILESDIR}"/049-dracut.sh-Fix-udevdir-detection.patch
+	"${FILESDIR}"/049-rngd-new-module-running-early-during-boot-to-help-ge.patch
+	"${FILESDIR}"/049-fs-lib-drop-a-bashism.patch
+	"${FILESDIR}"/049-network-manager-remove-useless-use-of-basename.patch
+	"${FILESDIR}"/049-move-setting-the-systemdutildir-variable-before-it-s.patch
+	"${FILESDIR}"/049-dracut-install-Support-the-compressed-firmware-files.patch
+	"${FILESDIR}"/049-crypt-create-locking-directory-run-cryptsetup.patch
+	"${FILESDIR}"/049-network-manager-fix-getting-of-ifname-from-the-sysfs.patch
+	"${FILESDIR}"/049-configure-find-cflags-and-libs-for-fts-on-musl.patch
 )
 
 src_configure() {
@@ -154,4 +170,7 @@ pkg_postinst() {
 		"Install ssh and scp along with config files and specified keys" \
 		net-misc/openssh
 	optfeature "Enable logging with rsyslog" app-admin/rsyslog
+	optfeature \
+		"Enable rngd service to help generating entropy early during boot" \
+		sys-apps/rng-tools
 }
