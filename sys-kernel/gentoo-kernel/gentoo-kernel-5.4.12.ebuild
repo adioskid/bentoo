@@ -17,8 +17,8 @@ I686_CONFIG_HASH=f888688da499e17f3c7a5f15a3c44482a29acc2c
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"
 SRC_URI+=" https://cdn.kernel.org/pub/linux/kernel/v$(ver_cut 1).x/${MY_P}.tar.xz
-	https://dev.gentoo.org/~mpagano/genpatches/tarballs/${GENPATCHES_P}.base.tar.xz
-	https://dev.gentoo.org/~mpagano/genpatches/tarballs/${GENPATCHES_P}.extras.tar.xz
+	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.base.tar.xz
+	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.extras.tar.xz
 	amd64? (
 		https://git.archlinux.org/svntogit/packages.git/plain/trunk/config?h=packages/linux&id=${AMD64_CONFIG_HASH}
 			-> linux-${AMD64_CONFIG_VER}.amd64.config
