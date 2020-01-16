@@ -82,7 +82,7 @@ src_prepare() {
 
 	# Remove pointless GCC version check
 	sed -e '/^check_gcc$/d' -i configure || die
-	
+
 	eapply "${WORKDIR}/patches"
 
 	eapply_user
