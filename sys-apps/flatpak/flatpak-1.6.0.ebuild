@@ -11,7 +11,7 @@ HOMEPAGE="http://flatpak.org/"
 
 LICENSE="LGPL-2.1"
 SLOT="0"
-KEYWORDS="amd64"
+KEYWORDS="~amd64"
 IUSE="doc gnome gtk introspection kde policykit seccomp"
 
 # FIXME: systemd is automagic dep.
@@ -65,6 +65,7 @@ src_configure() {
 	# FIXME: the gtk-doc check doesn't seem to be working
 	# TODO: split out bubblewrap
 	# TODO: split out xdg-dbus-proxy?
+	# TODO: We do not provide libmalcontent yet.
 	econf \
 		--enable-sandboxed-triggers \
 		--enable-xauth \
