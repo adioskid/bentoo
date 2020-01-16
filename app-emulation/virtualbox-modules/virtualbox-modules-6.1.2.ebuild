@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # XXX: the tarball here is just the kernel modules split out of the binary
@@ -24,8 +24,10 @@ RDEPEND="!=app-emulation/virtualbox-9999"
 S="${WORKDIR}"
 
 BUILD_TARGETS="all"
-BUILD_TARGET_ARCH="${ARCH}"
 MODULE_NAMES="vboxdrv(misc:${S}) vboxnetflt(misc:${S}) vboxnetadp(misc:${S})"
+MODULESD_VBOXDRV_ENABLED="yes"
+MODULESD_VBOXNETADP_ENABLED="no"
+MODULESD_VBOXNETFLT_ENABLED="no"
 
 pkg_setup() {
 	enewgroup vboxusers
@@ -49,6 +51,6 @@ src_install() {
 
 pkg_postinst() {
 	# Remove vboxpci.ko from current running kernel
-	find /lib/modules/${KV_FULL}/misc -type f -name "vboxpci.ko" -delete || die
+	find /lib/modules/${KV_FULL}/misc -type f -name "vboxpci.ko" -delete
 	linux-mod_pkg_postinst
 }
