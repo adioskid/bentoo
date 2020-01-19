@@ -30,7 +30,7 @@ BIN_PV=${PV}
 arch_binaries="$arch_binaries amd64? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-x86_64-pc-linux-gnu.tbz2 )"
 #arch_binaries="$arch_binaries ia64?  ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-ia64-fixed-fiw.tbz2 )"
 #arch_binaries="$arch_binaries ppc? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-ppc.tbz2 )"
-arch_binaries="$arch_binaries ppc64? ( !big-endian? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-powerpc64le-unknown-linux-gnu.tbz2 ) )"
+#arch_binaries="$arch_binaries ppc64? ( !big-endian? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-powerpc64le-unknown-linux-gnu.tbz2 ) )"
 #arch_binaries="$arch_binaries sparc? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-sparc.tbz2 )"
 arch_binaries="$arch_binaries x86? ( https://slyfox.uni.cx/~slyfox/distfiles/ghc-bin-${PV}-i686-pc-linux-gnu.tbz2 )"
 
@@ -46,10 +46,10 @@ yet_binary() {
 		amd64) return 0 ;;
 		#ia64) return 0 ;;
 		#ppc) return 0 ;;
-		ppc64)
-			use big-endian && return 1
-			return 0
-			;;
+		#ppc64)
+		#	use big-endian && return 1
+		#	return 0
+		#	;;
 		#sparc) return 0 ;;
 		x86) return 0 ;;
 		*) return 1 ;;
@@ -491,7 +491,6 @@ src_prepare() {
 		eapply "${FILESDIR}"/${PN}-8.0.2-no-relax-everywhere.patch
 		eapply "${FILESDIR}"/${PN}-8.4.2-allow-cross-bootstrap.patch
 		eapply "${FILESDIR}"/${PN}-8.6.5-numa.patch
-		eapply "${FILESDIR}"/${PN}-8.8.1-no-alex.patch
 		eapply "${FILESDIR}"/${PN}-8.8.1-revert-CPP.patch
 
 		# a bunch of crosscompiler patches
