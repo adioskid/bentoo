@@ -1,24 +1,23 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 EGO_PN="github.com/containerd/${PN}"
-
 inherit toolchain-funcs
+
+DESCRIPTION="A daemon to control runC"
+HOMEPAGE="https://containerd.io/"
 
 if [[ ${PV} == *9999 ]]; then
 	inherit golang-vcs
 else
 	MY_PV="${PV/_rc/-rc.}"
 	EGIT_COMMIT="v${MY_PV}"
-	CONTAINERD_COMMIT="c7a4f87"
+	CONTAINERD_COMMIT=ff48f57f
 	SRC_URI="https://${EGO_PN}/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~arm ~arm64 ~ppc64"
 	inherit golang-vcs-snapshot
 fi
-
-DESCRIPTION="A daemon to control runC"
-HOMEPAGE="https://containerd.io/"
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -31,7 +30,7 @@ RDEPEND=">=app-emulation/runc-1.0.0_rc9
 
 S=${WORKDIR}/${P}/src/${EGO_PN}
 
-RESTRICT="test"
+RESTRICT="strip test"
 
 src_prepare() {
 	default

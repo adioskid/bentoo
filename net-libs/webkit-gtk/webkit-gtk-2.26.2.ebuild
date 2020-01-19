@@ -167,6 +167,7 @@ src_prepare() {
 	eapply "${FILESDIR}/${PN}-2.24.4-icu-65.patch" # bug 698596
 	eapply "${FILESDIR}/${PN}-2.24.4-eglmesaext-include.patch" # bug 699054 # https://bugs.webkit.org/show_bug.cgi?id=204108
 	eapply "${FILESDIR}"/${PV}-fix-noGL-build.patch # bug 704236
+	eapply "${FILESDIR}"/${PV}-fix-arm-non-unified-build.patch # bug 704194
 	cmake-utils_src_prepare
 	gnome2_src_prepare
 }
@@ -203,7 +204,7 @@ src_configure() {
 	local rubyimpl
 	local ruby_interpreter=""
 	for rubyimpl in ${USE_RUBY}; do
-		if has_version "virtual/rubygems[ruby_targets_${rubyimpl}]"; then
+		if has_version --host-root "virtual/rubygems[ruby_targets_${rubyimpl}]"; then
 			ruby_interpreter="-DRUBY_EXECUTABLE=$(type -P ${rubyimpl})"
 		fi
 	done
