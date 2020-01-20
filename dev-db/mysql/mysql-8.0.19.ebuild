@@ -1,13 +1,13 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
-MY_EXTRAS_VER="20190817-0024Z"
+MY_EXTRAS_VER="20200120-1919Z"
 
 CMAKE_MAKEFILE_GENERATOR=emake
 
 inherit cmake-utils flag-o-matic linux-info \
-	multiprocessing prefix toolchain-funcs
+	multiprocessing prefix toolchain-funcs check-reqs
 
 MY_PV="${PV//_pre*}"
 MY_P="${PN}-${MY_PV}"
@@ -30,12 +30,18 @@ DESCRIPTION="A fast, multi-threaded, multi-user SQL database server"
 LICENSE="GPL-2"
 SLOT="0"
 IUSE="cjk cracklib debug jemalloc latin1 libressl numa +perl profiling
-	router selinux tcmalloc test"
+	router selinux +server tcmalloc test"
 
 # Tests always fail when libressl is enabled due to hard-coded ciphers in the tests
-RESTRICT="libressl? ( test )"
+RESTRICT="!test? ( test ) libressl? ( test )"
 
-REQUIRED_USE="?? ( tcmalloc jemalloc )"
+REQUIRED_USE="?? ( tcmalloc jemalloc )
+	cjk? ( server )
+	jemalloc? ( server )
+	numa? ( server )
+	profiling? ( server )
+	router? ( server )
+	tcmalloc? ( server )"
 
 KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
 
@@ -55,39 +61,40 @@ fi
 
 PATCHES=(
 	"${MY_PATCH_DIR}"/20001_all_fix-minimal-build-cmake-mysql-8.0.17.patch
-	"${MY_PATCH_DIR}"/20007_all_cmake-debug-werror-8.0.17.patch
+	"${MY_PATCH_DIR}"/20007_all_cmake-debug-werror-8.0.18.patch
 	"${MY_PATCH_DIR}"/20018_all_mysql-5.7.23-fix-grant_user_lock-a-root.patch
-	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.17-without-clientlibs-tools.patch
-	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.17-add-protobuf-3.8+-support.patch
-	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.17-fix-libressl-support.patch
+	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.19-without-clientlibs-tools.patch
+	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.19-fix-libressl-support.patch
+	"${MY_PATCH_DIR}"/20018_all_mysql-8.0.19-fix-events_bugs-test.patch
 )
 
 # Be warned, *DEPEND are version-dependant
 # These are used for both runtime and compiletime
 COMMON_DEPEND="
 	>=app-arch/lz4-0_p131:=
-	dev-libs/icu:=
 	dev-libs/libedit
-	dev-libs/libevent:=
-	net-libs/libtirpc:=
 	>=sys-libs/zlib-1.2.3:0=
-	cjk? ( app-text/mecab:= )
-	jemalloc? ( dev-libs/jemalloc:0= )
-	kernel_linux? (
-		dev-libs/libaio:0=
-		sys-process/procps:0=
-	)
-	numa? ( sys-process/numactl )
-	!libressl? ( >=dev-libs/openssl-1.0.0:0= )
 	libressl? ( dev-libs/libressl:0= )
-	tcmalloc? ( dev-util/google-perftools:0= )
+	!libressl? ( >=dev-libs/openssl-1.0.0:0= )
+	server? (
+		dev-libs/icu:=
+		dev-libs/libevent:=
+		>=dev-libs/protobuf-3.8:=
+		net-libs/libtirpc:=
+		cjk? ( app-text/mecab:= )
+		kernel_linux? (
+			dev-libs/libaio:0=
+			sys-process/procps:0=
+		)
+		numa? ( sys-process/numactl )
+		jemalloc? ( dev-libs/jemalloc:0= )
+		tcmalloc? ( dev-util/google-perftools:0= )
+	)
 "
 DEPEND="${COMMON_DEPEND}
 	|| ( >=sys-devel/gcc-3.4.6 >=sys-devel/gcc-apple-4.0 )
-	dev-libs/re2
-	>=dev-libs/protobuf-3.8
-	net-libs/rpcsvc-proto
 	virtual/yacc
+	server? ( net-libs/rpcsvc-proto )
 	test? (
 		acct-group/mysql acct-user/mysql
 		dev-perl/JSON
@@ -105,6 +112,8 @@ RDEPEND="${COMMON_DEPEND}
 # dev-perl/DBD-mysql is needed by some scripts installed by MySQL
 PDEPEND="perl? ( >=dev-perl/DBD-mysql-2.9004 )"
 
+CHECKREQS_DISK_BUILD="8G"
+
 mysql_init_vars() {
 	: ${MY_SHAREDSTATEDIR="${EPREFIX}/usr/share/mysql"}
 	: ${MY_SYSCONFDIR="${EPREFIX}/etc/mysql"}
@@ -115,6 +124,11 @@ mysql_init_vars() {
 	export MY_SHAREDSTATEDIR MY_SYSCONFDIR
 	export MY_LOCALSTATEDIR MY_LOGDIR
 	export MY_DATADIR
+}
+
+pkg_pretend() {
+	[[ ${MERGE_TYPE} == binary ]] && return
+	use server && check-reqs_pkg_pretend
 }
 
 pkg_setup() {
@@ -151,6 +165,8 @@ pkg_setup() {
 			check_extra_config
 		fi
 	fi
+
+	use server && check-reqs_pkg_setup
 }
 
 src_unpack() {
@@ -247,21 +263,9 @@ src_configure(){
 
 	mycmakeargs+=( -DWITHOUT_CLIENTLIBS=YES )
 
-	# client/mysql.cc:1131:16: error: redefinition of ‘struct _hist_entry’
-	mycmakeargs+=(
-		-DUSE_LIBEDIT_INTERFACE=0
-		-DUSE_NEW_EDITLINE_INTERFACE=1
-		-DHAVE_HIST_ENTRY=1
-	)
-
 	mycmakeargs+=(
 		-DWITH_ICU=system
-		-DWITH_RE2=system
-		-DWITH_LIBEVENT=system
 		-DWITH_LZ4=system
-		-DWITH_PROTOBUF=system
-		-DWITH_MECAB=$(usex cjk system OFF)
-		-DWITH_NUMA=$(usex numa ON OFF)
 		# Our dev-libs/rapidjson doesn't carry necessary fixes for std::regex
 		-DWITH_RAPIDJSON=bundled
 	)
@@ -288,32 +292,42 @@ src_configure(){
 		)
 	fi
 
-	mycmakeargs+=(
-		-DWITH_EXTRA_CHARSETS=all
-		-DDISABLE_SHARED=NO
-		-DWITH_DEBUG=$(usex debug)
-	)
+	if use server ; then
+		mycmakeargs+=(
+			-DWITH_EXTRA_CHARSETS=all
+			-DWITH_DEBUG=$(usex debug)
+			-DWITH_MECAB=$(usex cjk system OFF)
+			-DWITH_LIBEVENT=system
+			-DWITH_PROTOBUF=system
+			-DWITH_NUMA=$(usex numa ON OFF)
+		)
 
-	if use profiling ; then
-		# Setting to OFF doesn't work: Once set, profiling options will be added
-		# to `mysqld --help` output via sql/sys_vars.cc causing
-		# "main.mysqld--help-notwin" test to fail
-		mycmakeargs+=( -DENABLED_PROFILING=ON )
+		if use profiling ; then
+			# Setting to OFF doesn't work: Once set, profiling options will be added
+			# to `mysqld --help` output via sql/sys_vars.cc causing
+			# "main.mysqld--help-notwin" test to fail
+			mycmakeargs+=( -DENABLED_PROFILING=ON )
+		fi
+
+		# Storage engines
+		mycmakeargs+=(
+			-DWITH_EXAMPLE_STORAGE_ENGINE=0
+			-DWITH_ARCHIVE_STORAGE_ENGINE=1
+			-DWITH_BLACKHOLE_STORAGE_ENGINE=1
+			-DWITH_CSV_STORAGE_ENGINE=1
+			-DWITH_FEDERATED_STORAGE_ENGINE=1
+			-DWITH_HEAP_STORAGE_ENGINE=1
+			-DWITH_INNOBASE_STORAGE_ENGINE=1
+			-DWITH_INNODB_MEMCACHED=0
+			-DWITH_MYISAMMRG_STORAGE_ENGINE=1
+			-DWITH_MYISAM_STORAGE_ENGINE=1
+		)
+	else
+		mycmakeargs+=(
+			-DWITHOUT_SERVER=1
+			-DWITH_SYSTEMD=no
+		)
 	fi
-
-	# Storage engines
-	mycmakeargs+=(
-		-DWITH_EXAMPLE_STORAGE_ENGINE=0
-		-DWITH_ARCHIVE_STORAGE_ENGINE=1
-		-DWITH_BLACKHOLE_STORAGE_ENGINE=1
-		-DWITH_CSV_STORAGE_ENGINE=1
-		-DWITH_FEDERATED_STORAGE_ENGINE=1
-		-DWITH_HEAP_STORAGE_ENGINE=1
-		-DWITH_INNOBASE_STORAGE_ENGINE=1
-		-DWITH_INNODB_MEMCACHED=0
-		-DWITH_MYISAMMRG_STORAGE_ENGINE=1
-		-DWITH_MYISAM_STORAGE_ENGINE=1
-	)
 
 	cmake-utils_src_configure
 }
@@ -360,6 +374,8 @@ src_test() {
 			unset info_msg
 			MTR_PARALLEL=4
 		fi
+	else
+		einfo "MTR_PARALLEL is set to '${MTR_PARALLEL}'"
 	fi
 
 	# create directories because mysqladmin might run out of order
@@ -382,16 +398,15 @@ src_test() {
 	disabled_tests+=( "gis.spatial_utility_function_simplify;5452;Known rounding error with latest AMD processors (PS)")
 	disabled_tests+=( "gis.spatial_op_testingfunc_mix;5452;Known rounding error with latest AMD processors (PS)")
 	disabled_tests+=( "gis.spatial_analysis_functions_distance;5452;Known rounding error with latest AMD processors (PS)")
-	disabled_tests+=( "main.mysqlslap;1253001;Known failure - no upstream bug yet (RH)" )
 	disabled_tests+=( "main.window_std_var;0;Known rounding error with latest AMD processors -- no upstream bug yet")
 	disabled_tests+=( "main.window_std_var_optimized;0;Known rounding error with latest AMD processors -- no upstream bug yet")
-	disabled_tests+=( "perfschema.idx_threads;0;Know failure - no upstream bug yet" )
-	disabled_tests+=( "perfschema.idx_session_connect_attrs;0;Know failure - no upstream bug yet" )
-	disabled_tests+=( "perfschema.idx_session_account_connect_attrs;0;Know failure - no upstream bug yet" )
 	disabled_tests+=( "rpl_gtid.rpl_gtid_stm_drop_table;90612;Known test failure" )
-	disabled_tests+=( "rpl_gtid.rpl_multi_source_mtr_includes;0;Know failure - no upstream bug yet" )
+	disabled_tests+=( "rpl_gtid.rpl_multi_source_mtr_includes;0;Known failure - no upstream bug yet" )
 	disabled_tests+=( "sys_vars.myisam_data_pointer_size_func;87935;Test will fail on slow hardware")
-	disabled_tests+=( "x.connection;0;Know failure - no upstream bug yet" )
+	disabled_tests+=( "x.connection;0;Known failure - no upstream bug yet" )
+	disabled_tests+=( "main.mysqlpump_basic_lz4;0;Extra tool output causes false positive" )
+	disabled_tests+=( "x.message_compressed_payload;0;False positive caused by protobuff-3.11+" )
+	disabled_tests+=( "x.message_protobuf_nested;0;False positive caused by protobuff-3.11+" )
 
 	local test_ds
 	for test_infos_str in "${disabled_tests[@]}" ; do

@@ -9,7 +9,7 @@ inherit bash-completion-r1 distutils-r1
 
 DESCRIPTION="Multi-container orchestration for Docker"
 HOMEPAGE="https://github.com/docker/compose"
-SRC_URI="https://github.com/docker/compose/archive/${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/docker/compose/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -37,16 +37,18 @@ RDEPEND="dev-python/setuptools[${PYTHON_USEDEP}]
 	$(python_gen_cond_dep '>=dev-python/subprocess32-3.5.4[${PYTHON_USEDEP}]' 'python2_7' )"
 
 DEPEND="${RDEPEND}
-	test? ( <dev-python/pytest-4[${PYTHON_USEDEP}]
-	<dev-python/pyyaml-5.1[${PYTHON_USEDEP}]
-	$(python_gen_cond_dep '>=dev-python/mock-1.0.1[${PYTHON_USEDEP}]' 'python2_7' ) )"
+	test? (
+		<dev-python/pytest-4[${PYTHON_USEDEP}]
+		dev-python/ddt[${PYTHON_USEDEP}]
+		$(python_gen_cond_dep '>=dev-python/mock-1.0.1[${PYTHON_USEDEP}]' 'python2_7' )
+	)"
 
 S="${WORKDIR}/compose-${PV}"
 
 PATCHES=(
 	# Bug #679968 -- https://bugs.gentoo.org/679968
 	# Bug #681002 -- https://bugs.gentoo.org/681002
-	"${FILESDIR}"/${PN}-1.25.0-setup-py.patch
+	"${FILESDIR}"/${PN}-1.25.2-setup-py.patch
 )
 
 src_prepare() {
