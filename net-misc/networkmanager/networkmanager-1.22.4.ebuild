@@ -1,11 +1,11 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 GNOME_ORG_MODULE="NetworkManager"
 GNOME2_LA_PUNT="yes"
 VALA_USE_DEPEND="vapigen"
-PYTHON_COMPAT=( python{2_7,3_5,3_6,3_7} )
+PYTHON_COMPAT=( python{2_7,3_6,3_7} )
 
 inherit bash-completion-r1 gnome2 linux-info multilib python-any-r1 systemd readme.gentoo-r1 vala virtualx udev multilib-minimal
 
@@ -27,21 +27,21 @@ REQUIRED_USE="
 	?? ( consolekit elogind systemd )
 "
 
-KEYWORDS="~alpha amd64 arm arm64 ~ia64 ppc ppc64 ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc ~x86"
 
 # gobject-introspection-0.10.3 is needed due to gnome bug 642300
 # wpa_supplicant-0.7.3-r3 is needed due to bug 359271
 COMMON_DEPEND="
-	>=sys-apps/dbus-1.2
-	>=dev-libs/dbus-glib-0.100
-	>=dev-libs/glib-2.40:2
+	>=sys-apps/dbus-1.2[${MULTILIB_USEDEP}]
+	>=dev-libs/dbus-glib-0.100[${MULTILIB_USEDEP}]
+	>=dev-libs/glib-2.40:2[${MULTILIB_USEDEP}]
 	policykit? ( >=sys-auth/polkit-0.106 )
-	net-libs/libndp
+	net-libs/libndp[${MULTILIB_USEDEP}]
 	>=net-misc/curl-7.24
 	net-misc/iputils
-	sys-apps/util-linux
+	sys-apps/util-linux[${MULTILIB_USEDEP}]
 	sys-libs/readline:0=
-	>=virtual/libudev-175:=
+	>=virtual/libudev-175:=[${MULTILIB_USEDEP}]
 	audit? ( sys-process/audit )
 	bluetooth? ( >=net-wireless/bluez-5 )
 	connection-sharing? (
@@ -52,13 +52,13 @@ COMMON_DEPEND="
 	dhcpcd? ( net-misc/dhcpcd )
 	elogind? ( >=sys-auth/elogind-219 )
 	introspection? ( >=dev-libs/gobject-introspection-0.10.3:= )
-	json? ( >=dev-libs/jansson-2.5 )
+	json? ( >=dev-libs/jansson-2.5[${MULTILIB_USEDEP}] )
 	modemmanager? ( >=net-misc/modemmanager-0.7.991:0= )
 	ncurses? ( >=dev-libs/newt-0.52.15 )
-	nss? ( >=dev-libs/nss-3.11:= )
+	nss? ( >=dev-libs/nss-3.11:=[${MULTILIB_USEDEP}] )
 	!nss? ( gnutls? (
-		dev-libs/libgcrypt:0=
-		>=net-libs/gnutls-2.12:= ) )
+		dev-libs/libgcrypt:0=[${MULTILIB_USEDEP}]
+		>=net-libs/gnutls-2.12:=[${MULTILIB_USEDEP}] ) )
 	ofono? ( net-misc/ofono )
 	ovs? ( dev-libs/jansson )
 	ppp? ( >=net-dialup/ppp-2.4.5:=[ipv6] )
@@ -88,7 +88,7 @@ DEPEND="${COMMON_DEPEND}
 	>=dev-util/intltool-0.40
 	>=sys-devel/gettext-0.17
 	>=sys-kernel/linux-headers-3.18
-	virtual/pkgconfig
+	virtual/pkgconfig[${MULTILIB_USEDEP}]
 	introspection? (
 		$(python_gen_any_dep 'dev-python/pygobject:3[${PYTHON_USEDEP}]')
 		dev-lang/perl
@@ -196,6 +196,8 @@ multilib_src_configure() {
 		$(multilib_native_use_with ncurses nmtui)
 		$(multilib_native_use_with ofono)
 		$(multilib_native_use_enable ovs)
+		$(multilib_native_use_enable policykit polkit)
+		$(multilib_native_use_enable policykit polkit-agent)
 		$(multilib_native_use_with resolvconf)
 		$(multilib_native_use_with selinux)
 		$(multilib_native_use_with systemd systemd-journal)
@@ -207,12 +209,6 @@ multilib_src_configure() {
 		$(multilib_native_use_with wext)
 		$(multilib_native_use_enable wifi)
 	)
-
-	if multilib_is_native_abi && use policykit; then
-		myconf+=( --enable-polkit=yes )
-	else
-		myconf+=( --enable-polkit=disabled )
-	fi
 
 	# Same hack as net-dialup/pptpd to get proper plugin dir for ppp, bug #519986
 	if use ppp; then
@@ -260,6 +256,8 @@ multilib_src_install() {
 	if multilib_is_native_abi; then
 		# Install completions at proper place, bug #465100
 		gnome2_src_install completiondir="$(get_bashcompdir)"
+		insinto /usr/lib/NetworkManager/conf.d #702476
+		doins "${S}"/examples/nm-conf.d/31-mac-addr-change.conf
 	else
 		local targets=(
 			install-libLTLIBRARIES

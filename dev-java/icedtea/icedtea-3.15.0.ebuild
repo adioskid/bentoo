@@ -17,16 +17,16 @@ ICEDTEA_BRANCH=$(get_version_component_range 1-2)
 ICEDTEA_PKG=icedtea-${ICEDTEA_VER}
 ICEDTEA_PRE=$(get_version_component_range _)
 
-CORBA_TARBALL="a37140ba122d.tar.xz"
-JAXP_TARBALL="9f2145980ba0.tar.xz"
-JAXWS_TARBALL="af5760dceec0.tar.xz"
-JDK_TARBALL="ce6c8c2cad27.tar.xz"
-LANGTOOLS_TARBALL="ccec65feaaac.tar.xz"
-OPENJDK_TARBALL="454c6cbb8073.tar.xz"
-NASHORN_TARBALL="13722b4babad.tar.xz"
-HOTSPOT_TARBALL="4ccc1ae03940.tar.xz"
-SHENANDOAH_TARBALL="9e52f8d3b511.tar.xz"
-AARCH32_TARBALL="0d7b61c79fee.tar.xz"
+CORBA_TARBALL="f59374a41938.tar.xz"
+JAXP_TARBALL="f42bdc74d2f5.tar.xz"
+JAXWS_TARBALL="4dee0def390a.tar.xz"
+JDK_TARBALL="c2f574d16c2f.tar.xz"
+LANGTOOLS_TARBALL="9cb3b18d9139.tar.xz"
+OPENJDK_TARBALL="c0ec72b715dd.tar.xz"
+NASHORN_TARBALL="04210bbb67cd.tar.xz"
+HOTSPOT_TARBALL="f76744714698.tar.xz"
+SHENANDOAH_TARBALL="9fcff2250bb4.tar.xz"
+AARCH32_TARBALL="4107aea57664.tar.xz"
 
 CACAO_TARBALL="cacao-c182f119eaad.tar.xz"
 JAMVM_TARBALL="jamvm-ec18fb9e49e62dce16c5094ef1527eed619463aa.tar.gz"
@@ -353,7 +353,7 @@ src_install() {
 		rm -v "${ddest}"/src.zip || die
 	fi
 
-	dosym /usr/share/doc/${PF} /usr/share/doc/${PN}${SLOT}
+	dosym "${EPREFIX}"/usr/share/doc/"${PF}" usr/share/doc/"${PN}${SLOT}"
 
 	# Fix the permissions.
 	find "${ddest}" \! -type l \( -perm /111 -exec chmod 755 {} \; -o -exec chmod 644 {} \; \) || die
