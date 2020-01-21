@@ -5,12 +5,12 @@ EAPI=6
 
 inherit autotools check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils toolchain-funcs
 
-MY_PV=${PV/_p/+}
-SLOT=${MY_PV%%[.+]*}
+MY_PV="${PV}-ga"
+SLOT="${MY_PV%%[.+]*}"
 
 DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
-SRC_URI="https://hg.${PN}.java.net/jdk-updates/jdk${SLOT}u/archive/jdk-${MY_PV}.tar.bz2"
+SRC_URI="https://hg.${PN}.java.net/jdk-updates/jdk${SLOT}u/archive/jdk-${MY_PV}.tar.bz2 -> ${P}.tar.bz2"
 
 LICENSE="GPL-2"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64"
@@ -246,9 +246,9 @@ src_install() {
 	java-vm_sandbox-predict /dev/random /proc/self/coredump_filter
 
 	if use doc ; then
-		insinto /usr/share/doc/"${PF}"/html
-		doins -r "${S}"/build/*-release/images/docs/*
-		dosym /usr/share/doc/"${PF}" /usr/share/doc/"${PN}-${SLOT}"
+		docinto html
+		dodoc -r "${S}"/build/*-release/images/docs/*
+		dosym "${EPREFIX}"/usr/share/doc/"${PF}" /usr/share/doc/"${PN}-${SLOT}"
 	fi
 }
 
