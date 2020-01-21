@@ -125,6 +125,7 @@ PDEPEND="
 PATCHES=(
 	"${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch"
 	"${FILESDIR}/${PN}-5.17.2-waylandsessionrename.patch"
+	"${FILESDIR}/${P}-disable-autoscaling-on-qt-5.14.patch"
 )
 
 RESTRICT+=" test"
