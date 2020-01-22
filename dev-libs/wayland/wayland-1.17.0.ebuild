@@ -46,6 +46,7 @@ src_prepare() {
 my_src_configure() {
 	local myeconfargs=(
 		--disable-static
+		--disable-documentation
 		$(multilib_native_use_enable doc documentation)
 		$(multilib_native_enable dtd-validation)
 	)
