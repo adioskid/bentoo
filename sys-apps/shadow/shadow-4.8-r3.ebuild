@@ -52,11 +52,12 @@ src_prepare() {
 
 src_configure() {
 	local myeconfargs=(
+		--disable-account-tools-setuid
+		--enable-shared=no
+		--enable-static=yes
 		--with-btrfs
 		--without-group-name-max-length
 		--without-tcb
-		--enable-shared=no
-		--enable-static=yes
 		$(use_enable nls)
 		$(use_with acl)
 		$(use_with audit)
@@ -145,14 +146,11 @@ src_install() {
 	else
 		dopamd "${FILESDIR}"/pam.d-include/shadow
 
-		for x in chpasswd chgpasswd newusers; do
+		for x in chsh shfn ; do
 			newpamd "${FILESDIR}"/pam.d-include/passwd ${x}
 		done
 
-		for x in chage chsh chfn \
-				 user{add,del,mod} group{add,del,mod} ; do
-			newpamd "${FILESDIR}"/pam.d-include/shadow ${x}
-		done
+		newpamd "${FILESDIR}"/pam.d-include/shadow-r1 groupmems
 
 		# comment out login.defs options that pam hates
 		local opt sed_args=()
