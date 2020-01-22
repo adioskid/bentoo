@@ -17,7 +17,7 @@ if [[ "${PV}" == "9999" ]]; then
 	EGIT_REPO_URI="https://github.com/FNA-XNA/${FAUDIO_PN}.git"
 else
 	SRC_URI="https://github.com/FNA-XNA/${FAUDIO_PN}/archive/${FAUDIO_PV}.tar.gz -> ${FAUDIO_P}.tar.gz"
-	KEYWORDS="-* ~amd64 ~x86 ~x86-fbsd"
+	KEYWORDS="-* ~amd64 ~x86"
 	S="${WORKDIR}/${FAUDIO_P}"
 fi
 
@@ -27,6 +27,7 @@ LICENSE="ZLIB"
 SLOT="0"
 
 IUSE="+abi_x86_32 +abi_x86_64 debug ffmpeg xnasong test utils"
+RESTRICT="!test? ( test )"
 REQUIRED_USE="|| ( abi_x86_32 abi_x86_64 )"
 
 COMMON_DEPEND="
