@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -9,8 +9,8 @@ inherit flag-o-matic systemd autotools
 
 MY_PV=${PV/_rc/RC}
 DESCRIPTION="The PHP language runtime engine"
-HOMEPAGE="https://php.net/"
-SRC_URI="https://php.net/distributions/${P}.tar.xz"
+HOMEPAGE="https://www.php.net/"
+SRC_URI="https://www.php.net/distributions/${P}.tar.xz"
 
 LICENSE="PHP-3.01
 	BSD
