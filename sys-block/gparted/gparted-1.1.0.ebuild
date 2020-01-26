@@ -1,8 +1,8 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-inherit gnome2
+inherit gnome2 virtualx
 
 DESCRIPTION="Gnome Partition Editor"
 HOMEPAGE="https://gparted.org/"
@@ -82,4 +82,8 @@ src_install() {
 	else
 		sed -i -e 's:kdesu::' "${_bdir}"/gparted || die
 	fi
+}
+
+src_test() {
+	virtx emake check
 }
