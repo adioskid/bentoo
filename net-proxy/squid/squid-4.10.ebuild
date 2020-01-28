@@ -1,11 +1,11 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
 WANT_AUTOMAKE="1.15"
 
-inherit autotools linux-info pam toolchain-funcs user
+inherit autotools linux-info pam toolchain-funcs
 
 DESCRIPTION="A full-featured web proxy cache"
 HOMEPAGE="http://www.squid-cache.org/"
@@ -22,27 +22,28 @@ fi
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="alpha amd64 arm ~hppa ia64 ~mips ppc ppc64 ~sparc x86"
-IUSE="caps gnutls ipv6 pam ldap libressl samba sasl kerberos nis radius ssl snmp selinux logrotate test \
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
+IUSE="caps gnutls ipv6 pam ldap samba sasl kerberos nis radius ssl snmp selinux logrotate test \
 	ecap esi ssl-crtd \
 	mysql postgres sqlite \
 	perl qos tproxy \
 	+htcp +wccp +wccpv2 \
 	pf-transparent ipf-transparent kqueue \
 	elibc_uclibc kernel_linux"
+
 RESTRICT="!test? ( test )"
 
 BDEPEND="dev-lang/perl"
 
-COMMON_DEPEND="caps? ( >=sys-libs/libcap-2.16 )
+COMMON_DEPEND="acct-group/squid
+	acct-user/squid
+	caps? ( >=sys-libs/libcap-2.16 )
 	pam? ( sys-libs/pam )
 	ldap? ( net-nds/openldap )
 	kerberos? ( virtual/krb5 )
 	qos? ( net-libs/libnetfilter_conntrack )
 	ssl? (
-		!gnutls? (
-			libressl? ( dev-libs/libressl:0 )
-			!libressl? ( dev-libs/openssl:0 ) )
+		!gnutls? ( dev-libs/openssl:0 )
 		dev-libs/nettle:= )
 	sasl? ( dev-libs/cyrus-sasl )
 	ecap? ( net-libs/libecap:1 )
@@ -51,10 +52,12 @@ COMMON_DEPEND="caps? ( >=sys-libs/libcap-2.16 )
 	logrotate? ( app-admin/logrotate )
 	>=sys-libs/db-4:*
 	dev-libs/libltdl:0"
+
 DEPEND="${COMMON_DEPEND}
 	${BDEPEND}
 	ecap? ( virtual/pkgconfig )
 	test? ( dev-util/cppunit )"
+
 RDEPEND="${COMMON_DEPEND}
 	samba? ( net-fs/samba )
 	perl? ( dev-lang/perl )
@@ -71,11 +74,6 @@ pkg_pretend() {
 		local CONFIG_CHECK="~NF_CONNTRACK ~NETFILTER_XT_MATCH_SOCKET ~NETFILTER_XT_TARGET_TPROXY"
 		linux-info_pkg_setup
 	fi
-}
-
-pkg_setup() {
-	enewgroup squid
-	enewuser squid -1 -1 /var/cache/squid squid
 }
 
 src_prepare() {
