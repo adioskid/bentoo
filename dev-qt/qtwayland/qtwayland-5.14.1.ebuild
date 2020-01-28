@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -25,10 +25,6 @@ DEPEND="
 	)
 "
 RDEPEND="${DEPEND}"
-
-PATCHES=(
-	"${FILESDIR}/${PN}-5.14.0-fix-linuxdmabuf-build.patch" # bug 699190, QTBUG-79709
-)
 
 src_prepare() {
 	qt_use_disable_config libinput xkbcommon-evdev \
