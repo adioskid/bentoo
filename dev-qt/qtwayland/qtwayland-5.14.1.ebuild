@@ -27,7 +27,7 @@ DEPEND="
 RDEPEND="${DEPEND}"
 
 PATCHES=(
-	"${FILESDIR}/${P}-fix-linuxdmabuf-build.patch" # bug 699190, QTBUG-79709
+	"${FILESDIR}/${PN}-5.14.0-fix-linuxdmabuf-build.patch" # bug 699190, QTBUG-79709
 )
 
 src_prepare() {

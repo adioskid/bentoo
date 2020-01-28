@@ -134,8 +134,6 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 
 PATCHES=(
 	"${FILESDIR}/qt-5.12-gcc-avx2.patch" # bug 672946
-	"${FILESDIR}/${PN}-5.13.2-no-xcb-no-xkbcommon.patch" # bug 699110
-	"${FILESDIR}/${P}-restore-scaling.patch" # QTBUG-80967, in Qt 5.14.1
 )
 
 src_prepare() {
