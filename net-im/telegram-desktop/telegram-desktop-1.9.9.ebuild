@@ -26,10 +26,8 @@ RDEPEND="!net-im/telegram-desktop-bin
 	dev-libs/range-v3
 	dev-libs/xxhash
 	dev-qt/qtcore:5
-	dev-qt/qtgui:5[png,X(-)]
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
-	dev-qt/qtwidgets:5[png,X(-)]
 	media-libs/openal[pulseaudio]
 	media-libs/opus
 	media-sound/pulseaudio
@@ -37,6 +35,14 @@ RDEPEND="!net-im/telegram-desktop-bin
 	virtual/ffmpeg
 	x11-libs/libva[X,drm]
 	x11-libs/libX11
+	|| (
+		dev-qt/qtgui:5[png,X(-)]
+		dev-qt/qtgui:5[png,xcb(-)]
+	)
+	|| (
+		dev-qt/qtwidgets:5[png,X(-)]
+		dev-qt/qtwidgets:5[png,xcb(-)]
+	)
 	dbus? ( dev-qt/qtdbus:5 )
 	gtk3? (
 		dev-libs/libappindicator:3
@@ -124,9 +130,6 @@ src_install() {
 
 	insinto /usr/share/appdata
 	doins lib/xdg/telegramdesktop.appdata.xml
-
-	insinto /usr/share/kservices5
-	doins lib/xdg/tg.protocol
 
 	einstalldocs
 }
