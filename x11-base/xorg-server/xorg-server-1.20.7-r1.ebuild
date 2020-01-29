@@ -1,17 +1,17 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2020 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=7
 
 XORG_EAUTORECONF=yes
 XORG_DOC=doc
-inherit xorg-2 multilib versionator flag-o-matic
-EGIT_REPO_URI="https://anongit.freedesktop.org/git/xorg/xserver.git"
+inherit xorg-3 multilib flag-o-matic
+EGIT_REPO_URI="https://gitlab.freedesktop.org/xorg/xserver.git"
 
 DESCRIPTION="X.Org X servers"
 SLOT="0/${PV}"
 if [[ ${PV} != 9999* ]]; then
-	KEYWORDS="*"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux"
 fi
 
 IUSE_SERVERS="dmx kdrive wayland xephyr xnest xorg xvfb"
@@ -88,7 +88,7 @@ CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 
 DEPEND="${CDEPEND}
 	sys-devel/flex
-	>=x11-base/xorg-proto-2018.3
+	>=x11-base/xorg-proto-2018.4
 	dmx? (
 		doc? (
 			|| (
@@ -108,7 +108,8 @@ RDEPEND="${CDEPEND}
 	!x11-drivers/xf86-video-modesetting
 "
 
-PDEPEND=">=x11-base/xorg-drivers-$(get_version_component_range 1-2)"
+PDEPEND="
+	xorg? ( >=x11-base/xorg-drivers-$(ver_cut 1-2) )"
 
 REQUIRED_USE="!minimal? (
 		|| ( ${IUSE_SERVERS} )
@@ -146,7 +147,13 @@ src_prepare() {
 	fi
 }
 
-src_configure() {
+pkg_setup() {
+	if use wayland && use minimal; then
+		ewarn "glamor is necessary for acceleration under Xwayland."
+		ewarn "Performance may be unacceptable without it."
+		ewarn "Build with USE=-minimal to enable glamor."
+	fi
+
 	# localstatedir is used for the log location; we need to override the default
 	#	from ebuild.sh
 	# sysconfdir is used for the xorg.conf location; same applies
@@ -156,7 +163,6 @@ src_configure() {
 		$(use_enable ipv6)
 		$(use_enable debug)
 		$(use_enable dmx)
-		$(use_enable glamor)
 		$(use_enable kdrive)
 		$(use_enable unwind libunwind)
 		$(use_enable wayland xwayland)
@@ -164,6 +170,8 @@ src_configure() {
 		$(use_enable !minimal xfree86-utils)
 		$(use_enable !minimal dri)
 		$(use_enable !minimal dri2)
+		$(use_enable !minimal dri3)
+		$(use_enable !minimal glamor)
 		$(use_enable !minimal glx)
 		$(use_enable xcsecurity)
 		$(use_enable xephyr)
@@ -189,12 +197,19 @@ src_configure() {
 		--with-os-vendor=Gentoo
 		--with-sha1=libcrypto
 	)
+}
 
-	xorg-2_src_configure
+src_configure() {
+	# Needed since commit 2a1a96d956f4 ("glamor: Add a function to get the
+	# driver name via EGL_MESA_query_driver") neglected to add autotools
+	# support
+	append-cflags -DGLAMOR_HAS_EGL_QUERY_DRIVER
+
+	xorg-3_src_configure
 }
 
 src_install() {
-	xorg-2_src_install
+	xorg-3_src_install
 
 	server_based_install
 

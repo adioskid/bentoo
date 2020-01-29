@@ -31,7 +31,7 @@ fi
 LICENSE="MIT"
 SLOT="0"
 
-RADEON_CARDS="r100 r200 r300 r600 radeonsi"
+RADEON_CARDS="r200 r300 r600 radeonsi"
 INTEL_CARDS="i915 i965"
 
 ALL_DRI_DRIVERS="i915 i965 r200 nouveau swrast"
@@ -123,7 +123,6 @@ REQUIRED_USE="
 	video_cards_i965? ( video_cards_intel )
 	video_cards_gallium-i915? ( video_cards_intel )
 	video_cards_gallium-iris? ( video_cards_intel )
-	video_cards_r100? ( video_cards_radeon )
 	video_cards_r200? ( video_cards_radeon )
 	video_cards_gallium-r300? ( video_cards_radeon )
 	video_cards_gallium-r600? ( video_cards_radeon )
@@ -207,7 +206,6 @@ RDEPEND="
 
 	>=x11-libs/libdrm-2.4.96
 	video_cards_gallium-radeonsi? ( x11-libs/libdrm[video_cards_radeon,video_cards_amdgpu] )
-	video_cards_r100? ( x11-libs/libdrm[video_cards_radeon] )
 	video_cards_r200? ( x11-libs/libdrm[video_cards_radeon] )
 	video_cards_gallium-r300? ( x11-libs/libdrm[video_cards_radeon] )
 	video_cards_gallium-r600? ( x11-libs/libdrm[video_cards_radeon] )
@@ -429,7 +427,6 @@ src_configure() {
 
 	# ATI/AMD cards
 	# Older Radeon cards
-	dri_enable video_cards_r100 r100
 	dri_enable video_cards_r200 r200
 	gallium_enable video_cards_gallium-r300 r300
 	gallium_enable video_cards_gallium-r600 r600
@@ -504,7 +501,6 @@ src_configure() {
 
 	if ! use video_cards_i915 && \
 	! use video_cards_i965 && \
-	! use video_cards_r100 && \
 	! use video_cards_r200 && \
 	! use video_cards_nouveau && \
 	! use video_cards_swrast; then
