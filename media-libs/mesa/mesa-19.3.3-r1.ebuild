@@ -1,7 +1,7 @@
 # Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 EGIT_REPO_URI="https://anongit.freedesktop.org/git/mesa/mesa.git"
 
@@ -10,7 +10,7 @@ if [[ ${PV} = 9999 ]]; then
 	EXPERIMENTAL="true"
 fi
 
-PYTHON_COMPAT=( python3_{4,5,6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 
 inherit meson eutils llvm python-any-r1 pax-utils ${GIT_ECLASS}
 
