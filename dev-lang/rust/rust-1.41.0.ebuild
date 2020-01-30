@@ -57,10 +57,7 @@ LLVM_DEPEND="
 "
 LLVM_MAX_SLOT=9
 
-# FIXME:
-# this should be '>=virtual/rust-1.$(($(ver_cut 2) - 1))', but we can't do it yet
-# as the first gentoo-built rust that can bootstap new compiler is 1.40.0-r1
-BOOTSTRAP_DEPEND="|| ( =dev-lang/rust-${PVR} =dev-lang/rust-bin-${PV}* )"
+BOOTSTRAP_DEPEND="|| ( >=dev-lang/rust-1.$(($(ver_cut 2) - 1)).0-r1 >=dev-lang/rust-bin-1.$(($(ver_cut 2) - 1)) )"
 
 COMMON_DEPEND="
 	sys-libs/zlib
@@ -108,7 +105,6 @@ QA_FLAGS_IGNORED="
 QA_SONAME="usr/lib.*/librustc_macros.*.so"
 
 PATCHES=(
-	"${FILESDIR}"/1.36.0-libressl.patch
 	"${FILESDIR}"/1.40.0-add-soname.patch
 )
 
@@ -119,10 +115,10 @@ toml_usex() {
 }
 
 pre_build_checks() {
-	CHECKREQS_DISK_BUILD="9G"
+	CHECKREQS_DISK_BUILD="10G"
 	eshopts_push -s extglob
 	if is-flagq '-g?(gdb)?([1-9])'; then
-		CHECKREQS_DISK_BUILD="14G"
+		CHECKREQS_DISK_BUILD="15G"
 	fi
 	eshopts_pop
 	check-reqs_pkg_setup
@@ -135,7 +131,19 @@ pkg_pretend() {
 pkg_setup() {
 	pre_build_checks
 	python-any-r1_pkg_setup
-	use system-llvm && llvm_pkg_setup
+
+	export LIBGIT2_SYS_USE_PKG_CONFIG=1
+	export LIBSSH2_SYS_USE_PKG_CONFIG=1
+	export PKG_CONFIG_ALLOW_CROSS=1
+
+	if use system-llvm; then
+		llvm_pkg_setup
+
+		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
+
+		export LLVM_LINK_SHARED=1
+		export RUSTFLAGS="${RUSTFLAGS} -Lnative=$("${llvm_config}" --libdir)"
+	fi
 }
 
 src_prepare() {

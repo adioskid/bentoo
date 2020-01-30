@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -8,7 +8,7 @@ SUBSLOT="18"
 JAVA_PKG_OPT_USE="jdbc"
 
 inherit eutils systemd flag-o-matic prefix toolchain-funcs \
-	java-pkg-opt-2 cmake-utils
+	java-pkg-opt-2 cmake
 
 SRC_URI="https://downloads.mariadb.org/interstitial/${P}/source/${P}.tar.gz "
 
@@ -314,7 +314,7 @@ src_prepare() {
 	sed -i -e 's~ \$basedir/lib/\*/mariadb19/plugin~~' \
 		"${S}"/scripts/mysql_install_db.sh || die
 
-	cmake-utils_src_prepare
+	cmake_src_prepare
 	java-pkg-opt-2_src_prepare
 }
 
@@ -507,15 +507,15 @@ src_configure(){
 		)
 	fi
 
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 src_compile() {
-	cmake-utils_src_compile
+	cmake_src_compile
 }
 
 src_install() {
-	cmake-utils_src_install
+	cmake_src_install
 
 	# Remove an unnecessary, private config header which will never match between ABIs and is not meant to be used
 	if [[ -f "${ED}/usr/include/mysql/server/private/config.h" ]] ; then
@@ -650,7 +650,7 @@ src_test() {
 	einfo ">>> Test phase [test]: ${CATEGORY}/${PF}"
 
 	# Run CTest (test-units)
-	cmake-utils_src_test
+	cmake_src_test
 	retstatus_unit=$?
 
 	# Ensure that parallel runs don't die
