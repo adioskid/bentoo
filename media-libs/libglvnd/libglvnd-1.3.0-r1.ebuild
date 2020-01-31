@@ -12,7 +12,7 @@ fi
 PYTHON_COMPAT=( python3_{6,7,8} )
 VIRTUALX_REQUIRED=manual
 
-inherit ${GIT_ECLASS} meson multilib-minimal python-any-r1 virtualx
+inherit ${GIT_ECLASS} meson python-any-r1 virtualx
 
 DESCRIPTION="The GL Vendor-Neutral Dispatch library"
 HOMEPAGE="https://gitlab.freedesktop.org/glvnd/libglvnd"
@@ -26,17 +26,17 @@ fi
 
 LICENSE="MIT"
 SLOT="0"
-IUSE="test X"
-RESTRICT="!test? ( test )"
+IUSE="+asm +egl +gles +gles2 +glx +headers tls +X"
+RESTRICT=""
 
-BDEPEND="${PYTHON_DEPS}
-	test? ( X? ( ${VIRTUALX_DEPEND} ) )"
+BDEPEND="${PYTHON_DEPS}"
 RDEPEND="
 	!media-libs/mesa[-glvnd(-)]
 	!<media-libs/mesa-19.2.2
 	X? (
-		x11-libs/libX11[${MULTILIB_USEDEP}]
-		x11-libs/libXext[${MULTILIB_USEDEP}]
+		x11-libs/libX11
+		x11-libs/libXext
+		x11-proto/glproto
 	)"
 DEPEND="${RDEPEND}
 	X? ( x11-base/xorg-proto )"
@@ -47,26 +47,24 @@ PATCHES=(
 	"${FILESDIR}"/${P}-tests-Add-_GLOBAL_OFFSET_TABLE_-to-PLATFORM_SYMBOLS.patch
 )
 
-multilib_src_configure() {
+src_configure() {
 	local emesonargs=(
-		$(meson_feature X x11)
-		$(meson_feature X glx)
+		-Dasm=$(usex asm enabled disabled)
+		-Dglx=$(usex glx enabled disabled)
+		-Degl=$(usex egl true false)
+		-Dgles=$(usex gles true false)
+		-Dgles2=$(usex gles2 true false)
+		-Dheaders=$(usex headers true false)
+		-Dtls=$(usex tls enabled disabled)
+		-Dx11=$(usex X enabled disabled)
 	)
 	meson_src_configure
 }
 
-multilib_src_compile() {
+src_compile() {
 	meson_src_compile
 }
 
-multilib_src_test() {
-	if use X; then
-		virtx meson_src_test
-	else
-		meson_src_test
-	fi
-}
-
-multilib_src_install() {
+src_install() {
 	meson_src_install
 }
