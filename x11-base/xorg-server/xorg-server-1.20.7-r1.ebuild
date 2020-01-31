@@ -53,7 +53,6 @@ CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 	glamor? (
 		media-libs/libepoxy[X]
 		>=media-libs/mesa-18[egl,gbm]
-		!x11-libs/glamor
 	)
 	kdrive? (
 		>=x11-libs/libXext-1.0.5
@@ -134,13 +133,6 @@ PATCHES=(
 	# needed for new eselect-opengl, bug #541232
 	"${FILESDIR}"/${PN}-1.18-support-multiple-Files-sections.patch
 )
-
-pkg_setup() {
-	if use wayland && ! use glamor; then
-		ewarn "glamor is necessary for acceleration under Xwayland."
-		ewarn "Performance may be unacceptable without it."
-	fi
-}
 
 src_prepare() {
 	default
