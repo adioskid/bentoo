@@ -36,7 +36,6 @@ RDEPEND="
 	X? (
 		x11-libs/libX11
 		x11-libs/libXext
-		x11-proto/glproto
 	)"
 DEPEND="${RDEPEND}
 	X? ( x11-base/xorg-proto )"
