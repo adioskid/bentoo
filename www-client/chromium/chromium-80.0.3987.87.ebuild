@@ -16,7 +16,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 ~arm64 ~x86"
+KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE="+closure-compile component-build cups cpu_flags_arm_neon gnome-keyring +hangouts kerberos pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="component-build? ( !suid )"
@@ -33,7 +33,7 @@ COMMON_DEPEND="
 	dev-libs/libxslt:=
 	dev-libs/nspr:=
 	>=dev-libs/nss-3.26:=
-	>=dev-libs/re2-0.2016.11.01:=
+	>=dev-libs/re2-0.2019.08.01:=
 	gnome-keyring? ( >=gnome-base/libgnome-keyring-3.12:= )
 	>=media-libs/alsa-lib-1.0.19:=
 	media-libs/fontconfig:=
@@ -51,7 +51,7 @@ COMMON_DEPEND="
 			>=net-fs/samba-4.5.10-r1[-debug(-)]
 		)
 		!=net-fs/samba-4.5.12-r0
-		media-libs/opus:=
+		>=media-libs/opus-1.3.1:=
 	)
 	sys-apps/dbus:=
 	sys-apps/pciutils:=
@@ -145,13 +145,14 @@ PATCHES=(
 	"${FILESDIR}/chromium-unbundle-zlib-r1.patch"
 	"${FILESDIR}/chromium-77-system-icu.patch"
 	"${FILESDIR}/chromium-78-protobuf-export.patch"
-	"${FILESDIR}/chromium-79-system-hb.patch"
-	"${FILESDIR}/chromium-79-include.patch"
-	"${FILESDIR}/chromium-79-icu-65.patch"
-	"${FILESDIR}/chromium-79-gcc-ambiguous-nodestructor.patch"
-	"${FILESDIR}/chromium-79-gcc-name-clash.patch"
-	"${FILESDIR}/chromium-79-gcc-permissive.patch"
 	"${FILESDIR}/chromium-79-gcc-alignas.patch"
+	"${FILESDIR}/chromium-80-unbundle-libxml.patch"
+	"${FILESDIR}/chromium-80-include.patch"
+	"${FILESDIR}/chromium-80-gcc-quiche.patch"
+	"${FILESDIR}/chromium-80-gcc-permissive.patch"
+	"${FILESDIR}/chromium-80-gcc-blink.patch"
+	"${FILESDIR}/chromium-80-gcc-abstract.patch"
+	"${FILESDIR}/chromium-80-gcc-incomplete-type.patch"
 )
 
 pre_build_checks() {
@@ -163,6 +164,11 @@ pre_build_checks() {
 		# component build hangs with tcmalloc enabled due to sandbox issue, bug #695976.
 		if has usersandbox ${FEATURES} && use tcmalloc && use component-build; then
 			die "Component build with tcmalloc requires FEATURES=-usersandbox."
+		fi
+		if [[ ${CHROMIUM_FORCE_CLANG} == yes ]] || tc-is-clang; then
+			if use component-build; then
+				die "Component build with clang requires fuzzer headers."
+			fi
 		fi
 	fi
 
@@ -236,9 +242,6 @@ src_prepare() {
 		third_party/blink
 		third_party/boringssl
 		third_party/boringssl/src/third_party/fiat
-		third_party/boringssl/src/third_party/sike
-		third_party/boringssl/linux-aarch64/crypto/third_party/sike
-		third_party/boringssl/linux-x86_64/crypto/third_party/sike
 		third_party/breakpad
 		third_party/breakpad/breakpad/src/third_party/curl
 		third_party/brotli
@@ -269,11 +272,13 @@ src_prepare() {
 		third_party/dawn
 		third_party/depot_tools
 		third_party/devscripts
+		third_party/devtools-frontend
+		third_party/devtools-frontend/src/third_party
 		third_party/dom_distiller_js
 		third_party/emoji-segmenter
 		third_party/flatbuffers
-		third_party/flot
 		third_party/freetype
+		third_party/libgifcodec
 		third_party/glslang
 		third_party/google_input_tools
 		third_party/google_input_tools/third_party/closure_library
@@ -341,7 +346,6 @@ src_prepare() {
 		third_party/skia
 		third_party/skia/include/third_party/skcms
 		third_party/skia/include/third_party/vulkan
-		third_party/skia/third_party/gif
 		third_party/skia/third_party/skcms
 		third_party/skia/third_party/vulkan
 		third_party/smhasher
@@ -369,6 +373,7 @@ src_prepare() {
 		third_party/webrtc/rtc_base/third_party/sigslot
 		third_party/widevine
 		third_party/woff2
+		third_party/wuffs
 		third_party/zlib/google
 		tools/grit/third_party/six
 		url/third_party/mozilla
@@ -639,6 +644,14 @@ src_compile() {
 		s|@@MENUNAME@@|Chromium|g;' \
 		chrome/app/resources/manpage.1.in > \
 		out/Release/chromium-browser.1 || die
+
+	# Build desktop file; bug #706786
+	sed -e 's|@@MENUNAME@@|Chromium|g;
+		s|@@USR_BIN_SYMLINK_NAME@@|chromium-browser|g;
+		s|@@PACKAGE@@|chromium-browser|g;
+		s|\(^Exec=\)/usr/bin/|\1|g;' \
+		chrome/installer/linux/common/desktop.template > \
+		out/Release/chromium-browser-chromium.desktop || die
 }
 
 src_install() {
@@ -690,7 +703,7 @@ src_install() {
 		doins out/Release/swiftshader/*.so
 	fi
 
-	# Install icons and desktop entry.
+	# Install icons
 	local branding size
 	for size in 16 24 32 48 64 128 256 ; do
 		case ${size} in
@@ -701,17 +714,8 @@ src_install() {
 			chromium-browser.png
 	done
 
-	local mime_types="text/html;text/xml;application/xhtml+xml;"
-	mime_types+="x-scheme-handler/http;x-scheme-handler/https;" # bug #360797
-	mime_types+="x-scheme-handler/ftp;" # bug #412185
-	mime_types+="x-scheme-handler/mailto;x-scheme-handler/webcal;" # bug #416393
-	make_desktop_entry \
-		chromium-browser \
-		"Chromium" \
-		chromium-browser \
-		"Network;WebBrowser" \
-		"MimeType=${mime_types}\nStartupWMClass=chromium-browser"
-	sed -e "/^Exec/s/$/ %U/" -i "${ED}"/usr/share/applications/*.desktop || die
+	# Install desktop entry
+	domenu out/Release/chromium-browser-chromium.desktop
 
 	# Install GNOME default application entry (bug #303100).
 	insinto /usr/share/gnome-control-center/default-apps
