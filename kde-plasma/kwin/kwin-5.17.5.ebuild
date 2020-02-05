@@ -15,7 +15,7 @@ DESCRIPTION="Flexible, composited Window Manager for windowing systems on Linux"
 LICENSE="GPL-2+"
 SLOT="5"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
-IUSE="caps gles2 multimedia"
+IUSE="caps gles2 multimedia wayland"
 
 COMMON_DEPEND="
 	>=kde-frameworks/kactivities-${KFMIN}:5
@@ -58,7 +58,7 @@ COMMON_DEPEND="
 	media-libs/fontconfig
 	media-libs/freetype
 	media-libs/libepoxy
-	media-libs/mesa[egl,gbm,gles2?,wayland,X(+)]
+	media-libs/mesa[egl,gbm,gles2?,wayland?,X(+)]
 	virtual/libudev:=
 	x11-libs/libICE
 	x11-libs/libSM
