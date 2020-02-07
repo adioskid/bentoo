@@ -23,11 +23,13 @@ RDEPEND="!net-im/telegram-desktop-bin
 	app-arch/xz-utils
 	!libressl? ( dev-libs/openssl:0= )
 	libressl? ( dev-libs/libressl:0= )
+	>=dev-cpp/ms-gsl-2.1.0
 	dev-cpp/range-v3
 	dev-libs/xxhash
 	dev-qt/qtcore:5
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
+	media-libs/fontconfig:=
 	media-libs/openal[pulseaudio]
 	media-libs/opus
 	media-sound/pulseaudio
@@ -47,6 +49,7 @@ RDEPEND="!net-im/telegram-desktop-bin
 	gtk3? (
 		dev-libs/libappindicator:3
 		x11-libs/gtk+:3
+		sys-apps/xdg-desktop-portal
 	)
 	spell? ( app-text/enchant:= )
 "
@@ -61,7 +64,6 @@ BDEPEND="
 
 PATCHES=(
 	"${FILESDIR}/0002-PPC-big-endian.patch"
-	"${FILESDIR}/0003-PPC-config.patch"
 	"${FILESDIR}/musl.patch"
 )
 
@@ -76,12 +78,17 @@ src_configure() {
 
 	append-cxxflags "${mycxxflags[@]}"
 
+	# TODO: unbundle header-only libs, ofc telegram uses git versions...
+	# it fals with tl-expected-1.0.0, so we use bundled for now to avoid git rev snapshots
+	# EXPECTED VARIANT
 	local mycmakeargs=(
 		-Ddisable_autoupdate=1
 		-DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 		-DDESKTOP_APP_USE_GLIBC_WRAPS=OFF
 		-DDESKTOP_APP_USE_PACKAGED=ON
+		-DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF
 		-DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF
+		-DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF
 		-DTDESKTOP_DISABLE_DESKTOP_FILE_GENERATION=ON
 		-DTDESKTOP_LAUNCHER_BASENAME="${PN}"
 		-DTDESKTOP_USE_PACKAGED_TGVOIP=OFF

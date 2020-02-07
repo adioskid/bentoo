@@ -1,9 +1,9 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-PYTHON_COMPAT=(python2_7 python3_{5,6,7,8})
+PYTHON_COMPAT=(python2_7 python3_{6,7,8})
 
 inherit flag-o-matic python-single-r1
 
@@ -16,16 +16,15 @@ LICENSE="Apache-2.0"
 SLOT="0"
 KEYWORDS="~amd64"
 MY_USE="perl python ruby"
-MY_USE_PHP="php5-6 php7-1 php7-2 php7-3"
+MY_USE_PHP="php7-2 php7-3 php7-4"
 IUSE="${MY_USE} ${MY_USE_PHP} ssl"
 REQUIRED_USE="|| ( ${IUSE} )
 	python? ( ${PYTHON_REQUIRED_USE} )"
 
 DEPEND="perl? ( dev-lang/perl:= )
-	php5-6? ( dev-lang/php:5.6[embed] )
-	php7-1? ( dev-lang/php:7.1[embed] )
 	php7-2? ( dev-lang/php:7.2[embed] )
 	php7-3? ( dev-lang/php:7.3[embed] )
+	php7-4? ( dev-lang/php:7.4[embed] )
 	python? ( ${PYTHON_DEPS} )
 	ruby? ( dev-lang/ruby:* )
 	ssl? ( dev-libs/openssl:0 )"
