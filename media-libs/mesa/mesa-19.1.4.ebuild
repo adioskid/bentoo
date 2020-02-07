@@ -39,7 +39,7 @@ for card in ${ALL_DRI_DRIVERS% swrast*}; do
 	ALL_DRI_CARDS+=" video_cards_${card}"
 done
 
-ALL_GALLIUM_DRIVERS="pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d etnaviv imx tegra i915 iris svga virgl swr swrast"
+ALL_GALLIUM_DRIVERS="pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d etnaviv imx tegra i915 svga virgl swr swrast"
 for card in ${ALL_GALLIUM_DRIVERS% swrast*}; do
 	case "$card" in
 		etnaviv) card="vivante" ;;
@@ -88,7 +88,6 @@ IUSE="${IUSE_VIDEO_CARDS}
 	video_cards_gallium-swrast
 	video_cards_virgl
 	video_cards_gallium-i915
-	video_cards_gallium-iris
 
 "
 
@@ -412,9 +411,6 @@ src_configure() {
 		tool_enable intel
 	fi
 
-	if use video_cards_gallium-iris ; then
-		gallium_enable video_cards_gallium-iris iris
-	fi
 
 	# Nouveau (nvidia) cards
 	if use video_cards_nouveau; then
