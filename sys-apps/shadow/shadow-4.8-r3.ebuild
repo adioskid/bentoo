@@ -17,7 +17,6 @@ IUSE="acl audit bcrypt +cracklib nls pam selinux skey split-usr +su xattr"
 LANGS=( cs da de es fi fr hu id it ja ko pl pt_BR ru sv tr zh_CN zh_TW )
 
 DEPEND="
-	virtual/libcrypt:=
 	acl? ( sys-apps/acl:0= )
 	audit? ( >=sys-process/audit-2.6:0= )
 	cracklib? ( >=sys-libs/cracklib-2.7-r3:0= )
@@ -42,6 +41,7 @@ RDEPEND="
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.1.3-dots-in-usernames.patch"
+	"${FILESDIR}/${P}-revert-bin-merge.patch"
 )
 
 src_prepare() {
