@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -14,7 +14,7 @@ SRC_URI="
 	https://nmap.org/dist/${MY_P}.tar.bz2
 	https://dev.gentoo.org/~jer/nmap-logo-64.png
 "
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~x86-fbsd ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos"
 
 LICENSE="GPL-2"
 SLOT="0"
@@ -50,7 +50,9 @@ RDEPEND="
 	)
 	system-lua? ( >=dev-lang/lua-5.2:*[deprecated] )
 	zenmap? (
-		dev-python/pygtk:2[${PYTHON_USEDEP}]
+		$(python_gen_cond_dep '
+			dev-python/pygtk:2[${PYTHON_MULTI_USEDEP}]
+		')
 		${PYTHON_DEPS}
 	)
 "

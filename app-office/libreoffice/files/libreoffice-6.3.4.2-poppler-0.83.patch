@@ -14,7 +14,7 @@ Reviewed-by: Michael Stahl <michael.stahl@cib.de>
  3 files changed, 15 insertions(+)
 
 diff --git a/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.cxx b/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.cxx
-index 2604817..e9c2a40 100644
+index 26048177e87d..e9c2a407c279 100644
 --- a/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.cxx
 +++ b/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.cxx
 @@ -491,11 +491,18 @@ void PDFOutDev::writeFontFile( GfxFont* gfxFont ) const
@@ -37,7 +37,7 @@ index 2604817..e9c2a40 100644
          const int nPoints = pSub->getNumPoints();
  
 diff --git a/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.hxx b/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.hxx
-index 02f6b59..2e7d218 100644
+index 02f6b59f6f15..2e7d2186f9a1 100644
 --- a/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.hxx
 +++ b/sdext/source/pdfimport/xpdfwrapper/pdfioutdev_gpl.hxx
 @@ -149,7 +149,11 @@ namespace pdfi
@@ -53,7 +53,7 @@ index 02f6b59..2e7d218 100644
      public:
          explicit PDFOutDev( PDFDoc* pDoc );
 diff --git a/sdext/source/pdfimport/xpdfwrapper/wrapper_gpl.cxx b/sdext/source/pdfimport/xpdfwrapper/wrapper_gpl.cxx
-index 42178b6..b1a54bd 100644
+index 42178b650cdd..b1a54bd09c5f 100644
 --- a/sdext/source/pdfimport/xpdfwrapper/wrapper_gpl.cxx
 +++ b/sdext/source/pdfimport/xpdfwrapper/wrapper_gpl.cxx
 @@ -68,7 +68,11 @@ int main(int argc, char **argv)
@@ -69,5 +69,4 @@ index 42178b6..b1a54bd 100644
  #if defined(_MSC_VER)
      globalParams->setupBaseFonts(nullptr);
 -- 
-cgit v1.1
-
+cgit v1.2.1

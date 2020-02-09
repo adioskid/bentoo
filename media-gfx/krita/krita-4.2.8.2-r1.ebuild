@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -31,8 +31,10 @@ BDEPEND="
 RDEPEND="${PYTHON_DEPS}
 	dev-libs/boost:=
 	dev-libs/quazip
-	dev-python/PyQt5[${PYTHON_USEDEP}]
-	dev-python/sip[${PYTHON_USEDEP}]
+	$(python_gen_cond_dep '
+		dev-python/PyQt5[${PYTHON_MULTI_USEDEP}]
+		dev-python/sip[${PYTHON_MULTI_USEDEP}]
+	')
 	>=dev-qt/qtconcurrent-${QTMIN}:5
 	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtdeclarative-${QTMIN}:5

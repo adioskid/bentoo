@@ -1,9 +1,9 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
-PYTHON_COMPAT=( python2_7 python3_5 python3_6 python3_7 )
+PYTHON_COMPAT=( python2_7 python3_6 python3_7 )
 PYTHON_REQ_USE="threads(+)"
 inherit python-single-r1 waf-utils multilib-minimal
 
@@ -45,7 +45,11 @@ DEPEND="${CDEPEND}
 	virtual/pkgconfig
 	doc? ( app-doc/doxygen )"
 RDEPEND="${CDEPEND}
-	dbus? ( dev-python/dbus-python[${PYTHON_USEDEP}] )
+	dbus? (
+		$(python_gen_cond_dep '
+			dev-python/dbus-python[${PYTHON_MULTI_USEDEP}]
+		')
+	)
 	pam? ( sys-auth/realtime-base )
 	!media-sound/jack-audio-connection-kit:0"
 

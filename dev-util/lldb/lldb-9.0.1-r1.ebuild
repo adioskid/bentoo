@@ -15,7 +15,7 @@ llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 x86"
+KEYWORDS="amd64 arm ~arm64 x86"
 IUSE="libedit ncurses +python test"
 REQUIRED_USE=${PYTHON_REQUIRED_USE}
 RESTRICT="!test? ( test )"
@@ -23,8 +23,12 @@ RESTRICT="!test? ( test )"
 RDEPEND="
 	libedit? ( dev-libs/libedit:0= )
 	ncurses? ( >=sys-libs/ncurses-5.9-r3:0= )
-	python? ( dev-python/six[${PYTHON_USEDEP}]
-		${PYTHON_DEPS} )
+	python? (
+		$(python_gen_cond_dep '
+			dev-python/six[${PYTHON_MULTI_USEDEP}]
+		')
+		${PYTHON_DEPS}
+	)
 	~sys-devel/clang-${PV}[xml]
 	~sys-devel/llvm-${PV}
 	!<sys-devel/llvm-4.0"
@@ -32,7 +36,9 @@ DEPEND="${RDEPEND}"
 BDEPEND="
 	python? ( >=dev-lang/swig-3.0.11 )
 	test? (
-		~dev-python/lit-${PV}[${PYTHON_USEDEP}]
+		$(python_gen_cond_dep "
+			~dev-python/lit-${PV}[\${PYTHON_MULTI_USEDEP}]
+		")
 		sys-devel/lld )
 	${PYTHON_DEPS}"
 
