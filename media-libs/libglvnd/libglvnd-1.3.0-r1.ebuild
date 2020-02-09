@@ -51,7 +51,7 @@ src_configure() {
 		-Dasm=$(usex asm enabled disabled)
 		-Dglx=$(usex glx enabled disabled)
 		-Degl=$(usex egl true false)
-		-Dgles=$(usex gles true false)
+		-Dgles1=$(usex gles true false)
 		-Dgles2=$(usex gles2 true false)
 		-Dheaders=$(usex headers true false)
 		-Dtls=$(usex tls enabled disabled)
