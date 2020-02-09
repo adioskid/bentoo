@@ -17,15 +17,12 @@ DESCRIPTION="Cross platform application development framework based on web techn
 HOMEPAGE="https://electronjs.org/"
 SRC_URI="
 	amd64? ( ${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-x64.zip -> ${P}-x64.zip )
-	arm? ( ${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-armv7l.zip -> ${P}-armv7l.zip )
-	arm64? ( ${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-arm64.zip -> ${P}-arm64.zip )
-	x86? ( ${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-ia32.zip -> ${P}-ia32.zip )
 "
 RESTRICT="mirror"
 
 LICENSE="MIT"
 SLOT="5.0"
-KEYWORDS="-* ~amd64 ~arm ~arm64 ~x86"
+KEYWORDS="-* ~amd64"
 
 RDEPEND="
 	dev-libs/atk
