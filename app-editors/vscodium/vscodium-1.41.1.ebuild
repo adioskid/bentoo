@@ -41,10 +41,9 @@ src_install() {
 	pax-mark m code
 	insinto "/opt/${PN}"
 	doins -r *
-	dosym "/opt/${PN}/bin/codium" "/usr/bin/${PN}"
 	dosym "/opt/${PN}/bin/codium" "/usr/bin/codium"
-	make_desktop_entry "${PN}" "VSCodium" "${PN}" "Development;IDE"
-	newicon "resources/app/resources/linux/code.png" ${PN}.png
+	make_desktop_entry "codium" "VSCodium" "codium" "Development;IDE"
+	newicon "resources/app/resources/linux/code.png" codium.png
 	fperms +x "/opt/${PN}/codium"
 	fperms +x "/opt/${PN}/bin/codium"
 	fperms +x "/opt/${PN}/resources/app/node_modules.asar.unpacked/vscode-ripgrep/bin/rg"
