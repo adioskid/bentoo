@@ -14,7 +14,6 @@ if [[ ${CTARGET} == ${CHOST} ]] ; then
 fi
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
-MY_PV=${PV}
 case ${PV} in
 9999*)
 	# live git tree
@@ -86,12 +85,11 @@ BDEPEND="
 		nls? ( sys-devel/gettext )
 	)"
 
-S=${WORKDIR}/${PN}-${MY_PV}
-
 PATCHES=(
 	"${FILESDIR}"/${PN}-8.3.1-verbose-build.patch
-	"${FILESDIR}"/${PN}-8.3.1-gcc-10.patch
 )
+
+GDB_BUILD_DIR="${WORKDIR}"/${P}-build
 
 pkg_setup() {
 	use python && python-single-r1_pkg_setup
@@ -181,18 +179,31 @@ src_configure() {
 		myconf+=( --disable-largefile )
 	fi
 
-	econf "${myconf[@]}"
+	mkdir "${GDB_BUILD_DIR}" || die
+	pushd "${GDB_BUILD_DIR}" || die
+		ECONF_SOURCE=${S}
+		econf "${myconf[@]}"
+	popd
+}
+
+src_compile() {
+	emake -C "${GDB_BUILD_DIR}"
+}
+
+src_test() {
+	emake -C "${GDB_BUILD_DIR}" check
 }
 
 src_install() {
 	if use server && ! use client; then
-		cd gdb/gdbserver || die
+		emake -C "${GDB_BUILD_DIR}"/gdb/gdbserver DESTDIR="${D}" install
+	else
+		emake -C "${GDB_BUILD_DIR}" DESTDIR="${D}" install
 	fi
-	default
+
 	if use client; then
 		find "${ED}"/usr -name libiberty.a -delete || die
 	fi
-	cd "${S}" || die
 
 	# Delete translations that conflict with binutils-libs. #528088
 	# Note: Should figure out how to store these in an internal gdb dir.
@@ -217,7 +228,7 @@ src_install() {
 	# https://sourceware.org/ml/gdb-patches/2011-12/msg00915.html
 	# Only install if it exists due to the twisted behavior (see
 	# notes in src_configure above).
-	[[ -e gdb/gdbserver/gdbreplay ]] && dobin gdb/gdbserver/gdbreplay
+	[[ -e "${GDB_BUILD_DIR}"/gdb/gdbserver/gdbreplay ]] && dobin "${GDB_BUILD_DIR}"/gdb/gdbserver/gdbreplay
 
 	if use client ; then
 		docinto gdb

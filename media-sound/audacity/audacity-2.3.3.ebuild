@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+WX_GTK_VER="3.0-gtk3"
 
 inherit flag-o-matic wxwidgets xdg
 
@@ -12,6 +13,7 @@ HOMEPAGE="https://web.audacityteam.org/"
 # wget doesn't seem to work on FossHub links, so we mirror
 SRC_URI="https://github.com/audacity/audacity/archive/${MY_P}.tar.gz
 	doc? ( https://dev.gentoo.org/~polynomial-c/dist/${PN}-manual-${DOC_PV}.zip )"
+S="${WORKDIR}/${PN}-${MY_P}"
 
 LICENSE="GPL-2"
 SLOT="0"
@@ -21,13 +23,12 @@ IUSE="alsa cpu_flags_x86_sse doc ffmpeg +flac id3tag jack +ladspa +lame libav
 
 RESTRICT="test"
 
-RDEPEND=">=app-arch/zip-2.3
-	dev-libs/expat
+RDEPEND="dev-libs/expat
 	>=media-libs/libsndfile-1.0.0
 	>=media-libs/portaudio-19.06.00-r2[alsa?]
 	<media-libs/portaudio-20
 	media-libs/soxr
-	x11-libs/wxGTK:3.0[X]
+	x11-libs/wxGTK:${WX_GTK_VER}[X]
 	alsa? ( media-libs/alsa-lib )
 	ffmpeg? (
 		libav? ( media-video/libav:= )
@@ -50,15 +51,13 @@ RDEPEND=">=app-arch/zip-2.3
 	vorbis? ( >=media-libs/libvorbis-1.0 )
 "
 DEPEND="${RDEPEND}"
-BDEPEND="virtual/pkgconfig
+BDEPEND="app-arch/unzip
+	virtual/pkgconfig
 	nls? ( sys-devel/gettext )
 "
 
-S="${WORKDIR}/${PN}-${MY_P}"
-
 PATCHES=(
-	"${FILESDIR}"/${PN}-2.3.2-fix_building_against_system_portaudio.patch
-	"${FILESDIR}"/${PN}-2.3.2-Fix-building-without-midi.patch
+	"${FILESDIR}"/${PN}-2.3.3-Fix-building-against-system-portaudio.patch
 )
 
 src_prepare() {
@@ -70,7 +69,6 @@ src_prepare() {
 }
 
 src_configure() {
-	local WX_GTK_VER="3.0"
 	setup-wxwidgets
 	append-cxxflags -std=gnu++14
 

@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # shellcheck disable=SC2034
@@ -27,7 +27,6 @@ LICENSE="ZLIB"
 SLOT="0"
 
 IUSE="+abi_x86_32 +abi_x86_64 debug ffmpeg xnasong test utils"
-RESTRICT="!test? ( test )"
 REQUIRED_USE="|| ( abi_x86_32 abi_x86_64 )"
 
 COMMON_DEPEND="
@@ -38,6 +37,8 @@ RDEPEND="${COMMON_DEPEND}
 "
 DEPEND="${COMMON_DEPEND}
 "
+
+PATCHES=( "${FILESDIR}/${PN}-19.01-install_tests.patch" )
 
 multilib_src_configure() {
 	local mycmakeargs=(
@@ -53,7 +54,7 @@ multilib_src_configure() {
 		"-DXNASONG=$(usex xnasong ON OFF)"
 	)
 	if use ffmpeg; then
-		mycmakeargs+=( "-DFFmpeg_LIBRARY_DIRS=${EPREFIX%/}/usr/$(get_libdir)"  )
+		mycmakeargs+=( "-DFFmpeg_LIBRARY_DIRS=${PREFIX%/}/usr/$(get_libdir)" )
 	fi
 	cmake-utils_src_configure
 }
@@ -71,20 +72,15 @@ multilib_src_install() {
 	# FIXME: do we want to install the FAudio tools?
 	cmake-utils_src_install
 
-	sed -e "s@%LIB%@$(get_libdir)@g" -e "s@%PREFIX%@${EPREFIX}/usr@g" \
-		"${FILESDIR}/faudio.pc" > "${T}/faudio.pc" \
+	sed -e "s/%LIB%/$(get_libdir)/g" "${FILESDIR}/faudio.pc" \
+		> "${T}/faudio.pc" \
 		|| die "sed failed"
 	insinto "/usr/$(get_libdir)/pkgconfig"
 	doins "${T}/faudio.pc"
-
-	if use test; then
-		mkdir -p "${T}/$(get_libdir)"
-		cp "${BUILD_DIR}/faudio_tests" "${T}/$(get_libdir)/" || die "cp failed"
-	fi
 }
 
 faudio_test() {
-	XDG_RUNTIME_DIR="/run/user/0" virtx "${T}/$(get_libdir)/faudio_tests"
+	XDG_RUNTIME_DIR="/run/user/0" virtx "/usr/$(get_libdir)/faudio/faudio_tests"
 }
 
 pkg_postinst() {
