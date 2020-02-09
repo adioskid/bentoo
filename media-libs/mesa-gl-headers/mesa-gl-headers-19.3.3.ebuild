@@ -18,7 +18,7 @@ src_unpack() {
 }
 
 # A quick way to generate a new headers archive based on the contents of the previous archive:
-# for x in $(cat /var/db/pkg/media-libs/mesa-gl-headers-19.3.2/CONTENTS | cut -f2 -d" " | grep .h$); do 
+# for x in $(cat /var/db/pkg/media-libs/mesa-gl-headers-19.1.4/CONTENTS | cut -f2 -d" " | grep .h$); do 
 #	basefile=${x##/usr/include/}
 #	basedir=${basefile%/*}
 #	echo $basefile $basedir
