@@ -15,9 +15,7 @@ MY_PN="${PN/-bin}"
 SRC_URI_BASE="https://github.com/electron/electron/releases/download"
 DESCRIPTION="Cross platform application development framework based on web technologies"
 HOMEPAGE="https://electronjs.org/"
-SRC_URI="
-	amd64? ( ${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-x64.zip -> ${P}-x64.zip )
-"
+SRC_URI="${SRC_URI_BASE}/v${PV}/${MY_PN}-v${PV}-linux-x64.zip -> ${P}-x64.zip"
 RESTRICT="mirror"
 
 LICENSE="MIT"
