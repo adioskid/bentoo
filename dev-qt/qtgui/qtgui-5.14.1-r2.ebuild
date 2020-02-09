@@ -7,6 +7,7 @@ QT5_MODULE="qtbase"
 inherit qt5-build
 
 DESCRIPTION="The GUI module and platform plugins for the Qt5 framework"
+SLOT=5/${PV} # bug 707658
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
@@ -132,7 +133,10 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 	:gui
 )
 
-PATCHES=( "${FILESDIR}/qt-5.12-gcc-avx2.patch" ) # bug 672946
+PATCHES=(
+	"${FILESDIR}/qt-5.12-gcc-avx2.patch" # bug 672946
+	"${FILESDIR}/${PN}-5.14.1-cmake-macro-backward-compat.patch" # bug 703306
+)
 
 src_prepare() {
 	# don't add -O3 to CXXFLAGS, bug 549140
