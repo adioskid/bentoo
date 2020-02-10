@@ -595,7 +595,9 @@ src_compile() {
 }
 
 src_install() {
-	meson_src_install DESTDIR="${D}"
+	meson_src_install
+
+	DESTDIR="${D}"
 
 	if use glvnd ; then 
 		find "${ED}/usr/$(get_libdir)/" -name 'libGLESv[12]*.so*' -delete
