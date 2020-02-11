@@ -11,13 +11,13 @@ inherit distutils-r1 xdg
 
 MY_PN="${PN}-qt"
 
-DESCRIPTION="Free, open-source, non-linear video editor to create and edit videos and movies"
+DESCRIPTION="An award-winning free and open-source video editor"
 HOMEPAGE="https://www.openshot.org/"
 SRC_URI="https://github.com/OpenShot/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="1"
-KEYWORDS="amd64 x86"
+KEYWORDS="~amd64 ~x86"
 IUSE="doc"
 
 RDEPEND="
@@ -27,7 +27,7 @@ RDEPEND="
 		dev-python/pyzmq[${PYTHON_MULTI_USEDEP}]
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
 	')
-	>=media-libs/libopenshot-0.2.3[python,${PYTHON_SINGLE_USEDEP}]
+	>=media-libs/libopenshot-0.2.4[python,${PYTHON_SINGLE_USEDEP}]
 "
 BDEPEND="
 	$(python_gen_cond_dep '
