@@ -591,7 +591,6 @@ src_configure() {
 
 src_compile() {
 	eninja -C "${BUILD_DIR}"
-
 }
 
 src_install() {
