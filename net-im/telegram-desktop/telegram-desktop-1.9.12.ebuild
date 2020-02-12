@@ -16,12 +16,13 @@ SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc64"
-IUSE="alsa dbus gtk3 libressl pulseaudio spell"
+IUSE="+alsa ayatana dbus gtk3 libressl pulseaudio spell"
 
 # dbus still required to build, but use flag disables dbus usage at runtime
 # pkg-config will pick up gtk2 first if found, needs a workaround
-RDEPEND="!net-im/telegram-desktop-bin
-	app-arch/lz4
+RDEPEND="
+	!net-im/telegram-desktop-bin
+	app-arch/lz4:=
 	app-arch/xz-utils
 	!libressl? ( dev-libs/openssl:0= )
 	libressl? ( dev-libs/libressl:0= )
@@ -33,13 +34,15 @@ RDEPEND="!net-im/telegram-desktop-bin
 	dev-qt/qtdbus:5
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
+	dev-qt/qtsvg:5
 	media-libs/fontconfig:=
 	media-libs/libtgvoip[alsa?,pulseaudio?]
 	media-libs/openal[alsa?,pulseaudio?]
+	media-libs/opus:=
+	media-video/ffmpeg:=[opus]
 	sys-libs/zlib[minizip]
-	virtual/ffmpeg
 	virtual/libiconv
-	x11-libs/libva[X,drm]
+	x11-libs/libva:=[X,drm]
 	x11-libs/libX11
 	|| (
 		dev-qt/qtgui:5[jpeg,png,X(-)]
@@ -49,21 +52,22 @@ RDEPEND="!net-im/telegram-desktop-bin
 		dev-qt/qtwidgets:5[png,X(-)]
 		dev-qt/qtwidgets:5[png,xcb(-)]
 	)
-	gtk3? (
-		dev-libs/libappindicator:3
-		x11-libs/gtk+:3
-	)
+	ayatana? ( dev-libs/libappindicator:3 )
+	gtk3? ( x11-libs/gtk+:3 )
 	pulseaudio? ( media-sound/pulseaudio )
 	spell? ( app-text/enchant:= )
 "
 
-DEPEND="${RDEPEND}
-	${PYTHON_DEPS}"
+DEPEND="
+	${PYTHON_DEPS}
+	${RDEPEND}
+"
 
 BDEPEND="
 	>=dev-util/cmake-3.16
 	virtual/pkgconfig
 "
+
 REQUIRED_USE="|| ( alsa pulseaudio )"
 
 S="${WORKDIR}/${MY_P}"
