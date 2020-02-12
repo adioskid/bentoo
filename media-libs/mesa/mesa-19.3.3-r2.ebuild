@@ -590,8 +590,7 @@ src_configure() {
 }
 
 src_compile() {
-	eninja -C "${BUILD_DIR}"
-
+	meson_src_compile
 }
 
 src_install() {
@@ -600,9 +599,9 @@ src_install() {
 	DESTDIR="${D}"
 
 	if use glvnd ; then 
-		find "${ED}/usr/$(get_libdir)/" -name 'libGLESv[12]*.so*' -delete
-		mv "${ED}/usr/$(get_libdir)/pkgconfig/gl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-gl.pc"
-		mv "${ED}/usr/$(get_libdir)/pkgconfig/egl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-egl.pc"
+		find "${D}/usr/$(get_libdir)/" -name 'libGLESv[12]*.so*' -delete
+		mv "${D}/usr/$(get_libdir)/pkgconfig/gl.pc" "${D}/usr/$(get_libdir)/pkgconfig/mesa-gl.pc"
+		mv "${D}/usr/$(get_libdir)/pkgconfig/egl.pc" "${D}/usr/$(get_libdir)/pkgconfig/mesa-egl.pc"
 	fi
 	find "${ED}" -name '*.la' -delete
 	einstalldocs
