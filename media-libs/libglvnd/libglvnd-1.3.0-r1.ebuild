@@ -38,8 +38,7 @@ RDEPEND="
 		x11-libs/libXext
 		x11-proto/glproto
 	)"
-DEPEND="${RDEPEND}
-	X? ( x11-base/xorg-proto )"
+DEPEND="${RDEPEND}"
 
 PATCHES=(
 	"${FILESDIR}"/${P}-meson-Fix-the-armv7-build.patch
