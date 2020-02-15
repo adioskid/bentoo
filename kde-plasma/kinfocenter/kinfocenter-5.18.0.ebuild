@@ -4,7 +4,7 @@
 EAPI=7
 
 ECM_HANDBOOK="forceoptional"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit ecm kde.org
@@ -14,7 +14,7 @@ HOMEPAGE="https://userbase.kde.org/KInfoCenter"
 SRC_URI+=" http://www.bentoo.info/assets/img/bentoo-icon.png -> logo.png"
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE="gles2 ieee1394 +opengl +pci wayland"
 
 REQUIRED_USE="wayland? ( || ( gles2 opengl ) )"
@@ -59,6 +59,7 @@ DEPEND="${COMMON_DEPEND}
 "
 RDEPEND="${COMMON_DEPEND}
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
+	>=kde-frameworks/kirigami-${KFMIN}:5
 	>=kde-plasma/kde-cli-tools-${PVCUT}:5
 "
 

@@ -3,7 +3,7 @@
 
 EAPI=7
 
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit ecm kde.org
@@ -13,7 +13,7 @@ HOMEPAGE+=" https://cukic.co/2017/02/03/vaults-encryption-in-plasma/"
 
 LICENSE="LGPL-3"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 x86"
+KEYWORDS="~amd64"
 IUSE="networkmanager"
 
 DEPEND="

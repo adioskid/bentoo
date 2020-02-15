@@ -4,7 +4,7 @@
 EAPI=7
 
 KDE_ORG_NAME="plasma-workspace"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit cmake kde.org
@@ -14,7 +14,7 @@ HOMEPAGE="https://cgit.kde.org/plasma-workspace.git/tree/xembed-sni-proxy/Readme
 
 LICENSE="GPL-2"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 
 DEPEND="
 	>=dev-qt/qtcore-${QTMIN}:5

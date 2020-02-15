@@ -3,16 +3,17 @@
 
 EAPI=7
 
-VIRTUALX_REQUIRED="test"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
+VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
 DESCRIPTION="Qt Platform Theme integration plugins for the Plasma workspaces"
+
 LICENSE="LGPL-2+"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE=""
 
 DEPEND="
@@ -32,10 +33,6 @@ DEPEND="
 	>=kde-plasma/breeze-${PVCUT}:5
 	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtgui-${QTMIN}:5=[dbus]
-	|| (
-		>=dev-qt/qtgui-5.14.1:5[dbus]
-		<dev-qt/qtgui-5.14.0:5[dbus]
-	)
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtx11extras-${QTMIN}:5

@@ -4,16 +4,16 @@
 EAPI=7
 
 ECM_TEST="true"
-VIRTUALX_REQUIRED="test"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
+VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
 DESCRIPTION="Task management and system monitoring library"
 LICENSE="LGPL-2+"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE="minimal webengine X"
 
 RDEPEND="
@@ -54,8 +54,4 @@ src_configure() {
 	)
 
 	ecm_src_configure
-}
-
-src_test() {
-	LC_NUMERIC="C" ecm_src_test # bug 695514
 }

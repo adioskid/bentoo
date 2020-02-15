@@ -5,7 +5,7 @@ EAPI=7
 
 ECM_HANDBOOK="forceoptional"
 ECM_TEST="forceoptional"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
@@ -15,8 +15,8 @@ DESCRIPTION="KDE Plasma workspace"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
-IUSE="appstream +calendar geolocation gps qalculate qrcode +semantic-desktop systemd"
+KEYWORDS="~amd64 ~ppc64"
+IUSE="appstream +calendar feedback geolocation gps qalculate qrcode +semantic-desktop systemd"
 
 REQUIRED_USE="gps? ( geolocation )"
 
@@ -87,6 +87,7 @@ COMMON_DEPEND="
 	x11-libs/xcb-util-image
 	appstream? ( dev-libs/appstream[qt5] )
 	calendar? ( >=kde-frameworks/kholidays-${KFMIN}:5 )
+	feedback? ( dev-libs/kuserfeedback:5 )
 	geolocation? ( >=kde-frameworks/networkmanager-qt-${KFMIN}:5 )
 	gps? ( sci-geosciences/gpsd )
 	qalculate? ( sci-libs/libqalculate:= )
@@ -105,6 +106,7 @@ RDEPEND="${COMMON_DEPEND}
 	>=dev-qt/qtquickcontrols-${QTMIN}:5[widgets]
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
 	>=kde-apps/kio-extras-19.04.3:5
+	>=kde-frameworks/kquickcharts-${KFMIN}:5
 	>=kde-frameworks/kdesu-${KFMIN}:5
 	>=kde-frameworks/kirigami-${KFMIN}:5
 	>=kde-plasma/ksysguard-${PVCUT}:5
@@ -122,11 +124,7 @@ PDEPEND="
 	>=kde-plasma/kde-cli-tools-${PVCUT}:5
 "
 
-PATCHES=(
-	"${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch"
-	"${FILESDIR}/${PN}-5.17.2-waylandsessionrename.patch"
-	"${FILESDIR}/${P}-disable-autoscaling-on-qt-5.14.patch"
-)
+PATCHES=( "${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch" )
 
 RESTRICT+=" test"
 
@@ -178,6 +176,7 @@ src_configure() {
 		-DBUILD_xembed-sni-proxy=OFF
 		$(cmake_use_find_package appstream AppStreamQt)
 		$(cmake_use_find_package calendar KF5Holidays)
+		$(cmake_use_find_package feedback KUserFeedback)
 		$(cmake_use_find_package geolocation KF5NetworkManagerQt)
 		$(cmake_use_find_package qalculate Qalculate)
 		$(cmake_use_find_package qrcode KF5Prison)

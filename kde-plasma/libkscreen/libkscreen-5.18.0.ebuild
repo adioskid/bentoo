@@ -5,16 +5,17 @@ EAPI=7
 
 ECM_QTHELP="true"
 ECM_TEST="forceoptional"
-VIRTUALX_REQUIRED="test"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
+VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
 DESCRIPTION="Plasma screen management library"
+
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5/7"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE=""
 
 DEPEND="

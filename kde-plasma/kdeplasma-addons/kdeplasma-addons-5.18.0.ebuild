@@ -3,15 +3,16 @@
 
 EAPI=7
 
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit ecm kde.org
 
 DESCRIPTION="Extra Plasma applets and engines"
+
 LICENSE="GPL-2 LGPL-2"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE="share webengine"
 
 DEPEND="

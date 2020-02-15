@@ -3,24 +3,29 @@
 
 EAPI=7
 
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit ecm kde.org
 
 DESCRIPTION="Backend implementation for xdg-desktop-portal that is using Qt/KDE Frameworks"
+
 LICENSE="LGPL-2+"
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE="screencast"
 
 COMMON_DEPEND="
 	>=kde-frameworks/kcoreaddons-${KFMIN}:5
+	>=kde-frameworks/kdeclarative-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
+	>=kde-frameworks/kirigami-${KFMIN}:5
 	>=kde-frameworks/knotifications-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
+	>=kde-frameworks/plasma-${KFMIN}:5
 	>=dev-qt/qtdbus-${QTMIN}:5
+	>=dev-qt/qtdeclarative-${QTMIN}:5
 	>=dev-qt/qtgui-${QTMIN}:5
 	>=dev-qt/qtprintsupport-${QTMIN}:5[cups]
 	>=dev-qt/qtwidgets-${QTMIN}:5

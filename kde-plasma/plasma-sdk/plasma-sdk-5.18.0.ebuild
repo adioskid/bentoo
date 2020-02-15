@@ -4,7 +4,7 @@
 EAPI=7
 
 ECM_TEST="optional"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
@@ -14,7 +14,7 @@ DESCRIPTION="Useful applications for Plasma development"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE=""
 
 DEPEND="

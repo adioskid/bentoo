@@ -3,15 +3,16 @@
 
 EAPI=7
 
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
 inherit ecm kde.org
 
 DESCRIPTION="Simple system settings module to manage the users of your system"
+
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE=""
 
 DEPEND="
@@ -21,7 +22,6 @@ DEPEND="
 	>=kde-frameworks/kconfigwidgets-${KFMIN}:5
 	>=kde-frameworks/kcoreaddons-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
-	>=kde-frameworks/kiconthemes-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=dev-qt/qtdbus-${QTMIN}:5

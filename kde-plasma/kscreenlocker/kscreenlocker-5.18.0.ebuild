@@ -4,16 +4,17 @@
 EAPI=7
 
 ECM_TEST="forceoptional"
-VIRTUALX_REQUIRED="test"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
+VIRTUALX_REQUIRED="test"
 inherit ecm kde.org pam
 
 DESCRIPTION="Library and components for secure lock screen architecture"
+
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64"
 IUSE="consolekit +pam seccomp"
 
 REQUIRED_USE="seccomp? ( pam )"

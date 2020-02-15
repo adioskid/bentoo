@@ -4,18 +4,19 @@
 EAPI=7
 
 ECM_TEST="forceoptional"
-VIRTUALX_REQUIRED="test"
-KFMIN=5.64.0
+KFMIN=5.66.0
 PVCUT=$(ver_cut 1-3)
 QTMIN=5.12.3
+VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
 DESCRIPTION="KDE Plasma resources management GUI"
 HOMEPAGE="https://userbase.kde.org/Discover"
+
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
-IUSE="+firmware"
+KEYWORDS="~amd64 ~ppc64"
+IUSE="+firmware feedback"
 
 # libmarkdown (app-text/discount) only used in PackageKitBackend
 DEPEND="
@@ -41,6 +42,7 @@ DEPEND="
 	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
+	feedback? ( dev-libs/kuserfeedback:5 )
 	firmware? ( sys-apps/fwupd )
 "
 RDEPEND="${DEPEND}
@@ -59,6 +61,7 @@ src_configure() {
 		-DCMAKE_DISABLE_FIND_PACKAGE_AppStreamQt=ON
 		-DCMAKE_DISABLE_FIND_PACKAGE_Snapd=ON
 		-DBUILD_FlatpakBackend=OFF
+		$(cmake_use_find_package feedback KUserFeedback)
 		-DBUILD_FwupdBackend=$(usex firmware)
 	)
 
