@@ -1,20 +1,25 @@
-# Copyright 2011-2019 Martin V\"ath
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 inherit readme.gentoo-r1 systemd
-RESTRICT="mirror" # until available on gentoo mirrors
 
 DESCRIPTION="Scripts to support compressed swap devices or ramdisks with zram"
 HOMEPAGE="https://github.com/vaeth/zram-init/"
-SRC_URI="https://github.com/vaeth/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64 ~arm64 ~ppc ~ppc64 ~x86"
-IUSE="split-usr"
+IUSE=""
 
-RDEPEND=">=app-shells/push-2.0-r2
+if [[ ${PV} == *9999 ]] ; then
+	EGIT_REPO_URI="https://github.com/vaeth/${PN}.git"
+	inherit git-r3
+else
+	SRC_URI="https://github.com/vaeth/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+	KEYWORDS="~amd64 ~arm64 ~ppc ~ppc64 ~x86"
+fi
+
+RDEPEND=">=app-shells/push-2.0
 	!<sys-apps/openrc-0.13"
 
 DISABLE_AUTOFORMATTING="true"
@@ -25,8 +30,9 @@ You might need to modify /etc/modprobe.d/zram.conf"
 
 src_prepare() {
 	use prefix || sed -i \
-		-e '1s"^#!/usr/bin/env sh$"#!'"/bin/sh"'"' \
-		-- sbin/* || die
+		-e '1s"^#!/usr/bin/env sh$"#!'"${EPREFIX}/bin/sh"'"' \
+		-e 's#PushA_=`push.sh 2>/dev/null`#PushA_=`cat '"${EPREFIX}"'/usr/share/push/push.sh`#' \
+		-- sbin/zram-init || die
 	default
 }
 
@@ -40,14 +46,11 @@ src_install() {
 	doins zsh/*
 	dodoc AUTHORS ChangeLog README.md
 	readme.gentoo_create_doc
-	into $(get_usr)/
+	into /
 	dosbin sbin/*
+	doman man/${PN}.8
 }
 
 pkg_postinst() {
 	readme.gentoo_print_elog
-}
-
-get_usr() {
-	use split-usr || echo /usr
 }
