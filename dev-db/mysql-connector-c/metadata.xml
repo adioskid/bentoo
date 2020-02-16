@@ -2,10 +2,7 @@
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
 <maintainer type="project">
-<email>mysql-bugs@gentoo.org</email>
-<name>MySQL</name>
+	<email>mysql-bugs@gentoo.org</email>
+	<name>MySQL</name>
 </maintainer>
-<use>
-<flag name="mysqlcompat">Enable mysqlclient library symbolic links</flag>
-</use>
 </pkgmetadata>

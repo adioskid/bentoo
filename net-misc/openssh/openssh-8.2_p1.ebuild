@@ -8,7 +8,7 @@ inherit user-info flag-o-matic multilib autotools pam systemd toolchain-funcs
 # Make it more portable between straight releases
 # and _p? releases.
 PARCH=${P/_}
-HPN_PV="${PV^^}"
+HPN_PV="8.1_P1"
 
 HPN_VER="14.20"
 HPN_PATCHES=(
@@ -18,14 +18,11 @@ HPN_PATCHES=(
 )
 
 SCTP_VER="1.2" SCTP_PATCH="${PARCH}-sctp-${SCTP_VER}.patch.xz"
-X509_VER="12.3" X509_PATCH="${PARCH}+x509-${X509_VER}.diff.gz"
-
-PATCH_SET="openssh-7.9p1-patches-1.0"
+X509_VER="12.4" X509_PATCH="${PARCH}+x509-${X509_VER}.diff.gz"
 
 DESCRIPTION="Port of OpenBSD's free SSH release"
 HOMEPAGE="https://www.openssh.com/"
 SRC_URI="mirror://openbsd/OpenSSH/portable/${PARCH}.tar.gz
-	https://dev.gentoo.org/~chutzpah/dist/openssh/${P}-glibc-2.31-patches.tar.xz
 	${SCTP_PATCH:+sctp? ( https://dev.gentoo.org/~chutzpah/dist/openssh/${SCTP_PATCH} )}
 	${HPN_VER:+hpn? ( $(printf "mirror://sourceforge/hpnssh/HPN-SSH%%20${HPN_VER/./v}%%20${HPN_PV/_P/p}/%s\n" "${HPN_PATCHES[@]}") )}
 	${X509_PATCH:+X509? ( https://roumenpetrov.info/openssh/x509-${X509_VER}/${X509_PATCH} )}
@@ -129,12 +126,11 @@ src_prepare() {
 	sed -i '/^AuthorizedKeysFile/s:^:#:' sshd_config || die
 
 	eapply "${FILESDIR}"/${PN}-7.9_p1-include-stdlib.patch
-	eapply "${FILESDIR}"/${PN}-8.1_p1-GSSAPI-dns.patch #165444 integrated into gsskex
+	eapply "${FILESDIR}"/${PN}-8.2_p1-GSSAPI-dns.patch #165444 integrated into gsskex
 	eapply "${FILESDIR}"/${PN}-6.7_p1-openssl-ignore-status.patch
 	eapply "${FILESDIR}"/${PN}-7.5_p1-disable-conch-interop-tests.patch
 	eapply "${FILESDIR}"/${PN}-8.0_p1-fix-putty-tests.patch
 	eapply "${FILESDIR}"/${PN}-8.0_p1-deny-shmget-shmat-shmdt-in-preauth-privsep-child.patch
-	eapply "${FILESDIR}"/${PN}-8.1_p1-tests-2020.patch
 
 	[[ -d ${WORKDIR}/patches ]] && eapply "${WORKDIR}"/patches
 
@@ -183,14 +179,14 @@ src_prepare() {
 		mkdir "${hpn_patchdir}" || die
 		cp $(printf -- "${DISTDIR}/%s\n" "${HPN_PATCHES[@]}") "${hpn_patchdir}" || die
 		pushd "${hpn_patchdir}" &>/dev/null || die
-		eapply "${FILESDIR}"/${PN}-8.1_p1-hpn-${HPN_VER}-glue.patch
+		eapply "${FILESDIR}"/${P}-hpn-${HPN_VER}-glue.patch
 		if use X509; then
 		#	einfo "Will disable MT AES cipher due to incompatbility caused by X509 patch set"
 		#	# X509 and AES-CTR-MT don't get along, let's just drop it
 		#	rm openssh-${HPN_PV//./_}-hpn-AES-CTR-${HPN_VER}.diff || die
-			eapply "${FILESDIR}"/${PN}-8.0_p1-hpn-${HPN_VER}-X509-glue.patch
+			eapply "${FILESDIR}"/${P}-hpn-${HPN_VER}-X509-glue.patch
 		fi
-		use sctp && eapply "${FILESDIR}"/${PN}-8.1_p1-hpn-${HPN_VER}-sctp-glue.patch
+		use sctp && eapply "${FILESDIR}"/${P}-hpn-${HPN_VER}-sctp-glue.patch
 		popd &>/dev/null || die
 
 		eapply "${hpn_patchdir}"
