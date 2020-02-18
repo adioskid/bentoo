@@ -27,7 +27,7 @@ SRC_URI="
 
 LICENSE="Vivaldi"
 SLOT="0"
-KEYWORDS="-* amd64 ~arm ~arm64 x86"
+KEYWORDS="-* ~amd64 ~arm ~arm64 ~x86"
 RESTRICT="bindist mirror"
 
 DEPEND="
@@ -107,6 +107,7 @@ src_prepare() {
 }
 
 src_install() {
+	rm -r usr/share/appdata || die
 	mv * "${D}" || die
 	dosym /${VIVALDI_HOME}/${PN} /usr/bin/${PN}
 
