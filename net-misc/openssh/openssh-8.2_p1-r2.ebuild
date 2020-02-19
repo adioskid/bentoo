@@ -18,11 +18,11 @@ HPN_PATCHES=(
 )
 
 SCTP_VER="1.2" SCTP_PATCH="${PARCH}-sctp-${SCTP_VER}.patch.xz"
-X509_VER="12.4" X509_PATCH="${PARCH}+x509-${X509_VER}.diff.gz"
+X509_VER="12.4.1" X509_PATCH="${PARCH}+x509-${X509_VER}.diff.gz"
 
 DESCRIPTION="Port of OpenBSD's free SSH release"
 HOMEPAGE="https://www.openssh.com/"
-SRC_URI="https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${PARCH}.tar.gz
+SRC_URI="mirror://openbsd/OpenSSH/portable/${PARCH}.tar.gz
 	${SCTP_PATCH:+sctp? ( https://dev.gentoo.org/~chutzpah/dist/openssh/${SCTP_PATCH} )}
 	${HPN_VER:+hpn? ( $(printf "mirror://sourceforge/hpnssh/HPN-SSH%%20${HPN_VER/./v}%%20${HPN_PV/_P/p}/%s\n" "${HPN_PATCHES[@]}") )}
 	${X509_PATCH:+X509? ( https://roumenpetrov.info/openssh/x509-${X509_VER}/${X509_PATCH} )}
@@ -143,7 +143,7 @@ src_prepare() {
 		popd &>/dev/null || die
 
 		eapply "${WORKDIR}"/${X509_PATCH%.*}
-		eapply "${FILESDIR}"/${P}-X509-$(ver_cut 1-2 ${X509_VER})-tests.patch
+		eapply "${FILESDIR}"/${P}-X509-${X509_VER}-tests.patch
 
 		# We need to patch package version or any X.509 sshd will reject our ssh client
 		# with "userauth_pubkey: could not parse key: string is too large [preauth]"
