@@ -8,8 +8,8 @@ inherit kernel-build
 MY_P=linux-${PV%.*}
 GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 2 ))
 # https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
-AMD64_CONFIG_VER=5.5.1-arch1
-AMD64_CONFIG_HASH=2e42789fe089b87dfe6763e7d48781b6a0c33b95
+AMD64_CONFIG_VER=5.5.4-arch1
+AMD64_CONFIG_HASH=bc32e3380a53e4cda7fadbd706810437e135bb3f
 # https://git.archlinux32.org/packages/log/core/linux/config.i686
 I686_CONFIG_VER=5.5.2-arch1
 I686_CONFIG_HASH=06ff2f85b50e8d38c79597e1dae4aee8b501f057

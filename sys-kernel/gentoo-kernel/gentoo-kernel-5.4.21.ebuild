@@ -7,12 +7,12 @@ inherit kernel-build
 
 MY_P=linux-${PV%.*}
 GENPATCHES_P=genpatches-${PV%.*}-${PV##*.}
-# https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
-AMD64_CONFIG_VER=5.4.13.arch1
-AMD64_CONFIG_HASH=9eed969590614a38d370a9fe04a4f5d38ba5e06e
-# https://git.archlinux32.org/packages/log/core/linux/config.i686
-I686_CONFIG_VER=5.4.13-arch1
-I686_CONFIG_HASH=95f890a9f9131e7a0e01a4f3e9c5ee423756a233
+# https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux-lts
+AMD64_CONFIG_VER=5.4.18.arch1
+AMD64_CONFIG_HASH=f81c67d74936ab16f9356add6600be0de003abb4
+# https://git.archlinux32.org/packages/log/core/linux-lts/config
+I686_CONFIG_VER=5.4.18.arch1
+I686_CONFIG_HASH=c4c120c5fde43a49d84db7d60a9722e2ca1d1c2a
 
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"
@@ -20,11 +20,11 @@ SRC_URI+=" https://cdn.kernel.org/pub/linux/kernel/v$(ver_cut 1).x/${MY_P}.tar.x
 	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.base.tar.xz
 	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.extras.tar.xz
 	amd64? (
-		https://git.archlinux.org/svntogit/packages.git/plain/trunk/config?h=packages/linux&id=${AMD64_CONFIG_HASH}
+		https://git.archlinux.org/svntogit/packages.git/plain/trunk/config?h=packages/linux-lts&id=${AMD64_CONFIG_HASH}
 			-> linux-${AMD64_CONFIG_VER}.amd64.config
 	)
 	x86? (
-		https://git.archlinux32.org/packages/plain/core/linux/config.i686?id=${I686_CONFIG_HASH}
+		https://git.archlinux32.org/packages/plain/core/linux-lts/config?id=${I686_CONFIG_HASH}
 			-> linux-${I686_CONFIG_VER}.i686.config
 	)"
 S=${WORKDIR}/${MY_P}
