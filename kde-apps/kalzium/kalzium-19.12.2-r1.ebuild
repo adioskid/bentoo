@@ -25,6 +25,7 @@ DEPEND="
 	>=kde-frameworks/ki18n-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=kde-frameworks/kitemviews-${KFMIN}:5
+	>=kde-frameworks/kparts-${KFMIN}:5
 	>=kde-frameworks/kplotting-${KFMIN}:5
 	>=kde-frameworks/ktextwidgets-${KFMIN}:5
 	>=kde-frameworks/kunitconversion-${KFMIN}:5
@@ -48,7 +49,7 @@ RDEPEND="${DEPEND}
 	sci-chemistry/chemical-mime-data
 "
 
-src_configure(){
+src_configure() {
 	# Fix missing finite()
 	[[ ${CHOST} == *-solaris* ]] && append-cppflags -DHAVE_IEEEFP_H
 
