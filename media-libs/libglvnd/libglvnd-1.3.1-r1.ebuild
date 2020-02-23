@@ -27,7 +27,6 @@ fi
 LICENSE="MIT"
 SLOT="0"
 IUSE="+asm +egl +gles +gles2 +glx +headers tls +X"
-RESTRICT=""
 
 BDEPEND="${PYTHON_DEPS}"
 RDEPEND="
@@ -38,13 +37,8 @@ RDEPEND="
 		x11-libs/libXext
 		x11-proto/glproto
 	)"
-DEPEND="${RDEPEND}"
-
-PATCHES=(
-	"${FILESDIR}"/${P}-meson-Fix-the-armv7-build.patch
-	"${FILESDIR}"/${P}-meson-Fix-the-PPC64-build.patch
-	"${FILESDIR}"/${P}-tests-Add-_GLOBAL_OFFSET_TABLE_-to-PLATFORM_SYMBOLS.patch
-)
+DEPEND="${RDEPEND}
+	X? ( x11-base/xorg-proto )"
 
 src_configure() {
 	local emesonargs=(
@@ -64,6 +58,6 @@ src_compile() {
 	meson_src_compile
 }
 
-src_install() {
+multilib_src_install() {
 	meson_src_install
 }

@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -64,13 +64,8 @@ BDEPEND="
 "
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-1.1.4-mtab-sym.patch
-	"${FILESDIR}"/${PN}-1.2.8-cross-build.patch
 	"${FILESDIR}"/${PN}-2.4.2-no-werror.patch
-	"${FILESDIR}"/${PN}-2.4.1-statx.patch #688644
-	"${FILESDIR}"/${P}-Ensure-consistent-struct-stat.patch
-	"${FILESDIR}"/${P}-mountd-Add-check-for-struct-file_handle.patch
-	"${FILESDIR}"/${P}-mountd-Fix-compilation-for--disable-uuid.patch
+	"${FILESDIR}"/${PN}-2.4.2-Ensure-consistent-struct-stat.patch
 )
 
 pkg_setup() {
@@ -120,7 +115,7 @@ src_configure() {
 	econf "${myeconfargs[@]}"
 }
 
-src_compile(){
+src_compile() {
 	# remove compiled files bundled in the tarball
 	emake clean
 	default

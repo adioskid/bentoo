@@ -13,7 +13,7 @@ SRC_URI="$(rust_all_arch_uris ${MY_P})"
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 SLOT="stable"
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="amd64 ~arm ~arm64 ppc64 x86"
 IUSE="clippy cpu_flags_x86_sse2 doc libressl rustfmt"
 
 DEPEND=""
@@ -36,7 +36,7 @@ QA_PREBUILT="
 	opt/${P}/lib/rustlib/*/lib/*.rlib*
 "
 
-pkg_pretend () {
+pkg_pretend() {
 	if [[ "$(tc-is-softfloat)" != "no" ]] && [[ ${CHOST} == armv7* ]]; then
 		die "${CHOST} is not supported by upstream Rust. You must use a hard float version."
 	fi
