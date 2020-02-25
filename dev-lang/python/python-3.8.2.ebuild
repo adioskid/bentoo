@@ -8,7 +8,7 @@ inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-${PV}-r2"
+PATCHSET="python-gentoo-patches-3.8.1-r2"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -29,10 +29,10 @@ RESTRICT="!test? ( test )"
 
 RDEPEND="app-arch/bzip2:=
 	app-arch/xz-utils:=
+	dev-libs/libffi:=
 	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
-	virtual/libffi:=
 	virtual/libintl
 	gdbm? ( sys-libs/gdbm:=[berkdb] )
 	ncurses? ( >=sys-libs/ncurses-5.2:= )

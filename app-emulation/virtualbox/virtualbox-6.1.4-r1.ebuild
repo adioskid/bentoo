@@ -24,6 +24,7 @@ IUSE="alsa debug doc dtrace headless java libressl lvm +opus pam pax_kernel puls
 CDEPEND="
 	${PYTHON_DEPS}
 	!app-emulation/virtualbox-bin
+	acct-group/vboxusers
 	~app-emulation/virtualbox-modules-${PV}
 	dev-libs/libIDL
 	>=dev-libs/libxslt-1.1.19
