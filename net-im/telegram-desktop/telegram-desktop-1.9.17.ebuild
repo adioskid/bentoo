@@ -16,7 +16,7 @@ SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc64"
-IUSE="+alsa dbus libressl pulseaudio spell"
+IUSE="+alsa +dbus enchant +hunspell libressl pulseaudio +spell"
 
 RDEPEND="
 	!net-im/telegram-desktop-bin
@@ -26,13 +26,12 @@ RDEPEND="
 	libressl? ( dev-libs/libressl:0= )
 	>=dev-cpp/ms-gsl-2.1.0
 	dev-cpp/range-v3
-	dev-libs/libdbusmenu-qt[qt5(+)]
 	dev-libs/xxhash
 	dev-qt/qtcore:5
-	dev-qt/qtdbus:5
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
 	dev-qt/qtsvg:5
+	dev-qt/qtwayland:5
 	media-libs/fontconfig:=
 	>=media-libs/libtgvoip-2.4.4_p20200212[alsa?,pulseaudio?]
 	media-libs/openal[alsa?,pulseaudio?]
@@ -50,8 +49,13 @@ RDEPEND="
 		dev-qt/qtwidgets:5[png,X(-)]
 		dev-qt/qtwidgets:5[png,xcb(-)]
 	)
+	dbus? (
+		dev-qt/qtdbus:5
+		dev-libs/libdbusmenu-qt[qt5(+)]
+	)
+	enchant? ( app-text/enchant:= )
+	hunspell? ( >=app-text/hunspell-1.7:= )
 	pulseaudio? ( media-sound/pulseaudio )
-	spell? ( app-text/enchant:= )
 "
 
 DEPEND="
@@ -64,13 +68,15 @@ BDEPEND="
 	virtual/pkgconfig
 "
 
-REQUIRED_USE="|| ( alsa pulseaudio )"
+REQUIRED_USE="|| ( alsa pulseaudio )
+	spell? (
+		^^ ( enchant hunspell )
+	)
+"
 
 S="${WORKDIR}/${MY_P}"
 
-PATCHES=(
-	"${FILESDIR}/0002-PPC-big-endian.patch"
-)
+PATCHES=( "${FILESDIR}/${PV}-hunspell-cmake.patch" )
 
 src_configure() {
 	local mycxxflags=(
@@ -93,8 +99,9 @@ src_configure() {
 		-DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF
 		-DTDESKTOP_DISABLE_DESKTOP_FILE_GENERATION=ON
 		-DTDESKTOP_LAUNCHER_BASENAME="${PN}"
-		-DDESKTOP_APP_DISABLE_SPELLCHECK="$(usex spell OFF ON)"
-		-DTDESKTOP_DISABLE_DBUS_INTEGRATION="$(usex dbus OFF ON)"
+		-DDESKTOP_APP_DISABLE_DBUS_INTEGRATION="$(usex dbus OFF ON)"
+		-DDESKTOP_APP_DISABLE_SPELLCHECK="$(usex spell OFF ON)" # enables hunspell
+		-DDESKTOP_APP_USE_ENCHANT="$(usex enchant ON OFF)" # enables enchant and disables hunspell
 	)
 
 	if [[ -n ${MY_TDESKTOP_API_ID} && -n ${MY_TDESKTOP_API_HASH} ]]; then
