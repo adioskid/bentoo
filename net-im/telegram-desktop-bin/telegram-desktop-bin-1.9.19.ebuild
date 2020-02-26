@@ -24,7 +24,7 @@ RDEPEND="
 	>=x11-libs/libxcb-1.10[xkb]
 "
 
-S="${WORKDIR}/Telegram"
+S="${WORKDIR}/tdesktop-${PV}"
 
 src_install() {
 	exeinto /usr/lib/${PN}
