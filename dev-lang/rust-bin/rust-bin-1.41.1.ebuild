@@ -13,19 +13,19 @@ SRC_URI="$(rust_all_arch_uris ${MY_P})"
 
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 SLOT="stable"
-KEYWORDS="amd64 ~arm ~arm64 ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 IUSE="clippy cpu_flags_x86_sse2 doc libressl rustfmt"
 
 DEPEND=""
-RDEPEND=">=app-eselect/eselect-rust-20190311
+RDEPEND="
+	>=app-eselect/eselect-rust-20190311
 	sys-libs/zlib
 	!libressl? ( dev-libs/openssl:0= )
 	libressl? ( dev-libs/libressl:0= )
 	net-libs/libssh2
 	net-misc/curl[ssl]
-	!dev-lang/rust:0
-	!dev-util/cargo
-	rustfmt? ( !dev-util/rustfmt )"
+"
+
 REQUIRED_USE="x86? ( cpu_flags_x86_sse2 )"
 
 QA_PREBUILT="
@@ -57,7 +57,7 @@ src_install() {
 		--components="${components}" \
 		--disable-verify \
 		--prefix="${ED}/opt/${P}" \
-		--mandir="${ED}/usr/share/${P}/man" \
+		--mandir="${ED}/opt/${P}/man" \
 		--disable-ldconfig \
 		|| die
 
@@ -113,7 +113,7 @@ src_install() {
 
 	cat <<-EOF > "${T}"/50${P}
 	LDPATH="/opt/${P}/lib"
-	MANPATH="/usr/share/${P}/man"
+	MANPATH="/opt/${P}/man"
 	EOF
 	doenvd "${T}"/50${P}
 
