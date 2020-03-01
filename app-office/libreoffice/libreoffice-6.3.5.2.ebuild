@@ -79,7 +79,7 @@ RESTRICT="!test? ( test )"
 LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
 [[ ${MY_PV} == *9999* ]] || \
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 
 BDEPEND="
 	dev-util/intltool
@@ -259,7 +259,6 @@ PATCHES=(
 
 	# master branch
 	"${FILESDIR}/${PN}-6.3.3.2-mysql-connector-c-8.patch" # bug #692422
-	"${FILESDIR}/${P}-poppler-0.83.patch"
 )
 
 S="${WORKDIR}/${PN}-${MY_PV}"
