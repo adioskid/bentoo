@@ -6,7 +6,7 @@ EAPI=7
 export CBUILD=${CBUILD:-${CHOST}}
 export CTARGET=${CTARGET:-${CHOST}}
 
-MY_PV=${PV::-2}
+MY_PV=${PV/_/}
 
 inherit toolchain-funcs
 
@@ -16,7 +16,7 @@ case ${PV}  in
 	inherit git-r3
 	;;
 *)
-	SRC_URI="https://dl.google.com/go/go${MY_PV}.src.tar.gz "
+	SRC_URI="https://storage.googleapis.com/golang/go${MY_PV}.src.tar.gz "
 	S="${WORKDIR}"/go
 	case ${PV} in
 	*_beta*|*_rc*) ;;
