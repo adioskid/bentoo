@@ -3,61 +3,65 @@
 
 EAPI=7
 
-ECM_HANDBOOK="optional"
-ECM_TEST="true"
+ECM_HANDBOOK="forceoptional"
+ECM_TEST="forceoptional"
 KFMIN=5.63.0
 QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
-DESCRIPTION="KDE's terminal emulator"
-HOMEPAGE="https://kde.org/applications/system/org.kde.konsole
-https://konsole.kde.org"
+DESCRIPTION="KDE UML Modeller"
+HOMEPAGE="https://kde.org/applications/development/org.kde.umbrello
+https://umbrello.kde.org"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
-IUSE="X"
+KEYWORDS="~amd64 ~arm64 ~x86"
+IUSE="php"
 
-DEPEND="
-	>=kde-frameworks/kbookmarks-${KFMIN}:5
+RDEPEND="
+	>=kde-frameworks/karchive-${KFMIN}:5
 	>=kde-frameworks/kcompletion-${KFMIN}:5
 	>=kde-frameworks/kconfig-${KFMIN}:5
 	>=kde-frameworks/kconfigwidgets-${KFMIN}:5
 	>=kde-frameworks/kcoreaddons-${KFMIN}:5
 	>=kde-frameworks/kcrash-${KFMIN}:5
-	>=kde-frameworks/kdbusaddons-${KFMIN}:5
-	>=kde-frameworks/kguiaddons-${KFMIN}:5
-	>=kde-frameworks/kjobwidgets-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
-	>=kde-frameworks/kinit-${KFMIN}:5
 	>=kde-frameworks/kiconthemes-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
-	>=kde-frameworks/knewstuff-${KFMIN}:5
-	>=kde-frameworks/knotifications-${KFMIN}:5
-	>=kde-frameworks/knotifyconfig-${KFMIN}:5
-	>=kde-frameworks/kparts-${KFMIN}:5
-	>=kde-frameworks/kpty-${KFMIN}:5
-	>=kde-frameworks/kservice-${KFMIN}:5
+	>=kde-frameworks/kjobwidgets-${KFMIN}:5
+	>=kde-frameworks/ktexteditor-${KFMIN}:5
 	>=kde-frameworks/ktextwidgets-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kwindowsystem-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
-	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtgui-${QTMIN}:5
-	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtprintsupport-${QTMIN}:5
+	>=dev-qt/qtsvg-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
-	X? ( x11-libs/libX11 )
+	dev-libs/libxml2
+	dev-libs/libxslt
+	>=dev-qt/qtwebkit-5.212.0_pre20180120:5
+	php? (
+		dev-util/kdevelop:5=
+		dev-util/kdevelop-pg-qt
+	)
 "
-RDEPEND="${DEPEND}"
-
-PATCHES=( "${FILESDIR}/${P}-darkbackground-detect.patch" )
+DEPEND="${RDEPEND}
+	>=kde-frameworks/kdelibs4support-${KFMIN}:5
+"
 
 src_configure() {
 	local mycmakeargs=(
-		$(cmake_use_find_package X X11)
+		-DBUILD_KF5=ON
+		-DBUILD_PHP_IMPORT=$(usex php)
+		-DBUILD_unittests=$(usex test)
+	)
+	use test && mycmakeargs+=(
+		-DCMAKE_DISABLE_FIND_PACKAGE_LLVM=ON
+		-DCMAKE_DISABLE_FIND_PACKAGE_Clang=ON
+		-DCMAKE_DISABLE_FIND_PACKAGE_CLANG=ON
 	)
 
 	ecm_src_configure

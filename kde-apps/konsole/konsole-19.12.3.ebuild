@@ -3,57 +3,62 @@
 
 EAPI=7
 
-ECM_HANDBOOK="forceoptional"
-ECM_TEST="forceoptional"
+ECM_HANDBOOK="optional"
+ECM_TEST="true"
 KFMIN=5.63.0
 QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
-DESCRIPTION="KDE UML Modeller"
-HOMEPAGE="https://kde.org/applications/development/org.kde.umbrello
-https://umbrello.kde.org"
+DESCRIPTION="KDE's terminal emulator"
+HOMEPAGE="https://kde.org/applications/system/org.kde.konsole
+https://konsole.kde.org"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm64 ~x86"
-IUSE=""
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
+IUSE="X"
 
-RDEPEND="
-	>=kde-frameworks/karchive-${KFMIN}:5
+DEPEND="
+	>=kde-frameworks/kbookmarks-${KFMIN}:5
 	>=kde-frameworks/kcompletion-${KFMIN}:5
 	>=kde-frameworks/kconfig-${KFMIN}:5
 	>=kde-frameworks/kconfigwidgets-${KFMIN}:5
 	>=kde-frameworks/kcoreaddons-${KFMIN}:5
 	>=kde-frameworks/kcrash-${KFMIN}:5
+	>=kde-frameworks/kdbusaddons-${KFMIN}:5
+	>=kde-frameworks/kguiaddons-${KFMIN}:5
+	>=kde-frameworks/kjobwidgets-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
+	>=kde-frameworks/kinit-${KFMIN}:5
 	>=kde-frameworks/kiconthemes-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
-	>=kde-frameworks/kjobwidgets-${KFMIN}:5
-	>=kde-frameworks/ktexteditor-${KFMIN}:5
+	>=kde-frameworks/knewstuff-${KFMIN}:5
+	>=kde-frameworks/knotifications-${KFMIN}:5
+	>=kde-frameworks/knotifyconfig-${KFMIN}:5
+	>=kde-frameworks/kparts-${KFMIN}:5
+	>=kde-frameworks/kpty-${KFMIN}:5
+	>=kde-frameworks/kservice-${KFMIN}:5
 	>=kde-frameworks/ktextwidgets-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kwindowsystem-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
+	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtgui-${QTMIN}:5
+	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtprintsupport-${QTMIN}:5
-	>=dev-qt/qtsvg-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
-	dev-libs/libxml2
-	dev-libs/libxslt
-	>=dev-qt/qtwebkit-5.212.0_pre20180120:5
+	X? ( x11-libs/libX11 )
 "
-DEPEND="${RDEPEND}
-	>=kde-frameworks/kdelibs4support-${KFMIN}:5
-"
+RDEPEND="${DEPEND}"
+
+PATCHES=( "${FILESDIR}/${PN}-19.12.2-darkbackground-detect.patch" )
 
 src_configure() {
 	local mycmakeargs=(
-		-DBUILD_KF5=ON
-		-DBUILD_unittests=$(usex test)
+		$(cmake_use_find_package X X11)
 	)
-	use test && mycmakeargs+=( -DCMAKE_DISABLE_FIND_PACKAGE_LLVM=ON )
 
 	ecm_src_configure
 }
