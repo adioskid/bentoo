@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -16,13 +16,13 @@ else
 		MY_PV=${SNAPSHOT_COMMIT}
 		MY_P=Vulkan-Headers-${SNAPSHOT_COMMIT}
 	fi
-	KEYWORDS="~amd64 ~x86"
+	KEYWORDS="~amd64 ~ppc64 ~x86"
 	SRC_URI="https://github.com/KhronosGroup/Vulkan-Headers/archive/${MY_PV}.tar.gz -> ${P}.tar.gz"
 	S="${WORKDIR}"/${MY_P}
 fi
 
-RDEPEND="!<dev-util/vulkan-tools-1.1.124
-	 !<media-libs/vulkan-layers-1.1.125"
+RDEPEND="!<dev-util/vulkan-tools-${PV}
+	 !<media-libs/vulkan-layers-${PV}"
 
 DESCRIPTION="Vulkan Header files and API registry"
 HOMEPAGE="https://github.com/KhronosGroup/Vulkan-Headers"

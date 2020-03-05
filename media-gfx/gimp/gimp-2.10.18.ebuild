@@ -2,38 +2,36 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-PYTHON_COMPAT=( python2_7 )
 GNOME2_EAUTORECONF=yes
+WANT_AUTOMAKE=
 
-inherit autotools gnome2 python-single-r1 virtualx
+inherit autotools gnome2 virtualx
 
 DESCRIPTION="GNU Image Manipulation Program"
 HOMEPAGE="https://www.gimp.org/"
 SRC_URI="mirror://gimp/v2.10/${P}.tar.bz2"
 LICENSE="GPL-3 LGPL-3"
 SLOT="2"
-KEYWORDS="amd64 ~ia64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ia64 ~ppc64 ~x86"
 
-IUSE="aalib alsa altivec aqua debug doc gnome heif jpeg2k mng openexr postscript python udev unwind vector-icons webp wmf xpm cpu_flags_x86_mmx cpu_flags_x86_sse"
-REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
+IUSE="aalib alsa altivec aqua debug doc gnome heif jpeg2k mng openexr postscript udev unwind vector-icons webp wmf xpm cpu_flags_x86_mmx cpu_flags_x86_sse"
 
 RESTRICT="!test? ( test )"
 
 COMMON_DEPEND="
-	app-arch/bzip2
-	>=app-arch/xz-utils-5.0.0
 	>=app-text/poppler-0.50[cairo]
 	>=app-text/poppler-data-0.4.7
 	>=dev-libs/atk-2.2.0
 	>=dev-libs/glib-2.56.0:2
-	dev-libs/libxml2
+	>=dev-libs/json-glib-1.2.6
+	dev-libs/libxml2:2
 	dev-libs/libxslt
 	>=gnome-base/librsvg-2.40.6:2
 	>=media-gfx/mypaint-brushes-1.3.0
-	>=media-libs/babl-0.1.72
+	>=media-libs/babl-0.1.74
 	>=media-libs/fontconfig-2.12.4
 	>=media-libs/freetype-2.1.7
-	>=media-libs/gegl-0.4.18:0.4[cairo]
+	>=media-libs/gegl-0.4.22:0.4[cairo]
 	>=media-libs/gexiv2-0.10.6
 	>=media-libs/harfbuzz-0.9.19
 	>=media-libs/lcms-2.8:2
@@ -42,7 +40,7 @@ COMMON_DEPEND="
 	>=media-libs/tiff-3.5.7:0
 	net-libs/glib-networking[ssl]
 	sys-libs/zlib
-	virtual/jpeg:0
+	virtual/jpeg
 	>=x11-libs/cairo-1.12.2
 	>=x11-libs/gdk-pixbuf-2.31:2
 	>=x11-libs/gtk+-2.24.32:2
@@ -56,13 +54,6 @@ COMMON_DEPEND="
 	mng? ( media-libs/libmng:= )
 	openexr? ( >=media-libs/openexr-1.6.1:= )
 	postscript? ( app-text/ghostscript-gpl )
-	python?	(
-		${PYTHON_DEPS}
-		$(python_gen_cond_dep '
-			>=dev-python/pycairo-1.0.2[${PYTHON_MULTI_USEDEP}]
-			>=dev-python/pygtk-2.10.4:2[${PYTHON_MULTI_USEDEP}]
-		')
-	)
 	udev? ( dev-libs/libgudev:= )
 	unwind? ( >=sys-libs/libunwind-1.1.0:= )
 	webp? ( >=media-libs/libwebp-0.6.0:= )
@@ -83,7 +74,6 @@ DEPEND="
 	dev-util/gtk-update-icon-cache
 	>=dev-util/intltool-0.40.1
 	sys-apps/findutils
-	>=sys-devel/automake-1.11
 	>=sys-devel/gettext-0.19
 	>=sys-devel/libtool-2.2
 	virtual/pkgconfig
@@ -95,12 +85,6 @@ DOCS=( "AUTHORS" "ChangeLog" "HACKING" "NEWS" "README" "README.i18n" )
 PATCHES=(
 	"${FILESDIR}/${PN}-2.10_fix_test-appdata.patch"
 )
-
-pkg_setup() {
-	if use python; then
-		python-single-r1_pkg_setup
-	fi
-}
 
 src_prepare() {
 	# Disable system CFLAGS suppressing on SSE{2,4.1} support tests by addition of {SSE2,SSE4_1}_EXTRA_CFLAGS: bug #702554
@@ -139,6 +123,8 @@ src_configure() {
 
 		--enable-default-binary
 
+		--disable-check-update
+		--disable-python
 		--enable-mp
 		--with-appdata-test
 		--with-bug-report-url=https://bugs.gentoo.org/
@@ -149,7 +135,6 @@ src_configure() {
 		$(use_enable altivec)
 		$(use_enable cpu_flags_x86_mmx mmx)
 		$(use_enable cpu_flags_x86_sse sse)
-		$(use_enable python)
 		$(use_enable vector-icons)
 		$(use_with aalib aa)
 		$(use_with alsa)
@@ -198,10 +183,6 @@ src_test() {
 
 src_install() {
 	gnome2_src_install
-
-	if use python; then
-		python_optimize
-	fi
 
 	# Workaround for bug #321111 to give GIMP the least
 	# precedence on PDF documents by default

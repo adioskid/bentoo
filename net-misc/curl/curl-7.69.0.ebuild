@@ -189,7 +189,6 @@ multilib_src_configure() {
 		--enable-http-auth \
 		$(use_enable ipv6) \
 		--enable-largefile \
-		--without-libpsl \
 		--enable-manual \
 		--enable-mime \
 		--enable-netrc \
@@ -209,6 +208,7 @@ multilib_src_configure() {
 		$(use_with kerberos gssapi "${EPREFIX}"/usr) \
 		$(use_with metalink libmetalink) \
 		$(use_with http2 nghttp2) \
+		--without-libpsl \
 		$(use_with nghttp3) \
 		$(use_with nghttp3 ngtcp2) \
 		$(use_with quiche) \

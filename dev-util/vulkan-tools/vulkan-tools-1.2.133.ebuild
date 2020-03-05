@@ -10,7 +10,7 @@ if [[ "${PV}" == "9999" ]]; then
 	inherit git-r3
 else
 	EGIT_COMMIT="119e7c3bbae122f6cc5d778d068fb91e0e85d6a9"
-	KEYWORDS="amd64"
+	KEYWORDS="~amd64 ~ppc64"
 	SRC_URI="https://github.com/KhronosGroup/Vulkan-Tools/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	S="${WORKDIR}/Vulkan-Tools-${EGIT_COMMIT}"
 fi
@@ -23,7 +23,7 @@ HOMEPAGE="https://github.com/KhronosGroup/Vulkan-Tools"
 LICENSE="Apache-2.0"
 SLOT="0"
 IUSE="+cube +vulkaninfo +X wayland"
-COMMON_DEPEND=">=media-libs/vulkan-loader-1.1.125:=[${MULTILIB_USEDEP},wayland?,X?]
+COMMON_DEPEND=">=media-libs/vulkan-loader-${PV}:=[${MULTILIB_USEDEP},wayland?,X?]
 	wayland? ( dev-libs/wayland:=[${MULTILIB_USEDEP}] )
 	X? (
 		x11-libs/libX11:=[${MULTILIB_USEDEP}]
@@ -32,7 +32,7 @@ COMMON_DEPEND=">=media-libs/vulkan-loader-1.1.125:=[${MULTILIB_USEDEP},wayland?,
 
 BDEPEND="${PYTHON_DEPS}
 	cube? ( dev-util/glslang:=[${MULTILIB_USEDEP}] )"
-DEPEND=">=dev-util/vulkan-headers-1.1.125
+DEPEND=">=dev-util/vulkan-headers-${PV}
 	${COMMON_DEPEND}"
 RDEPEND="${COMMON_DEPEND}"
 

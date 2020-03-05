@@ -144,6 +144,7 @@ src_configure() {
 		$(meson_feature lcms)
 		$(meson_feature lensfun)
 		$(meson_feature openexr)
+		$(meson_feature pdf poppler)
 		$(meson_feature raw libraw)
 		$(meson_feature sdl sdl1)
 		$(meson_feature svg librsvg)
