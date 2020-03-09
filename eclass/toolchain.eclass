@@ -593,7 +593,7 @@ toolchain_src_prepare() {
 
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
 	if tc_version_is_at_least 4.1; then
-		tc_apply_patches "Remove texinfo (bug #198182, bug ##464008)" "${FILESDIR}"/gcc-configure-texinfo.patch
+		tc_apply_patches "Remove texinfo (bug #198182, bug #464008)" "${FILESDIR}"/gcc-configure-texinfo.patch
 	fi
 
 	# >=gcc-4
@@ -1494,8 +1494,12 @@ downgrade_arch_flags() {
 }
 
 gcc_do_filter_flags() {
+	# Be conservative here:
+	# - don't allow -O3 and like to over-optimize libgcc # 701786
+	# - don't allow -O0 to generate potentially invalid startup code
 	strip-flags
-	replace-flags -O? -O2
+	filter-flags '-O?'
+	append-flags -O2
 
 	# dont want to funk ourselves
 	filter-flags '-mabi*' -m31 -m32 -m64
