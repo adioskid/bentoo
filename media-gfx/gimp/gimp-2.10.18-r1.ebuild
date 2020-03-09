@@ -2,10 +2,11 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
+PYTHON_COMPAT=( python2_7 )
 GNOME2_EAUTORECONF=yes
 WANT_AUTOMAKE=
 
-inherit autotools gnome2 virtualx
+inherit autotools gnome2 python-single-r1 virtualx
 
 DESCRIPTION="GNU Image Manipulation Program"
 HOMEPAGE="https://www.gimp.org/"
@@ -14,7 +15,8 @@ LICENSE="GPL-3 LGPL-3"
 SLOT="2"
 KEYWORDS="~amd64 ~ia64 ~ppc64 ~x86"
 
-IUSE="aalib alsa altivec aqua debug doc gnome heif jpeg2k mng openexr postscript udev unwind vector-icons webp wmf xpm cpu_flags_x86_mmx cpu_flags_x86_sse"
+IUSE="aalib alsa altivec aqua debug doc gnome heif jpeg2k mng openexr postscript python udev unwind vector-icons webp wmf xpm cpu_flags_x86_mmx cpu_flags_x86_sse"
+REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
 RESTRICT="!test? ( test )"
 
@@ -54,6 +56,13 @@ COMMON_DEPEND="
 	mng? ( media-libs/libmng:= )
 	openexr? ( >=media-libs/openexr-1.6.1:= )
 	postscript? ( app-text/ghostscript-gpl )
+	python?	(
+		${PYTHON_DEPS}
+		$(python_gen_cond_dep '
+			>=dev-python/pycairo-1.0.2[${PYTHON_MULTI_USEDEP}]
+			>=dev-python/pygtk-2.10.4:2[${PYTHON_MULTI_USEDEP}]
+		')
+	)
 	udev? ( dev-libs/libgudev:= )
 	unwind? ( >=sys-libs/libunwind-1.1.0:= )
 	webp? ( >=media-libs/libwebp-0.6.0:= )
@@ -85,6 +94,10 @@ DOCS=( "AUTHORS" "ChangeLog" "HACKING" "NEWS" "README" "README.i18n" )
 PATCHES=(
 	"${FILESDIR}/${PN}-2.10_fix_test-appdata.patch"
 )
+
+pkg_setup() {
+	use python && python-single-r1_pkg_setup
+}
 
 src_prepare() {
 	# Disable system CFLAGS suppressing on SSE{2,4.1} support tests by addition of {SSE2,SSE4_1}_EXTRA_CFLAGS: bug #702554
@@ -124,7 +137,6 @@ src_configure() {
 		--enable-default-binary
 
 		--disable-check-update
-		--disable-python
 		--enable-mp
 		--with-appdata-test
 		--with-bug-report-url=https://bugs.gentoo.org/
@@ -135,6 +147,7 @@ src_configure() {
 		$(use_enable altivec)
 		$(use_enable cpu_flags_x86_mmx mmx)
 		$(use_enable cpu_flags_x86_sse sse)
+		$(use_enable python)
 		$(use_enable vector-icons)
 		$(use_with aalib aa)
 		$(use_with alsa)
@@ -183,6 +196,8 @@ src_test() {
 
 src_install() {
 	gnome2_src_install
+
+	use python && python_optimize
 
 	# Workaround for bug #321111 to give GIMP the least
 	# precedence on PDF documents by default
