@@ -13,7 +13,7 @@ SRC_URI="https://www.samba.org/ftp/pub/${PN}/${P}.tar.gz"
 
 LICENSE="LGPL-3"
 SLOT="0/${PV}"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ia64 ~mips ppc ppc64 ~s390 ~sh ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 IUSE="doc +ldap +lmdb python test"
 
 RESTRICT="!test? ( test )"
@@ -23,9 +23,9 @@ RDEPEND="
 	!elibc_FreeBSD? ( dev-libs/libbsd[${MULTILIB_USEDEP}] )
 	dev-libs/popt[${MULTILIB_USEDEP}]
 	>=dev-util/cmocka-1.1.3[${MULTILIB_USEDEP}]
-	>=sys-libs/talloc-2.2.0[python?,${MULTILIB_USEDEP}]
-	>=sys-libs/tdb-1.4.2[python?,${MULTILIB_USEDEP}]
-	>=sys-libs/tevent-0.10.0[python(+)?,${MULTILIB_USEDEP}]
+	>=sys-libs/talloc-2.3.1[python?,${MULTILIB_USEDEP}]
+	>=sys-libs/tdb-1.4.3[python?,${MULTILIB_USEDEP}]
+	>=sys-libs/tevent-0.10.2[python(+)?,${MULTILIB_USEDEP}]
 	ldap? ( net-nds/openldap )
 	lmdb? ( >=dev-db/lmdb-0.9.16[${MULTILIB_USEDEP}] )
 	python? ( ${PYTHON_DEPS} )
