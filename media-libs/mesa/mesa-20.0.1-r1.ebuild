@@ -590,24 +590,16 @@ src_configure() {
 }
 
 src_compile() {
-	eninja -C "${BUILD_DIR}"
+	meson_src_compile
 }
 
 src_install() {
 	meson_src_install
 
-	DESTDIR="${D}"
+}
 
-	if use glvnd ; then 
-		find "${ED}/usr/$(get_libdir)/" -name 'libGLESv[12]*.so*' -delete
-		mv "${ED}/usr/$(get_libdir)/pkgconfig/gl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-gl.pc"
-		mv "${ED}/usr/$(get_libdir)/pkgconfig/egl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-egl.pc"
-	fi
-	find "${ED}" -name '*.la' -delete
+src_install_all() {
 	einstalldocs
-
-	# In Funtoo with libglvnd, we rely on media-libs/mesa-gl-headers to install our opengl headers.
-	rm -rf ${D}/usr/include || die "can't remove headers"
 }
 
 src_test() {

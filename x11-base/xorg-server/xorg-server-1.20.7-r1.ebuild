@@ -104,7 +104,7 @@ DEPEND="${CDEPEND}
 		)
 	)
 	glvnd? (
-		media-libs/mesa-gl-headers
+		media-libs/libglvnd
 	)
 	"
 
@@ -133,14 +133,6 @@ PATCHES=(
 	# needed for new eselect-opengl, bug #541232
 	"${FILESDIR}"/${PN}-1.18-support-multiple-Files-sections.patch
 )
-
-src_prepare() {
-	default
-	# when using libglvnd, pkgconfig will install its gl stuff, so explicitly use mesa's pkgconfig (19.1+)
-	if use glvnd; then
-		sed -i -e 's/gl >=/mesa-gl >=/g' ${S}/configure || die
-	fi
-}
 
 pkg_setup() {
 	if use wayland && use minimal; then

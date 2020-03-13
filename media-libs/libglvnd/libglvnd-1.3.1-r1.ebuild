@@ -19,16 +19,18 @@ HOMEPAGE="https://gitlab.freedesktop.org/glvnd/libglvnd"
 if [[ ${PV} = 9999* ]]; then
 	SRC_URI=""
 else
-	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~riscv ~sparc ~x86"
+	KEYWORDS="~alpha amd64 arm arm64 ~hppa ia64 ~mips ppc ppc64 ~riscv sparc x86"
 	SRC_URI="https://gitlab.freedesktop.org/glvnd/${PN}/-/archive/v${PV}/${PN}-v${PV}.tar.bz2 -> ${P}.tar.bz2"
 	S=${WORKDIR}/${PN}-v${PV}
 fi
 
 LICENSE="MIT"
 SLOT="0"
-IUSE="+asm +egl +gles +gles2 +glx +headers tls +X"
+IUSE="+asm +egl +gles +gles2 +glx +headers test tls +X"
+RESTRICT="!test? ( test )"
 
-BDEPEND="${PYTHON_DEPS}"
+BDEPEND="${PYTHON_DEPS}
+	test? ( X? ( ${VIRTUALX_DEPEND} ) )"
 RDEPEND="
 	!media-libs/mesa[-glvnd(-)]
 	!<media-libs/mesa-19.2.2
@@ -43,14 +45,16 @@ DEPEND="${RDEPEND}
 src_configure() {
 	local emesonargs=(
 		-Dasm=$(usex asm enabled disabled)
-		-Dglx=$(usex glx enabled disabled)
 		-Degl=$(usex egl true false)
 		-Dgles1=$(usex gles true false)
 		-Dgles2=$(usex gles2 true false)
+		-Dglx=$(usex glx enabled disabled)
 		-Dheaders=$(usex headers true false)
 		-Dtls=$(usex tls enabled disabled)
 		-Dx11=$(usex X enabled disabled)
 	)
+	use elibc_musl && emesonargs+=( -Dtls=disabled )
+
 	meson_src_configure
 }
 
@@ -58,6 +62,14 @@ src_compile() {
 	meson_src_compile
 }
 
-multilib_src_install() {
+src_test() {
+	if use X; then
+		virtx meson_src_test
+	else
+		meson_src_test
+	fi
+}
+
+src_install() {
 	meson_src_install
 }
