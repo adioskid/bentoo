@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -21,7 +21,7 @@ RDEPEND="
 	>=net-vpn/openvpn-2.1
 	gtk? (
 		>=app-crypt/libsecret-0.18
-		>=gnome-extra/nm-applet-1.7.0
+		>=gnome-extra/nm-applet-1.7.0[gtk]
 		>=x11-libs/gtk+-3.4:3
 	)
 "
@@ -47,13 +47,9 @@ src_prepare() {
 }
 
 src_configure() {
-	local myeconfargs=(
-		
-	)
 	# --localstatedir=/var needed per bug #536248
 	gnome2_src_configure \
 		--localstatedir=/var \
-		--without-libnm-glib \
 		--disable-more-warnings \
 		--disable-static \
 		--with-dist-version=Gentoo \
