@@ -11,7 +11,7 @@ MY_PN="qemu"
 MY_P="${MY_PN}-${PV}"
 
 SRC_URI="http://wiki.qemu.org/download/${MY_P}.tar.xz"
-KEYWORDS="amd64 ~ppc ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc ~ppc64 ~x86"
 
 DESCRIPTION="QEMU Guest Agent (qemu-ga) for use when running inside a VM"
 HOMEPAGE="https://wiki.qemu.org/Features/GuestAgent"
@@ -28,7 +28,7 @@ DEPEND="${RDEPEND}
 S="${WORKDIR}/${MY_P}"
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-2.5.0-sysmacros.patch #580924
+	"${FILESDIR}"/${PN}-4.2.0-sysmacros.patch #580924
 )
 
 src_configure() {
