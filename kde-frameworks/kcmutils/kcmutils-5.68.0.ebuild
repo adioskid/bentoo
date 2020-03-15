@@ -31,5 +31,3 @@ DEPEND="
 	>=dev-qt/qtwidgets-${QTMIN}:5
 "
 RDEPEND="${DEPEND}"
-
-PATCHES=( "${FILESDIR}/${P}-check-activeModule.patch" ) # bug 710078, in 5.68

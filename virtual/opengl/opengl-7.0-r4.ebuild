@@ -12,6 +12,6 @@ IUSE="glvnd"
 
 RDEPEND="
 	|| (
-		glvnd? (media-libs/libglvnd)
+		glvnd? ( media-libs/libglvnd )
 		!glvnd? ( >=media-libs/mesa-9.1.6 )
 	)"

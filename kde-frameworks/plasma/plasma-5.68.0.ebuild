@@ -62,11 +62,6 @@ DEPEND="${RDEPEND}
 
 RESTRICT+=" test"
 
-PATCHES=(
-	"${FILESDIR}/${P}-construct-nullengine-w-KPluginMetadata.patch" # KDE-Bug #417548
-	"${FILESDIR}/${P}-remove-hardcoded-colors.patch" # KDE-Bug #417511
-)
-
 src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package !gles2 OpenGL)

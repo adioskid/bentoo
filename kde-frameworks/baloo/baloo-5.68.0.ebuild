@@ -33,5 +33,3 @@ DEPEND="
 RDEPEND="${DEPEND}"
 
 RESTRICT+=" test" # bug 624250
-
-PATCHES=( "${FILESDIR}/${P}-sync-IndexerConfig-on-exit.patch" )
