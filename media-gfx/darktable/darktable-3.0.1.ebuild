@@ -1,11 +1,11 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
 inherit cmake flag-o-matic pax-utils toolchain-funcs xdg
 
-DOC_PV="2.6.0"
+DOC_PV="3.0.0"
 MY_PV="${PV/_/}"
 MY_P="${P/_/.}"
 
@@ -83,6 +83,8 @@ pkg_pretend() {
 
 src_prepare() {
 	use cpu_flags_x86_sse3 && append-flags -msse3
+
+	sed -i -e 's:/appdata:/metainfo:g' data/CMakeLists.txt || die
 
 	cmake_src_prepare
 }

@@ -130,7 +130,6 @@ src_install() {
 
 		insinto /usr/$(get_libdir)/${PN}
 		doins -r GUI/Lang
-		doins -r DOC/MANUAL
 
 		insinto /usr/share/icons/hicolor/16x16/apps/
 		newins GUI/p7zip_16_ok.png p7zip.png

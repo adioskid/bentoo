@@ -32,7 +32,7 @@ RDEPEND="
 	dev-qt/qtnetwork:5
 	dev-qt/qtsvg:5
 	media-libs/fontconfig:=
-	>=media-libs/libtgvoip-2.4.4_p20200212[alsa?,pulseaudio?]
+	>=media-libs/libtgvoip-2.4.4_p20200301[alsa?,pulseaudio?]
 	media-libs/openal[alsa?,pulseaudio?]
 	media-libs/opus:=
 	media-video/ffmpeg:=[opus]
@@ -75,7 +75,9 @@ REQUIRED_USE="|| ( alsa pulseaudio )
 
 S="${WORKDIR}/${MY_P}"
 
-PATCHES=( "${FILESDIR}/${PV}-crash.patch" )
+PATCHES=(
+	"${FILESDIR}/1.9.20-gcc9.patch"
+)
 
 src_configure() {
 	local mycxxflags=(
@@ -96,7 +98,6 @@ src_configure() {
 		-DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF
 		-DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF
 		-DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF
-		-DTDESKTOP_DISABLE_DESKTOP_FILE_GENERATION=ON
 		-DTDESKTOP_LAUNCHER_BASENAME="${PN}"
 		-DDESKTOP_APP_DISABLE_DBUS_INTEGRATION="$(usex dbus OFF ON)"
 		-DDESKTOP_APP_DISABLE_SPELLCHECK="$(usex spell OFF ON)" # enables hunspell
