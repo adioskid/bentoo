@@ -13,7 +13,7 @@ SRC_URI="https://github.com/${PN}/${PN}/releases/download/v${PV}/${P}.tar.gz"
 KEYWORDS="~amd64"
 SLOT=5
 LICENSE="GPL-3"
-IUSE="+bootloader +displaymanager +finished +fstab +grubcfg +keyboard +locale +machineid +mount +networkmanager +packages +partition pythonqt +removeuser +services-openrc +shellprocess +umount +unpackfs +upower +users webview +welcome"
+IUSE="+bootloader +displaymanager doas +finished +fstab +grubcfg +keyboard +locale +machineid +mount +networkmanager +packages +partition pythonqt +removeuser +services-openrc +shellprocess +umount +unpackfs +upower +users webview +welcome"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
@@ -52,7 +52,8 @@ DEPEND="${COMMON_DEPEND}
 	test? ( dev-qt/qttest:5 )
 "
 RDEPEND="${COMMON_DEPEND}
-	app-admin/sudo
+	!doas? ( app-admin/sudo )
+	doas? ( app-admin/doas )
 	dev-libs/libatasmart
 	net-misc/rsync
 	>=sys-block/parted-3.0
