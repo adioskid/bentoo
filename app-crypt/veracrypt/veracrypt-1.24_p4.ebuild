@@ -16,7 +16,7 @@ SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_${MY_PV}.tar.gz ->
 LICENSE="Apache-2.0 BSD truecrypt-3.0"
 SLOT="0"
 KEYWORDS="~amd64"
-IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doc X"
+IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doas doc X"
 RESTRICT="bindist mirror"
 
 WX_GTK_VER="3.0-gtk3"
@@ -25,7 +25,8 @@ RDEPEND="
 	sys-fs/lvm2
 	sys-fs/fuse:0
 	x11-libs/wxGTK:${WX_GTK_VER}[X?]
-	app-admin/sudo
+	!doas? ( app-admin/sudo )
+	doas? ( app-admin/doas )
 	dev-libs/pkcs11-helper
 "
 DEPEND="
