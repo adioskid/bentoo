@@ -31,7 +31,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 MOZ_P="${PN}-${MOZ_PV}"
 
-LLVM_MAX_SLOT=9
+LLVM_MAX_SLOT=10
 
 DESCRIPTION="Thunderbird Mail Client"
 HOMEPAGE="https://www.mozilla.org/thunderbird"
@@ -121,6 +121,15 @@ DEPEND="${CDEPEND}
 	sys-apps/findutils
 	|| (
 		(
+			sys-devel/clang:10
+			!clang? ( sys-devel/llvm:10 )
+			clang? (
+				=sys-devel/lld-10*
+				sys-devel/llvm:10[gold]
+				pgo? ( =sys-libs/compiler-rt-sanitizers-10*[profile] )
+			)
+		)
+		(
 			sys-devel/clang:9
 			!clang? ( sys-devel/llvm:9 )
 			clang? (
@@ -145,15 +154,6 @@ DEPEND="${CDEPEND}
 				=sys-devel/lld-7*
 				sys-devel/llvm:7[gold]
 				pgo? ( =sys-libs/compiler-rt-sanitizers-7*[profile] )
-			)
-		)
-		(
-			sys-devel/clang:6
-			!clang? ( sys-devel/llvm:6 )
-			clang? (
-				=sys-devel/lld-6*
-				sys-devel/llvm:6[gold]
-				pgo? ( =sys-libs/compiler-rt-sanitizers-6*[profile] )
 			)
 		)
 	)
@@ -650,7 +650,7 @@ src_install() {
 	DESTDIR="${D}" ./mach install || die
 
 	# Install language packs
-	MOZ_INSTALL_L10N_XPIFILE="1" mozlinguas_src_install
+	MOZEXTENSION_TARGET="distribution/extensions" MOZ_INSTALL_L10N_XPIFILE="1" mozlinguas_src_install
 
 	local size sizes icon_path icon
 	if ! use bindist; then

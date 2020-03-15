@@ -23,8 +23,9 @@ if [[ ${PV} = *9999* ]]; then
 	inherit git-r3
 	SRC_URI=""
 else
-	SRC_URI="https://download.qemu.org/${P}.tar.xz"
-	KEYWORDS="amd64 ~arm64 ~ppc ~ppc64 x86"
+	SRC_URI="https://download.qemu.org/${P}.tar.xz
+		https://dev.gentoo.org/~tamiko/distfiles/${P}-patches-r1.tar.xz"
+	KEYWORDS="~amd64 ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 DESCRIPTION="QEMU + Kernel-based Virtual Machine userland tools"
@@ -36,9 +37,10 @@ SLOT="0"
 IUSE="accessibility +aio alsa bzip2 capstone +caps +curl debug doc
 	+fdt glusterfs gnutls gtk infiniband iscsi jemalloc +jpeg kernel_linux
 	kernel_FreeBSD lzo ncurses nfs nls numa opengl +oss +pin-upstream-blobs
-	plugins +png pulseaudio python rbd sasl +seccomp sdl selinux smartcard snappy
-	spice ssh static static-user systemtap tci test usb usbredir vde
-	+vhost-net vhost-user-fs virgl virtfs +vnc vte xattr xen xfs +xkb"
+	plugins +png pulseaudio python rbd sasl +seccomp sdl sdl-image selinux
+	smartcard snappy spice ssh static static-user systemtap tci test usb
+	usbredir vde +vhost-net vhost-user-fs virgl virtfs +vnc vte xattr xen
+	xfs +xkb"
 
 COMMON_TARGETS="aarch64 alpha arm cris hppa i386 m68k microblaze microblazeel
 	mips mips64 mips64el mipsel nios2 or1k ppc ppc64 riscv32 riscv64 s390x
@@ -141,6 +143,7 @@ SOFTMMU_TOOLS_DEPEND="
 		media-libs/libsdl2[X]
 		media-libs/libsdl2[static-libs(+)]
 	)
+	sdl-image? ( media-libs/sdl2-image[static-libs(+)] )
 	seccomp? ( >=sys-libs/libseccomp-2.1.0[static-libs(+)] )
 	smartcard? ( >=app-emulation/libcacard-2.5.0[static-libs(+)] )
 	snappy? ( app-arch/snappy:= )
@@ -217,6 +220,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.11.1-capstone_include_path.patch
 	"${FILESDIR}"/${PN}-4.0.0-sanitize-interp_info.patch
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
+	"${WORKDIR}"/patches
 )
 
 QA_PREBUILT="
@@ -462,6 +466,7 @@ qemu_src_configure() {
 		$(conf_notuser rbd)
 		$(conf_notuser sasl vnc-sasl)
 		$(conf_notuser sdl)
+		$(conf_notuser sdl-image)
 		$(conf_notuser seccomp)
 		$(conf_notuser smartcard)
 		$(conf_notuser snappy)

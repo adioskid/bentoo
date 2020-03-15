@@ -42,10 +42,6 @@ BDEPEND="${PYTHON_DEPS}
 		dev-python/six[${PYTHON_USEDEP}]
 	')"
 
-PATCHES=(
-	"${FILESDIR}"/${PN}-0.14.0-openssl1.1_fix.patch
-)
-
 python_check_deps() {
 	has_version -b ">=dev-python/pyparsing-1.5.6-r2[${PYTHON_USEDEP}]"
 	has_version -b "dev-python/six[${PYTHON_USEDEP}]"
