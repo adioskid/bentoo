@@ -1,9 +1,10 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
-inherit gnome2 multilib virtualx
+GNOME2_EAUTORECONF="yes"
+inherit gnome2 multilib
 
 DESCRIPTION="A library for using 3D graphics hardware to draw pretty pictures"
 HOMEPAGE="https://www.cogl3d.org/"
@@ -12,19 +13,17 @@ LICENSE="MIT BSD"
 SLOT="1.0/20" # subslot = .so version
 
 # doc and profile disable for now due to bugs #484750 and #483332
-IUSE="debug examples gles2 gstreamer +introspection +kms +opengl +pango test -wayland" # doc profile
+IUSE="debug examples gles2 gstreamer +introspection +kms +opengl +pango wayland" # doc profile
 REQUIRED_USE="
 	wayland? ( gles2 )
 	|| ( gles2 opengl )
 "
-KEYWORDS="*"
-
-# configure: error: Unable to locate required libgbm library for the KMS egl platform  
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
 
 COMMON_DEPEND="
-	>=dev-libs/glib-2.62.2:2
+	>=dev-libs/glib-2.32:2
 	x11-libs/cairo:=
-	>=x11-libs/gdk-pixbuf-2.39.2:2
+	>=x11-libs/gdk-pixbuf-2:2
 	x11-libs/libX11
 	>=x11-libs/libXcomposite-0.4
 	x11-libs/libXdamage
@@ -32,53 +31,51 @@ COMMON_DEPEND="
 	>=x11-libs/libXfixes-3
 	>=x11-libs/libXrandr-1.2
 	virtual/opengl
-	kms? (
-		media-libs/mesa[egl]
-	)
 	gles2? ( media-libs/mesa[gles2] )
 	gstreamer? (
 		media-libs/gstreamer:1.0
 		media-libs/gst-plugins-base:1.0 )
-	introspection? ( >=dev-libs/gobject-introspection-1.62.0:= )
+	introspection? ( >=dev-libs/gobject-introspection-1.34.2:= )
 	kms? (
-		media-libs/mesa[gbm]
+		media-libs/mesa[egl,gbm]
 		x11-libs/libdrm:= )
-	pango? ( >=x11-libs/pango-1.44.7[introspection?] )
+	pango? ( >=x11-libs/pango-1.20.0[introspection?] )
 	wayland? (
 		>=dev-libs/wayland-1.1.90
-		media-libs/mesa[egl,wayland] 
-	)
+		media-libs/mesa[egl,wayland] )
 "
 # before clutter-1.7, cogl was part of clutter
 RDEPEND="${COMMON_DEPEND}
 	!<media-libs/clutter-1.7
 "
 DEPEND="${COMMON_DEPEND}
+	dev-util/glib-utils
 	>=dev-util/gtk-doc-am-1.13
 	>=sys-devel/gettext-0.19
 	virtual/pkgconfig
-	test? (
-		app-eselect/eselect-opengl
-		media-libs/mesa[classic] )
 "
 
 # Need classic mesa swrast for tests, llvmpipe causes a test failure
 # For some reason GL3 conformance test all fails again...
 RESTRICT="test"
 
+PATCHES=(
+	"${FILESDIR}"/${PN}-eglmesaext-include.patch
+)
+
 src_prepare() {
 	# Do not build examples
 	sed -e "s/^\(SUBDIRS +=.*\)examples\(.*\)$/\1\2/" \
 		-i Makefile.am Makefile.in || die
 
-	if ! use test ; then
-		# For some reason the configure switch will not completely disable
-		# tests being built
-		sed -e "s/^\(SUBDIRS =.*\)test-fixtures\(.*\)$/\1\2/" \
-			-e "s/^\(SUBDIRS +=.*\)tests\(.*\)$/\1\2/" \
-			-e "s/^\(.*am__append.* \)tests\(.*\)$/\1\2/" \
-			-i Makefile.am Makefile.in || die
-	fi
+	#if ! use test ; then
+	# For some reason the configure switch will not completely disable
+	# tests being built
+	sed -e "s/^\(SUBDIRS =.*\)test-fixtures\(.*\)$/\1\2/" \
+		-e "s/^\(SUBDIRS +=.*\)tests\(.*\)$/\1\2/" \
+		-e "s/^\(.*am__append.* \)tests\(.*\)$/\1\2/" \
+		-i Makefile.am Makefile.in || die
+	#fi
 
 	gnome2_src_prepare
 }
@@ -106,23 +103,11 @@ src_configure() {
 		$(use_enable introspection) \
 		$(use_enable kms kms-egl-platform) \
 		$(use_enable pango cogl-pango) \
-		$(use_enable test unit-tests) \
+		--disable-unit-tests \
 		$(use_enable wayland wayland-egl-platform) \
 		$(use_enable wayland wayland-egl-server) \
 		--disable-profile
 #		$(use_enable profile)
-}
-
-src_test() {
-	# Use swrast for tests, llvmpipe is incomplete and "test_sub_texture" fails
-	# NOTE: recheck if this is needed after every mesa bump
-	if [[ "$(eselect opengl show)" != "xorg-x11" ]]; then
-		ewarn "Skipping tests because a binary OpenGL library is enabled. To"
-		ewarn "run tests for ${PN}, you need to enable the Mesa library:"
-		ewarn "# eselect opengl set xorg-x11"
-		return
-	fi
-	virtx emake check LIBGL_DRIVERS_PATH="${EROOT}/usr/$(get_libdir)/mesa"
 }
 
 src_install() {
