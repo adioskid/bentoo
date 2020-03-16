@@ -32,7 +32,7 @@ RDEPEND="
 	ayatana? (
 		dev-libs/libappindicator:3
 		>=dev-libs/libdbusmenu-16.04.0 )
-	gtk? ( ~net-misc/networkmanager-1.18.4 )
+	gtk? ( >=net-misc/networkmanager-1.18.4 )
 	introspection? ( >=dev-libs/gobject-introspection-0.9.6:= )
 	virtual/freedesktop-icon-theme
 	gcr? ( >=app-crypt/gcr-3.14:=[gtk] )
