@@ -1,19 +1,19 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 GNOME2_LA_PUNT="yes"
 GNOME_ORG_MODULE="network-manager-applet"
 
-inherit autotools eutils gnome2
+inherit gnome2
 
 DESCRIPTION="GNOME applet for NetworkManager"
 HOMEPAGE="https://wiki.gnome.org/Projects/NetworkManager"
 
 LICENSE="GPL-2+"
 SLOT="0"
-IUSE="ayatana +introspection +gcr +modemmanager selinux teamd"
-KEYWORDS="~alpha amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc x86"
+IUSE="ayatana gtk +introspection +gcr +modemmanager selinux teamd"
+KEYWORDS="~alpha amd64 ~arm ~arm64 ~ia64 ppc ppc64 ~sparc x86"
 
 RDEPEND="
 	>=app-crypt/libsecret-0.18
@@ -32,6 +32,7 @@ RDEPEND="
 	ayatana? (
 		dev-libs/libappindicator:3
 		>=dev-libs/libdbusmenu-16.04.0 )
+	gtk? ( ~net-misc/networkmanager-1.18.4 )
 	introspection? ( >=dev-libs/gobject-introspection-0.9.6:= )
 	virtual/freedesktop-icon-theme
 	gcr? ( >=app-crypt/gcr-3.14:=[gtk] )
@@ -50,6 +51,8 @@ PDEPEND="virtual/notification-daemon" #546134
 src_configure() {
 	local myconf=(
 		--with-appindicator=$(usex ayatana ubuntu no)
+		$(use_with gtk libnm-gtk)
+		--without-libnma-gtk4
 		--disable-lto
 		--disable-ld-gc
 		--disable-more-warnings
