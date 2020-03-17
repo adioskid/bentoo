@@ -56,8 +56,8 @@ src_configure() {
 	tc-export CXX
 
 	local emesonargs=(
-		-Dgtk_doc="$(multilib_native_usex gtk-doc true false)"
-		-Dintrospection="$(multilib_native_usex introspection true false)"
+		-Dgtk_doc="$(native_usex gtk-doc true false)"
+		-Dintrospection="$(native_usex introspection true false)"
 		-Dinstall-tests=false
 	)
 	meson_src_configure
