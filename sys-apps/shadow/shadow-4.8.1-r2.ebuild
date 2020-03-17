@@ -152,6 +152,10 @@ src_install() {
 			newpamd "${FILESDIR}"/pam.d-include/passwd ${x}
 		done
 
+		for x in chpasswd newusers ; do
+			newpamd "${FILESDIR}"/pam.d-include/chpasswd ${x}
+		done
+
 		newpamd "${FILESDIR}"/pam.d-include/shadow-r1 groupmems
 
 		# comment out login.defs options that pam hates

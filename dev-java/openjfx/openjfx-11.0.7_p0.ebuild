@@ -3,8 +3,8 @@
 
 EAPI=6
 
-MY_PV=${PV/_p/+}
-SLOT=${MY_PV%%[.+]*}
+MY_PV="${PV/_p/+}"
+SLOT="${MY_PV%%[.+]*}/${PV}"
 EGRADLE_VER="4.8"
 
 inherit java-pkg-2 multiprocessing
@@ -193,7 +193,7 @@ src_configure() {
 		LINT = none
 		CONF = $(usex debug DebugNative Release)
 		NUM_COMPILE_THREADS = $(makeopts_jobs)
-		JFX_DEPS_URL = "${T}"/jars
+		JFX_DEPS_URL = ${T}/jars
 		COMPANY_NAME = "Gentoo"
 	_EOF_
 }

@@ -53,6 +53,8 @@ ADDONS_SRC=(
 	"libreoffice_extensions_scripting-javascript? ( ${ADDONS_URI}/35c94d2df8893241173de1d16b6034c0-swingExSrc.zip )"
 	# not packageable
 	"odk? ( http://download.go-oo.org/extern/185d60944ea767075d27247c3162b3bc-unowinreg.dll )"
+	# QR code generating library for >=libreoffice-6.4
+	"https://dev-www.libreoffice.org/src/QR-Code-generator-1.4.0.tar.gz"
 )
 SRC_URI+=" ${ADDONS_SRC[*]}"
 
@@ -63,7 +65,7 @@ unset ADDONS_SRC
 LO_EXTS="nlpsolver scripting-beanshell scripting-javascript wiki-publisher"
 
 IUSE="accessibility bluetooth +branding coinmp +cups dbus debug eds firebird
-googledrive gstreamer +gtk gtk2 kde ldap +mariadb odk pdfimport postgres test
+googledrive gstreamer +gtk kde ldap +mariadb odk pdfimport postgres test
 $(printf 'libreoffice_extensions_%s ' ${LO_EXTS})"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
@@ -78,8 +80,9 @@ RESTRICT="!test? ( test )"
 
 LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
-[[ ${MY_PV} == *9999* ]] || \
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
+
+# [[ ${MY_PV} == *9999* ]] || \
+# KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 
 BDEPEND="
 	dev-util/intltool
@@ -120,7 +123,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dev-libs/icu:=
 	dev-libs/libassuan
 	dev-libs/libgpg-error
-	>=dev-libs/liborcus-0.14.0
+	>=dev-libs/liborcus-0.15.0
 	dev-libs/librevenge
 	dev-libs/libxml2
 	dev-libs/libxslt
@@ -153,9 +156,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	x11-libs/libXrandr
 	x11-libs/libXrender
 	accessibility? (
-		$(python_gen_cond_dep '
-			dev-python/lxml[${PYTHON_MULTI_USEDEP}]
-		')
+		$(python_gen_cond_dep 'dev-python/lxml[${PYTHON_MULTI_USEDEP}]')
 	)
 	bluetooth? (
 		dev-libs/glib:2
@@ -180,11 +181,6 @@ COMMON_DEPEND="${PYTHON_DEPS}
 		gnome-base/dconf
 		media-libs/mesa[egl]
 		x11-libs/gtk+:3
-		x11-libs/pango
-	)
-	gtk2? (
-		x11-libs/gdk-pixbuf
-		>=x11-libs/gtk+-2.24:2
 		x11-libs/pango
 	)
 	kde? (
@@ -215,7 +211,7 @@ DEPEND="${COMMON_DEPEND}
 	dev-perl/Archive-Zip
 	>=dev-util/cppunit-1.14.0
 	>=dev-util/gperf-3.1
-	>=dev-util/mdds-1.4.1:1=
+	>=dev-util/mdds-1.5.0:1=
 	media-libs/glm
 	sys-devel/ucpp
 	x11-base/xorg-proto
@@ -223,7 +219,7 @@ DEPEND="${COMMON_DEPEND}
 	x11-libs/libXtst
 	java? (
 		dev-java/ant-core
-		>=virtual/jdk-1.6
+		>=virtual/jdk-1.8
 	)
 	test? (
 		app-crypt/gnupg
@@ -238,7 +234,7 @@ RDEPEND="${COMMON_DEPEND}
 	!app-office/openoffice
 	media-fonts/liberation-fonts
 	|| ( x11-misc/xdg-utils kde-plasma/kde-cli-tools )
-	java? ( >=virtual/jre-1.6 )
+	java? ( >=virtual/jre-1.8 )
 	kde? ( kde-frameworks/breeze-icons:* )
 "
 if [[ ${MY_PV} != *9999* ]] && [[ ${PV} != *_* ]]; then
@@ -256,9 +252,6 @@ PATCHES=(
 	"${FILESDIR}/${PN}-5.4-system-pyuno.patch"
 	"${FILESDIR}/${PN}-5.3.4.2-kioclient5.patch"
 	"${FILESDIR}/${PN}-6.1-nomancompress.patch"
-
-	# master branch
-	"${FILESDIR}/${PN}-6.3.3.2-mysql-connector-c-8.patch" # bug #692422
 )
 
 S="${WORKDIR}/${PN}-${MY_PV}"
@@ -279,12 +272,6 @@ pkg_pretend() {
 	fi
 
 	use java || ewarn "Without java, several wizards are not going to be available."
-
-	if has_version "<app-office/libreoffice-5.3.0[firebird]"; then
-		ewarn "Firebird has been upgraded to version 3. It is unable to read back Firebird 2.5 data, so"
-		ewarn "embedded firebird odb files created in LibreOffice pre-5.3 can't be opened with this version."
-		ewarn "See also: https://wiki.documentfoundation.org/ReleaseNotes/5.3#Base"
-	fi
 
 	[[ ${MERGE_TYPE} != binary ]] && _check_reqs pkg_pretend
 }
@@ -397,6 +384,7 @@ src_configure() {
 	# --without-system-sane: just sane.h header that is used for scan in writer,
 	#   not linked or anything else, worthless to depend on
 	# --disable-pdfium: not yet packaged
+	# --without-system-qrencode: has no real build system and LO is the only user
 	local myeconfargs=(
 		--with-system-dicts
 		--with-system-epoxy
@@ -416,7 +404,6 @@ src_configure() {
 		--disable-ccache
 		--disable-epm
 		--disable-fetch-external
-		--disable-gstreamer-0-10
 		--disable-gtk3-kde5
 		--disable-online-update
 		--disable-openssl
@@ -441,6 +428,7 @@ src_configure() {
 		--without-helppack-integration
 		--with-system-gpgmepp
 		--without-system-sane
+		--without-system-qrcodegen
 		$(use_enable bluetooth sdremote-bluetooth)
 		$(use_enable coinmp)
 		$(use_enable cups)
@@ -450,8 +438,7 @@ src_configure() {
 		$(use_enable firebird firebird-sdbc)
 		$(use_enable gstreamer gstreamer-1-0)
 		$(use_enable gtk gtk3)
-		$(use_enable gtk2 gtk)
-		$(use_enable kde kde5)
+		$(use_enable kde kf5)
 		$(use_enable kde qt5)
 		$(use_enable ldap)
 		$(use_enable odk)
@@ -524,7 +511,7 @@ src_test() {
 
 src_install() {
 	# This is not Makefile so no buildserver
-	make DESTDIR="${D}" distro-pack-install -o build -o check || die
+	emake DESTDIR="${D}" distro-pack-install -o build -o check
 
 	# bug 593514
 	if use gtk; then

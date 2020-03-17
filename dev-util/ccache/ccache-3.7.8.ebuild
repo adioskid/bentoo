@@ -3,8 +3,6 @@
 
 EAPI=7
 
-inherit readme.gentoo-r1
-
 DESCRIPTION="fast compiler cache"
 HOMEPAGE="https://ccache.dev/"
 SRC_URI="https://github.com/ccache/ccache/releases/download/v${PV}/ccache-${PV}.tar.xz"
@@ -19,7 +17,7 @@ DEPEND="app-arch/xz-utils
 RDEPEND="${DEPEND}
 	dev-util/shadowman
 	sys-apps/gentoo-functions"
-# clang-specific tests use it to compare objects for equality.
+# clang-specific tests use dev-libs/elfutils to compare objects for equality.
 # Let's pull in the dependency unconditionally.
 DEPEND+="
 	test? ( dev-libs/elfutils )"
@@ -33,11 +31,13 @@ PATCHES=(
 src_prepare() {
 	default
 
-	# make sure we always use system zlib
-	rm -rf src/zlib || die
 	sed \
 		-e "/^EPREFIX=/s:'':'${EPREFIX}':" \
 		"${FILESDIR}"/ccache-config-3 > ccache-config || die
+}
+
+src_configure() {
+	econf --without-bundled-zlib
 }
 
 src_compile() {
@@ -55,19 +55,6 @@ src_install() {
 	dobin ccache-config
 	insinto /usr/share/shadowman/tools
 	newins - ccache <<<"${EPREFIX}/usr/lib/ccache/bin"
-
-	DOC_CONTENTS="
-To use ccache with **non-Portage** C compiling, add
-'${EPREFIX}/usr/lib/ccache/bin' to the beginning of your path, before
-'${EPREFIX}/usr/bin'. Portage will automatically take advantage of ccache with
-no additional steps.  If this is your first install of ccache, type
-something like this to set a maximum cache size of 2GB:\\n
-# ccache -M 2G\\n
-If you are upgrading from an older version than 3.x you should clear all of your caches like so:\\n
-# CCACHE_DIR='${CCACHE_DIR:-${PORTAGE_TMPDIR}/ccache}' ccache -C\\n
-ccache now supports sys-devel/clang and dev-lang/icc, too!"
-
-	readme.gentoo_create_doc
 }
 
 pkg_prerm() {
@@ -80,9 +67,4 @@ pkg_postinst() {
 	if [[ ${ROOT:-/} == / ]]; then
 		eselect compiler-shadow update ccache
 	fi
-
-	# nuke broken symlinks from previous versions that shouldn't exist
-	rm -rf "${EROOT}"/usr/lib/ccache.backup || die
-
-	readme.gentoo_print_elog
 }
