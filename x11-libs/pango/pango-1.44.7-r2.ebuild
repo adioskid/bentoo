@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit gnome2-utils meson toolchain-funcs xdg
+inherit gnome2-utils meson multilib-minimal toolchain-funcs xdg
 
 DESCRIPTION="Internationalized text layout and rendering library"
 HOMEPAGE="https://www.pango.org/"
@@ -18,16 +18,16 @@ IUSE="gtk-doc +introspection test +X"
 RESTRICT="!test? ( test )"
 
 RDEPEND="
-	>=dev-libs/fribidi-0.19.7
-	>=dev-libs/glib-2.59.2:2
-	>=media-libs/fontconfig-2.12.92:1.0=
-	>=media-libs/freetype-2.5.0.1:2=
-	>=media-libs/harfbuzz-2.0:=[glib(+),truetype(+)]
-	>=x11-libs/cairo-1.12.10:=[X]
-	>=x11-libs/libXrender-0.9.8
-	>=x11-libs/libX11-1.6.2
-	>=x11-libs/libXft-2.3.1-r1
-	x11-libs/libXrender
+	>=dev-libs/fribidi-0.19.7[${MULTILIB_USEDEP}]
+	>=dev-libs/glib-2.59.2:2[${MULTILIB_USEDEP}]
+	>=media-libs/fontconfig-2.12.92:1.0=[${MULTILIB_USEDEP}]
+	>=media-libs/freetype-2.5.0.1:2=[${MULTILIB_USEDEP}]
+	>=media-libs/harfbuzz-2.0:=[glib(+),truetype(+),${MULTILIB_USEDEP}]
+	>=x11-libs/cairo-1.12.10:=[X,${MULTILIB_USEDEP}]
+	>=x11-libs/libXrender-0.9.8[${MULTILIB_USEDEP}]
+	>=x11-libs/libX11-1.6.2[${MULTILIB_USEDEP}]
+	>=x11-libs/libXft-2.3.1-r1[${MULTILIB_USEDEP}]
+	x11-libs/libXrender[${MULTILIB_USEDEP}]
 	introspection? ( >=dev-libs/gobject-introspection-0.9.5:= )
 "
 DEPEND="${RDEPEND}
@@ -35,7 +35,7 @@ DEPEND="${RDEPEND}
 	x11-base/xorg-proto
 "
 BDEPEND="
-	virtual/pkgconfig
+	virtual/pkgconfig[${MULTILIB_USEDEP}]
 	gtk-doc? (
 		>=dev-util/gtk-doc-1.20
 		app-text/docbook-xml-dtd:4.2
@@ -52,26 +52,26 @@ src_prepare() {
 	gnome2_environment_reset
 }
 
-src_configure() {
+multilib_src_configure() {
 	tc-export CXX
 
 	local emesonargs=(
-		-Dgtk_doc="$(native_usex gtk-doc true false)"
-		-Dintrospection="$(native_usex introspection true false)"
+		-Dgtk_doc="$(multilib_native_usex gtk-doc true false)"
+		-Dintrospection="$(multilib_native_usex introspection true false)"
 		-Dinstall-tests=false
 	)
 	meson_src_configure
 }
 
-src_compile() {
+muiltilib_src_compile() {
 	meson_src_compile
 }
 
-src_install() {
+multilib_src_install() {
 	meson_src_install
 }
 
-src_test() {
+multilib_src_test() {
 	meson_src_test
 }
 
