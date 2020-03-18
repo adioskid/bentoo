@@ -51,7 +51,8 @@ PDEPEND="virtual/notification-daemon" #546134
 src_configure() {
 	local myconf=(
 		--with-appindicator=$(usex ayatana ubuntu no)
-		$(use_with gtk libnm-gtk)
+		$(use_with gtk)
+		--without-libnm-gtk
 		--without-libnma-gtk4
 		--disable-lto
 		--disable-ld-gc
