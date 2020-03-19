@@ -41,11 +41,19 @@ DEPEND="
 	dev-qt/qtsvg:5
 	dev-qt/qtwidgets:5
 	dev-qt/qtx11extras:5
+	dev-qt/qtxml:5
+	media-libs/x264
 	media-video/ffmpeg:=[x264]
 	net-misc/curl
+	sys-apps/dbus
+	sys-libs/zlib
+	virtual/udev
+	x11-libs/libX11
 	x11-libs/libXcomposite
+	x11-libs/libXfixes
 	x11-libs/libXinerama
 	x11-libs/libXrandr
+	x11-libs/libxcb
 	alsa? ( media-libs/alsa-lib )
 	fdk? ( media-libs/fdk-aac:= )
 	imagemagick? ( media-gfx/imagemagick:= )
@@ -87,10 +95,15 @@ src_configure() {
 		-DDISABLE_VLC=$(usex !vlc)
 		-DLIBOBS_PREFER_IMAGEMAGICK=$(usex imagemagick)
 		-DOBS_MULTIARCH_SUFFIX=${libdir#lib}
-		-DOBS_VERSION_OVERRIDE=${PV}
 		-DUNIX_STRUCTURE=1
 		-DWITH_RTMPS=$(usex ssl)
 	)
+
+	if [ "${PV}" != "9999" ]; then
+		mycmakeargs+=(
+			-DOBS_VERSION_OVERRIDE=${PV}
+		)
+	fi
 
 	if use luajit || use python; then
 		mycmakeargs+=(

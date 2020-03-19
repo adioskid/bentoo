@@ -48,6 +48,7 @@ RDEPEND="
 "
 
 PATCHES=(
+	"${FILESDIR}"/ninja-cflags.patch
 	"${FILESDIR}/ninja-1.9.0-musl.patch"
 )
 
@@ -66,8 +67,8 @@ run_for_build() {
 src_compile() {
 	tc-export AR CXX
 
-	# configure.py uses CFLAGS instead of CXXFLAGS
-	export CFLAGS=${CXXFLAGS}
+	# configure.py appends CFLAGS to CXXFLAGS
+	unset CFLAGS
 
 	run_for_build ${EPYTHON} configure.py --bootstrap --verbose || die
 
