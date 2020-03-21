@@ -11,14 +11,10 @@ inherit distutils-r1 virtualx xdg
 DESCRIPTION="An open source gaming platform for GNU/Linux"
 HOMEPAGE="https://lutris.net/"
 
-if [[ ${PV} == *9999* ]] ; then
-	EGIT_REPO_URI="https://github.com/lutris/lutris.git"
-	inherit git-r3
-else
-	SRC_URI="https://lutris.net/releases/${P/-/_}.tar.xz"
-	KEYWORDS="~amd64 ~x86"
-	S="${WORKDIR}/${PN}"
-fi
+COMMIT="10ec196653766875411550268bdaf5202b2f4278"
+SRC_URI="https://github.com/${PN}/${PN}/archive/${COMMIT}.tar.gz -> ${P}.tar.gz"
+
+S="${WORKDIR}/${PN}-${COMMIT}"
 
 LICENSE="GPL-3"
 SLOT="0"
