@@ -13,7 +13,7 @@ else
 	MY_PV="$(ver_rs 3 '-')"
 	MY_P="ImageMagick-${MY_PV}"
 	SRC_URI="mirror://imagemagick/${MY_P}.tar.xz"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 ~s390 ~sh sparc x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 fi
 
 DESCRIPTION="A collection of tools and libraries for many image formats"
@@ -53,7 +53,10 @@ RDEPEND="
 	png? ( media-libs/libpng:0= )
 	postscript? ( app-text/ghostscript-gpl )
 	raw? ( media-libs/libraw:= )
-	svg? ( gnome-base/librsvg )
+	svg? (
+		gnome-base/librsvg
+		media-gfx/potrace
+		)
 	tiff? ( media-libs/tiff:0= )
 	truetype? (
 		media-fonts/urw-fonts
@@ -215,6 +218,8 @@ src_install() {
 	fi
 
 	find "${ED}" -name '*.la' -exec sed -i -e "/^dependency_libs/s:=.*:='':" {} +
+	# .la files in parent are not needed, keep plugin .la files
+	rm "${ED}"/usr/$(get_libdir)/*.la || die
 
 	if use opencl; then
 		cat <<-EOF > "${T}"/99${PN}

@@ -7,7 +7,11 @@ inherit desktop eutils xdg
 
 DESCRIPTION="Official desktop client for Telegram (binary package)"
 HOMEPAGE="https://desktop.telegram.org"
-SRC_URI="https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz"
+SRC_URI="
+	https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz
+	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.tar.xz )
+	x86? ( https://updates.tdesktop.com/tlinux32/tsetup32.${PV}.tar.xz )
+"
 
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
@@ -24,7 +28,7 @@ RDEPEND="
 	>=x11-libs/libxcb-1.10[xkb]
 "
 
-S="${WORKDIR}/tdesktop-${PV}"
+S="${WORKDIR}/Telegram"
 
 src_install() {
 	exeinto /usr/lib/${PN}
