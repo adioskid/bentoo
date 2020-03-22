@@ -5,7 +5,7 @@ EAPI=6
 PYTHON_COMPAT=( python{3_5,3_6,3_7} )
 
 #TODO most of those classes are not used
-inherit meson bash-completion-r1 epunt-cxx flag-o-matic gnome.org gnome2-utils libtool linux-info \
+inherit meson epunt-cxx flag-o-matic gnome.org gnome2-utils libtool linux-info \
 	pax-utils python-any-r1 toolchain-funcs virtualx xdg
 
 # Until bug #537330 glib is a reverse dependency of pkgconfig and, then
@@ -196,7 +196,7 @@ src_test() {
 }
 
 src_install() {
-	meson_src_install completiondir="$(get_bashcompdir)"
+	meson_src_install
 	keepdir /usr/$(get_libdir)/gio/modules
 	einstalldocs
 
