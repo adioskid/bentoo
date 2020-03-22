@@ -12,7 +12,7 @@ inherit kernel-2 eutils readme.gentoo-r1
 AUFS_VERSION=5.5-20200302
 COMMIT="70f3cb53a59d3948151639ecf4e8a41ad80345ef"
 AUFS_URI="https://github.com/sfjro/aufs5-standalone/archive/${COMMIT}.tar.gz -> ${PN}-${AUFS_VERSION}.tar.gz"
-#AUFS_TARBALL="${PN}-${AUFS_VERSION}.tar.gz"
+AUFS_TARBALL="${PN}-${AUFS_VERSION}.tar.gz"
 
 KEYWORDS="~amd64 ~x86"
 HOMEPAGE="https://dev.gentoo.org/~mpagano/genpatches http://aufs.sourceforge.net/"
@@ -33,6 +33,9 @@ README_GENTOO_SUFFIX="-r1"
 S="${WORKDIR}/aufs5-standalone-${COMMIT}"
 
 src_unpack() {
+	
+	unpack ${AUFS_TARBALL}
+
 	detect_version
 	detect_arch
 	if use vanilla; then
@@ -47,8 +50,6 @@ src_unpack() {
 		"${S}"/aufs5-mmap.patch"
 
 	use module && UNIPATCH_LIST+=" "${S}"/aufs5-standalone.patch"
-
-	#unpack ${AUFS_TARBALL}
 
 	einfo "Using aufs5 version: ${AUFS_VERSION}"
 
