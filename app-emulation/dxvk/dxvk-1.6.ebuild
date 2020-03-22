@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -8,7 +8,7 @@ if [[ "${PV}" == "9999" ]]; then
 	inherit git-r3
 fi
 
-DESCRIPTION="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
+DESCRIPTION="Vulkan-based implementation of D3D9, D3D10 and D3D11 for Linux / Wine"
 HOMEPAGE="https://github.com/doitsujin/dxvk"
 if [[ "${PV}" == "9999" ]]; then
 	EGIT_REPO_URI="https://github.com/doitsujin/dxvk.git"
@@ -25,25 +25,27 @@ else
 fi
 IUSE="video_cards_nvidia"
 
-COMMON_DEPEND="virtual/wine[${MULTILIB_USEDEP}]"
 DEPEND="
-	${COMMON_DEPEND}
 	dev-util/vulkan-headers
 	dev-util/glslang
 "
-RDEPEND="
-	${COMMON_DEPEND}
-	media-libs/vulkan-loader[${MULTILIB_USEDEP}]
+BDEPEND="
 	|| (
-		>=app-emulation/wine-d3d9-4.5
-		>=app-emulation/wine-staging-4.5
-		>=app-emulation/wine-vanilla-4.5
+		>=app-emulation/wine-staging-4.5[${MULTILIB_USEDEP}]
+		>=app-emulation/wine-vanilla-4.5[${MULTILIB_USEDEP}]
 	)
+"
+RDEPEND="
+	media-libs/vulkan-loader[${MULTILIB_USEDEP}]
 	|| (
 		video_cards_nvidia? ( >=x11-drivers/nvidia-drivers-440.31 )
 		>=media-libs/mesa-19.2
 	)
 "
+
+PATCHES=(
+	"${FILESDIR}/1.6-fix-setEvent-error.patch"
+)
 
 pkg_pretend () {
 	if ! use abi_x86_64 && ! use abi_x86_32; then
@@ -75,12 +77,12 @@ multilib_src_configure() {
 		--bindir=$(get_libdir)/dxvk/bin
 		--cross-file=../${P}/build-wine${bit}.txt
 	)
-	meson_src_configure
+	meson_src_configure || die
 }
 
 multilib_src_compile() {
 	EMESON_SOURCE="${S}"
-	meson_src_compile
+	meson_src_compile || die
 }
 
 multilib_src_install() {
@@ -88,7 +90,7 @@ multilib_src_install() {
 }
 
 multilib_src_install_all() {
-	dobin setup_dxvk.sh
+	dobin setup_dxvk.sh || die
 }
 
 pkg_postinst() {

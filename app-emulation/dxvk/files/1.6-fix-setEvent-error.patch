@@ -1,0 +1,23 @@
+From 3104192af717f309068d2c20fd51b339511f6552 Mon Sep 17 00:00:00 2001
+From: Philip Rebohle <philip.rebohle@tu-dortmund.de>
+Date: Fri, 20 Mar 2020 17:01:46 +0100
+Subject: [PATCH] [d3d11] Fix winelib build
+
+Closes #1521.
+---
+ src/util/sync/sync_signal_win32.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/util/sync/sync_signal_win32.h b/src/util/sync/sync_signal_win32.h
+index e89bec86a..8ddc5aa6b 100644
+--- a/src/util/sync/sync_signal_win32.h
++++ b/src/util/sync/sync_signal_win32.h
+@@ -2,6 +2,8 @@
+ 
+ #include <list>
+ 
++#include "../com/com_include.h"
++
+ #include "sync_signal.h"
+ 
+ namespace dxvk::sync {

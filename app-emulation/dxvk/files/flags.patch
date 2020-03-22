@@ -1,0 +1,34 @@
+diff --git a/build-wine32.txt b/build-wine32.txt
+index 9f13dbd..a56f2fa 100644
+--- a/build-wine32.txt
++++ b/build-wine32.txt
+@@ -7,9 +7,9 @@ strip = 'strip'
+ [properties]
+ needs_exe_wrapper = true
+ 
+-c_args=['-m32', '-msse', '-msse2', '-fvisibility=hidden']
+-cpp_args=['-m32', '-msse', '-msse2', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-D__WIDL_objidl_generated_name_0000000C=']
+-cpp_link_args=['-m32', '-mwindows']
++c_args= @CFLAGS@ + ['-m32', '-msse', '-msse2', '-fvisibility=hidden']
++cpp_args= @CXXFLAGS@ + ['-m32', '-msse', '-msse2', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-D__WIDL_objidl_generated_name_0000000C=']
++cpp_link_args= @LDFLAGS@ + ['-m32', '-mwindows']
+ 
+ [host_machine]
+ system = 'linux'
+diff --git a/build-wine64.txt b/build-wine64.txt
+index fd7be2f..8228a5b 100644
+--- a/build-wine64.txt
++++ b/build-wine64.txt
+@@ -7,9 +7,9 @@ strip = 'strip'
+ [properties]
+ needs_exe_wrapper = true
+ 
+-c_args=['-m64', '-fvisibility=hidden']
+-cpp_args=['-m64', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-D__WIDL_objidl_generated_name_0000000C=']
+-cpp_link_args=['-m64', '-mwindows']
++c_args= @CFLAGS@ + ['-m64', '-fvisibility=hidden']
++cpp_args= @CXXFLAGS@ + ['-m64', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-D__WIDL_objidl_generated_name_0000000C=']
++cpp_link_args= @LDFLAGS@ + ['-m64', '-mwindows']
+ 
+ [host_machine]
+ system = 'linux'
