@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit multilib-minimal toolchain-funcs
+inherit flag-o-matic multilib-minimal toolchain-funcs
 
 DESCRIPTION="zstd fast compression library"
 HOMEPAGE="https://facebook.github.io/zstd/"
@@ -26,6 +26,11 @@ PATCHES=(
 src_prepare() {
 	default
 	multilib_copy_sources
+
+	# Workaround #713940 / https://github.com/facebook/zstd/issues/2045
+	# where upstream build system does not add -pthread for Makefile-based
+	# build system.
+	use threads && append-flags $(test-flags-CCLD -pthread)
 }
 
 mymake() {
