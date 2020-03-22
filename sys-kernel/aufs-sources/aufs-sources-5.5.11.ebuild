@@ -5,7 +5,7 @@ EAPI=6
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER=10
+K_GENPATCHES_VER=12
 UNIPATCH_STRICTORDER=1
 inherit kernel-2 eutils readme.gentoo-r1
 
@@ -19,6 +19,9 @@ HOMEPAGE="https://dev.gentoo.org/~mpagano/genpatches http://aufs.sourceforge.net
 IUSE="experimental module vanilla"
 
 DESCRIPTION="Full sources (incl. Gentoo patchset) for the linux kernel tree and aufs5 support"
+
+STANDALONE="${WORKDIR}/aufs5-standalone-${COMMIT}"
+
 SRC_URI="
 	${KERNEL_URI}
 	${ARCH_URI}
@@ -30,12 +33,7 @@ PDEPEND="=sys-fs/aufs-util-4*"
 
 README_GENTOO_SUFFIX="-r1"
 
-S="${WORKDIR}/aufs5-standalone-${COMMIT}"
-
 src_unpack() {
-	
-	unpack ${AUFS_TARBALL}
-
 	detect_version
 	detect_arch
 	if use vanilla; then
@@ -45,11 +43,13 @@ src_unpack() {
 	fi
 
 	UNIPATCH_LIST="
-		"${S}"/aufs5-kbuild.patch
-		"${S}"/aufs5-base.patch
-		"${S}"/aufs5-mmap.patch"
+		"${STANDALONE}"/aufs5-kbuild.patch
+		"${STANDALONE}"/aufs5-base.patch
+		"${STANDALONE}"/aufs5-mmap.patch"
 
-	use module && UNIPATCH_LIST+=" "${S}"/aufs5-standalone.patch"
+	use module && UNIPATCH_LIST+=" "${STANDALONE}"/aufs5-standalone.patch"
+
+	unpack ${AUFS_TARBALL}
 
 	einfo "Using aufs5 version: ${AUFS_VERSION}"
 
@@ -59,15 +59,15 @@ src_unpack() {
 src_prepare() {
 	kernel-2_src_prepare
 	if ! use module; then
-		sed -e 's:tristate:bool:g' -i "${S}"/fs/aufs/Kconfig || die
+		sed -e 's:tristate:bool:g' -i "${STANDALONE}"/fs/aufs/Kconfig || die
 	fi
-	cp -f "${S}"/include/uapi/linux/aufs_type.h include/uapi/linux/aufs_type.h || die
-	cp -rf "${S}"/{Documentation,fs} . || die
+	cp -f "${STANDALONE}"/include/uapi/linux/aufs_type.h include/uapi/linux/aufs_type.h || die
+	cp -rf "${STANDALONE}"/{Documentation,fs} . || die
 }
 
 src_install() {
 	kernel-2_src_install
-	dodoc "${S}"/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
+	dodoc "${STANDALONE}"/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 	docompress -x /usr/share/doc/${PF}/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 	readme.gentoo_create_doc
 }
