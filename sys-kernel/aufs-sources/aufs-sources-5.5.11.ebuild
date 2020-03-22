@@ -5,14 +5,14 @@ EAPI=6
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER=20
+K_GENPATCHES_VER=10
 UNIPATCH_STRICTORDER=1
 inherit kernel-2 eutils readme.gentoo-r1
 
-AUFS_VERSION=5.3_p20191021
-AUFS_TARBALL="aufs-sources-${AUFS_VERSION}.tar.xz"
-# git archive -v --remote=git://git.code.sf.net/p/aufs/aufs5-standalone aufs${AUFS_VERSION/_p*} > aufs-sources-${AUFS_VERSION}.tar
-AUFS_URI="https://dev.gentoo.org/~jlec/distfiles/${AUFS_TARBALL}"
+AUFS_VERSION=5.5-20200302
+COMMIT="70f3cb53a59d3948151639ecf4e8a41ad80345ef"
+AUFS_URI="https://github.com/sfjro/aufs5-standalone/archive/${COMMIT}.tar.gz -> ${PN}-${AUFS_VERSION}.tar.gz"
+#AUFS_TARBALL="${PN}-${AUFS_VERSION}.tar.gz"
 
 KEYWORDS="~amd64 ~x86"
 HOMEPAGE="https://dev.gentoo.org/~mpagano/genpatches http://aufs.sourceforge.net/"
@@ -30,6 +30,8 @@ PDEPEND="=sys-fs/aufs-util-4*"
 
 README_GENTOO_SUFFIX="-r1"
 
+S="${WORKDIR}/aufs5-standalone-${COMMIT}"
+
 src_unpack() {
 	detect_version
 	detect_arch
@@ -40,13 +42,13 @@ src_unpack() {
 	fi
 
 	UNIPATCH_LIST="
-		"${WORKDIR}"/aufs5-kbuild.patch
-		"${WORKDIR}"/aufs5-base.patch
-		"${WORKDIR}"/aufs5-mmap.patch"
+		"${S}"/aufs5-kbuild.patch
+		"${S}"/aufs5-base.patch
+		"${S}"/aufs5-mmap.patch"
 
-	use module && UNIPATCH_LIST+=" "${WORKDIR}"/aufs5-standalone.patch"
+	use module && UNIPATCH_LIST+=" "${S}"/aufs5-standalone.patch"
 
-	unpack ${AUFS_TARBALL}
+	#unpack ${AUFS_TARBALL}
 
 	einfo "Using aufs5 version: ${AUFS_VERSION}"
 
@@ -56,15 +58,15 @@ src_unpack() {
 src_prepare() {
 	kernel-2_src_prepare
 	if ! use module; then
-		sed -e 's:tristate:bool:g' -i "${WORKDIR}"/fs/aufs/Kconfig || die
+		sed -e 's:tristate:bool:g' -i "${S}"/fs/aufs/Kconfig || die
 	fi
-	cp -f "${WORKDIR}"/include/uapi/linux/aufs_type.h include/uapi/linux/aufs_type.h || die
-	cp -rf "${WORKDIR}"/{Documentation,fs} . || die
+	cp -f "${S}"/include/uapi/linux/aufs_type.h include/uapi/linux/aufs_type.h || die
+	cp -rf "${S}"/{Documentation,fs} . || die
 }
 
 src_install() {
 	kernel-2_src_install
-	dodoc "${WORKDIR}"/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
+	dodoc "${S}"/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 	docompress -x /usr/share/doc/${PF}/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 	readme.gentoo_create_doc
 }
