@@ -122,6 +122,7 @@ REQUIRED_USE="
 	video_cards_i915? ( video_cards_intel )
 	video_cards_i965? ( video_cards_intel )
 	video_cards_gallium-i915? ( video_cards_intel )
+	video_cards_gallium-iris? ( video_cards_intel )
 	video_cards_r100? ( video_cards_radeon )
 	video_cards_r200? ( video_cards_radeon )
 	video_cards_gallium-r300? ( video_cards_radeon )
@@ -216,6 +217,7 @@ RDEPEND="
 	video_cards_nouveau? ( x11-libs/libdrm[video_cards_nouveau] )
 	video_cards_gallium-i915? ( x11-libs/libdrm[video_cards_intel] )
 	video_cards_i915? ( x11-libs/libdrm[video_cards_intel] )
+	video_cards_gallium-iris? ( x11-libs/libdrm[video_cards_intel] )
 "
 RDEPEND="${RDEPEND}"
 
