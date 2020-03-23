@@ -1,31 +1,30 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=4
+EAPI=7
 
-inherit eutils multilib
+inherit eutils
 
 DESCRIPTION="Plymouth plugin for OpenRC"
 HOMEPAGE="https://github.com/aidecoe/plymouth-openrc-plugin"
-#SRC_URI="https://dev.gentoo.org/~aidecoe/distfiles/${CATEGORY}/${PN}/${P}.tar.bz2"
-#SRC_URI="https://github.com/aidecoe/plymouth-openrc-plugin/archive/v0.1.2.tar.gz -> ${PN}-0.1.2.tar.gz"
-SRC_URI="https://github.com/aidecoe/plymouth-openrc-plugin/archive/master.zip -> ${PN}-0.1.2.zip"
-LICENSE="GPL-2"
+
+COMMIT="4f22b915bf7a9cccd2734bb5abbeb1ffe77d39dd"
+SRC_URI="https://github.com/aidecoe/${PN}/archive/${COMMIT}.tar.gz -> ${PN}-${PV}.tar.gz"
+
+LICENSE="GPL-2+"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~ia64 ~ppc ~ppc64 ~sparc ~x86"
-IUSE="+silent"
-DEPEND=">=sys-apps/openrc-0.8.2-r1"
+IUSE=""
+
+DEPEND="sys-apps/openrc:="
 RDEPEND="${DEPEND}
-	>=sys-boot/plymouth-0.8.3-r5
-	"
+	sys-boot/plymouth"
 
-S="${WORKDIR}/plymouth-openrc-plugin-master"
+S="${WORKDIR}/${PN}-${COMMIT}"
 
-src_prepare() {
-	if use silent; then
-		epatch "${FILESDIR}/no-text.patch"
-	fi
-}
+PATCHES=(
+	"${FILESDIR}/no-text.patch"
+)
 
 src_install() {
 	insinto /$(get_libdir)/rc/plugins
@@ -33,7 +32,7 @@ src_install() {
 }
 
 pkg_postinst() {
-	ewarn "You need to disable 'interactive' feature in /etc/rc.conf to make"
+	ewarn "You need to disable 'rc_interactive' feature in /etc/rc.conf to make"
 	ewarn "Plymouth work properly with OpenRC init system."
 
 	if [[ ! -d /run ]]; then
