@@ -1,9 +1,9 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="6"
+EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_{5,6,7}} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 
 inherit eutils flag-o-matic python-any-r1 toolchain-funcs
 
@@ -11,13 +11,17 @@ PATCH="${PN}-8.30-patches-01"
 DESCRIPTION="Standard GNU utilities (chmod, cp, dd, ls, sort, tr, head, wc, who,...)"
 HOMEPAGE="https://www.gnu.org/software/coreutils/"
 SRC_URI="mirror://gnu/${PN}/${P}.tar.xz
-	mirror://gentoo/${PATCH}.tar.xz
-	https://dev.gentoo.org/~polynomial-c/dist/${PATCH}.tar.xz"
+	!vanilla? (
+		mirror://gentoo/${PATCH}.tar.xz
+		https://dev.gentoo.org/~polynomial-c/dist/${PATCH}.tar.xz
+	)
+"
 
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86 ~x86-linux"
 IUSE="acl caps gmp hostname kill multicall nls selinux +split-usr static test vanilla xattr"
+RESTRICT="!test? ( test )"
 
 LIB_DEPEND="acl? ( sys-apps/acl[static-libs] )
 	caps? ( sys-libs/libcap )
@@ -26,16 +30,19 @@ LIB_DEPEND="acl? ( sys-apps/acl[static-libs] )
 RDEPEND="!static? ( ${LIB_DEPEND//\[static-libs]} )
 	selinux? ( sys-libs/libselinux )
 	nls? ( virtual/libintl )"
-DEPEND="${RDEPEND}
+DEPEND="
+	${RDEPEND}
 	static? ( ${LIB_DEPEND} )
+"
+BDEPEND="
 	app-arch/xz-utils
 	test? (
 		dev-lang/perl
 		dev-perl/Expect
 		dev-util/strace
 		${PYTHON_DEPS}
-		$(python_gen_any_dep 'dev-python/pyinotify[${PYTHON_USEDEP}]')
-	)"
+	)
+"
 RDEPEND+="
 	hostname? ( !sys-apps/net-tools[hostname] )
 	kill? (
@@ -58,11 +65,15 @@ pkg_setup() {
 }
 
 src_prepare() {
+	local PATCHES=(
+		"${FILESDIR}"/coreutils-8.32-ls-restore-8.31-behavior.patch
+	)
+
 	if ! use vanilla ; then
-		eapply "${WORKDIR}"/patch/*.patch
+		PATCHES+=( "${WORKDIR}"/patch )
 	fi
 
-	eapply_user
+	default
 
 	# Since we've patched many .c files, the make process will try to
 	# re-build the manpages by running `./bin --help`.  When doing a
@@ -154,7 +165,7 @@ src_install() {
 	newins src/dircolors.hin DIR_COLORS
 
 	if use split-usr ; then
-		cd "${ED%/}"/usr/bin || die
+		cd "${ED}"/usr/bin || die
 		dodir /bin
 		# move critical binaries into /bin (required by FHS)
 		local fhs="cat chgrp chmod chown cp date dd df echo false ln ls
