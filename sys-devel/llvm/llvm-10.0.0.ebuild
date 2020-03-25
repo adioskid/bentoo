@@ -3,12 +3,11 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 inherit cmake-utils llvm.org multilib-minimal multiprocessing \
 	pax-utils python-any-r1 toolchain-funcs
 
-# no changes in 9.0.1
-MANPAGE_P=llvm-9.0.0-manpages
+MANPAGE_P=llvm-10.0.0-manpages
 DESCRIPTION="Low Level Virtual Machine"
 HOMEPAGE="https://llvm.org/"
 SRC_URI="
@@ -16,9 +15,12 @@ SRC_URI="
 LLVM_COMPONENTS=( llvm )
 llvm.org_set_globals
 
+# Those are in lib/Targets, without explicit CMakeLists.txt mention
+ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC AVR )
 # Keep in sync with CMakeLists.txt
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
-	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore )
+	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore
+	"${ALL_LLVM_EXPERIMENTAL_TARGETS[@]}" )
 ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
 
 # Additional licenses:
@@ -29,7 +31,7 @@ ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA BSD public-domain rc"
 SLOT="$(ver_cut 1)"
-KEYWORDS="amd64 arm arm64 ppc64 x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
 IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3
 	kernel_Darwin ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )"
@@ -54,9 +56,7 @@ DEPEND="${RDEPEND}
 	gold? ( sys-libs/binutils-libs )"
 BDEPEND="
 	dev-lang/perl
-	|| ( >=sys-devel/gcc-3.0 >=sys-devel/llvm-3.5
-		( >=sys-freebsd/freebsd-lib-9.1-r10 sys-libs/libcxx )
-	)
+	sys-devel/gnuconfig
 	kernel_Darwin? (
 		<sys-libs/libcxx-$(ver_cut 1-3).9999
 		>=sys-devel/binutils-apple-5.1
@@ -102,6 +102,9 @@ src_prepare() {
 	# disable use of SDK on OSX, bug #568758
 	sed -i -e 's/xcrun/false/' utils/lit/lit/util.py || die
 
+	# Update config.guess to support more systems
+	cp "${BROOT}/usr/share/gnuconfig/config.guess" cmake/ || die
+
 	# User patches + QA
 	cmake-utils_src_prepare
 }
@@ -116,6 +119,123 @@ is_libcxx_linked() {
 	local out=$($(tc-getCXX) ${CXXFLAGS} ${CPPFLAGS} -x c++ -E -P - <<<"${code}") || return 1
 
 	[[ ${out} == *HAVE_LIBCXX* ]]
+}
+
+get_distribution_components() {
+	local sep=${1-;}
+
+	local out=(
+		# shared libs
+		LLVM
+		LTO
+		Remarks
+
+		# tools
+		llvm-config
+
+		# common stuff
+		cmake-exports
+		llvm-headers
+
+		# libraries needed for clang-tblgen
+		LLVMDemangle
+		LLVMSupport
+		LLVMTableGen
+	)
+
+	if multilib_is_native_abi; then
+		out+=(
+			# utilities
+			llvm-tblgen
+			FileCheck
+			llvm-PerfectShuffle
+			count
+			not
+			yaml-bench
+
+			# tools
+			bugpoint
+			dsymutil
+			llc
+			lli
+			lli-child-target
+			llvm-addr2line
+			llvm-ar
+			llvm-as
+			llvm-bcanalyzer
+			llvm-c-test
+			llvm-cat
+			llvm-cfi-verify
+			llvm-config
+			llvm-cov
+			llvm-cvtres
+			llvm-cxxdump
+			llvm-cxxfilt
+			llvm-cxxmap
+			llvm-diff
+			llvm-dis
+			llvm-dlltool
+			llvm-dwarfdump
+			llvm-dwp
+			llvm-elfabi
+			llvm-exegesis
+			llvm-extract
+			llvm-ifs
+			llvm-install-name-tool
+			llvm-jitlink
+			llvm-lib
+			llvm-link
+			llvm-lipo
+			llvm-lto
+			llvm-lto2
+			llvm-mc
+			llvm-mca
+			llvm-modextract
+			llvm-mt
+			llvm-nm
+			llvm-objcopy
+			llvm-objdump
+			llvm-opt-report
+			llvm-pdbutil
+			llvm-profdata
+			llvm-ranlib
+			llvm-rc
+			llvm-readelf
+			llvm-readobj
+			llvm-reduce
+			llvm-rtdyld
+			llvm-size
+			llvm-split
+			llvm-stress
+			llvm-strings
+			llvm-strip
+			llvm-symbolizer
+			llvm-undname
+			llvm-xray
+			obj2yaml
+			opt
+			sancov
+			sanstats
+			verify-uselistorder
+			yaml2obj
+
+			# python modules
+			opt-viewer
+		)
+
+		use doc && out+=(
+			docs-dsymutil-man
+			docs-llvm-dwarfdump-man
+			docs-llvm-man
+			docs-llvm-html
+		)
+
+		use gold && out+=(
+			LLVMgold
+		)
+	fi
+
+	printf "%s${sep}" "${out[@]}"
 }
 
 multilib_src_configure() {
@@ -133,8 +253,15 @@ multilib_src_configure() {
 		-DCMAKE_INSTALL_PREFIX="${EPREFIX}/usr/lib/llvm/${SLOT}"
 		-DLLVM_LIBDIR_SUFFIX=${libdir#lib}
 
-		-DBUILD_SHARED_LIBS=ON
-		-DLLVM_TARGETS_TO_BUILD="${LLVM_TARGETS// /;}"
+		-DBUILD_SHARED_LIBS=OFF
+		-DLLVM_BUILD_LLVM_DYLIB=ON
+		-DLLVM_LINK_LLVM_DYLIB=ON
+		-DLLVM_DISTRIBUTION_COMPONENTS=$(get_distribution_components)
+
+		# cheap hack: LLVM combines both anyway, and the only difference
+		# is that the former list is explicitly verified at cmake time
+		-DLLVM_TARGETS_TO_BUILD=""
+		-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="${LLVM_TARGETS// /;}"
 		-DLLVM_BUILD_TESTS=$(usex test)
 
 		-DLLVM_ENABLE_FFI=$(usex libffi)
@@ -146,8 +273,6 @@ multilib_src_configure() {
 		-DLLVM_ENABLE_EH=ON
 		-DLLVM_ENABLE_RTTI=ON
 		-DLLVM_ENABLE_Z3_SOLVER=$(usex z3)
-
-		-DWITH_POLLY=OFF # TODO
 
 		-DLLVM_HOST_TRIPLE="${CHOST}"
 
@@ -261,7 +386,7 @@ src_install() {
 }
 
 multilib_src_install() {
-	cmake-utils_src_install
+	DESTDIR=${D} cmake-utils_src_make install-distribution
 
 	# move headers to /usr/include for wrapping
 	rm -rf "${ED}"/usr/include || die

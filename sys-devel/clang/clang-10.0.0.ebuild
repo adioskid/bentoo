@@ -3,11 +3,11 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_{6,7}} )
+PYTHON_COMPAT=( python{2_7,3_{6,7,8}} )
 inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing \
 	pax-utils python-single-r1 toolchain-funcs
 
-MANPAGE_P=llvm-9.0.0-manpages
+MANPAGE_P=llvm-10.0.0-manpages
 DESCRIPTION="C language family frontend for LLVM"
 HOMEPAGE="https://llvm.org/"
 SRC_URI="
@@ -22,8 +22,10 @@ llvm.org_set_globals
 S=${WORKDIR}/x/y/clang
 
 # Keep in sync with sys-devel/llvm
+ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC AVR )
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
-	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore )
+	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore
+	"${ALL_LLVM_EXPERIMENTAL_TARGETS[@]}" )
 ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
 LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
@@ -32,7 +34,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA MIT"
 SLOT="$(ver_cut 1)"
-KEYWORDS="amd64 arm arm64 ppc64 x86 ~amd64-linux"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux"
 IUSE="debug default-compiler-rt default-libcxx doc +static-analyzer
 	test xml kernel_FreeBSD ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
@@ -91,6 +93,73 @@ src_unpack() {
 	fi
 }
 
+get_distribution_components() {
+	local sep=${1-;}
+
+	local out=(
+		# common stuff
+		clang-cmake-exports
+		clang-headers
+		clang-resource-headers
+		libclang-headers
+
+		# libs
+		clang-cpp
+		libclang
+	)
+
+	if multilib_is_native_abi; then
+		out+=(
+			# common stuff
+			bash-autocomplete
+			libclang-python-bindings
+
+			# tools
+			c-index-test
+			clang
+			clang-format
+			clang-import-test
+			clang-offload-bundler
+			clang-offload-wrapper
+			clang-refactor
+			clang-rename
+			clang-scan-deps
+			diagtool
+			hmaptool
+
+			# extra tools
+			clang-apply-replacements
+			clang-change-namespace
+			clang-doc
+			clang-include-fixer
+			clang-move
+			clang-query
+			clang-reorder-fields
+			clang-tidy
+			clangd
+			find-all-symbols
+			modularize
+			pp-trace
+		)
+
+		use doc && out+=(
+			docs-clang-html
+			docs-clang-man
+			docs-clang-tools-html
+			docs-clang-tools-man
+		)
+
+		use static-analyzer && out+=(
+			clang-check
+			clang-extdef-mapping
+			scan-build
+			scan-view
+		)
+	fi
+
+	printf "%s${sep}" "${out[@]}"
+}
+
 multilib_src_configure() {
 	local llvm_version=$(llvm-config --version) || die
 	local clang_version=$(ver_cut 1-3 "${llvm_version}")
@@ -102,7 +171,10 @@ multilib_src_configure() {
 		# relative to bindir
 		-DCLANG_RESOURCE_DIR="../../../../lib/clang/${clang_version}"
 
-		-DBUILD_SHARED_LIBS=ON
+		-DBUILD_SHARED_LIBS=OFF
+		-DCLANG_LINK_CLANG_DYLIB=ON
+		-DLLVM_DISTRIBUTION_COMPONENTS=$(get_distribution_components)
+
 		-DLLVM_TARGETS_TO_BUILD="${LLVM_TARGETS// /;}"
 		-DLLVM_BUILD_TESTS=$(usex test)
 
@@ -238,7 +310,7 @@ src_install() {
 }
 
 multilib_src_install() {
-	cmake-utils_src_install
+	DESTDIR=${D} cmake-utils_src_make install-distribution
 
 	# move headers to /usr/include for wrapping & ABI mismatch checks
 	# (also drop the version suffix from runtime headers)

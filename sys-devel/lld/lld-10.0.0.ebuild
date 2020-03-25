@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 inherit cmake-utils llvm llvm.org multiprocessing python-any-r1
 
 DESCRIPTION="The LLVM linker (link editor)"
@@ -14,7 +14,7 @@ llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 IUSE="test"
 RESTRICT="!test? ( test )"
 
@@ -36,7 +36,7 @@ pkg_setup() {
 
 src_configure() {
 	local mycmakeargs=(
-		-DBUILD_SHARED_LIBS=ON
+		-DBUILD_SHARED_LIBS=OFF
 
 		-DLLVM_INCLUDE_TESTS=$(usex test)
 	)
@@ -53,4 +53,10 @@ src_configure() {
 src_test() {
 	local -x LIT_PRESERVES_TMP=1
 	cmake-utils_src_make check-lld
+}
+
+src_install() {
+	cmake-utils_src_install
+	# LLD has no shared libraries, so strip it all for the time being
+	rm -r "${ED}"/usr/{include,lib*} || die
 }

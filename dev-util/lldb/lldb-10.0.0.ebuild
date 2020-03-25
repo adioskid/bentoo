@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_{6,7}} )
+PYTHON_COMPAT=( python{2_7,3_{6,7,8}} )
 inherit cmake-utils llvm llvm.org multiprocessing python-single-r1 \
 	toolchain-funcs
 
@@ -15,13 +15,14 @@ llvm.org_set_globals
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 x86"
-IUSE="libedit ncurses +python test"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
+IUSE="libedit lzma ncurses +python test"
 REQUIRED_USE=${PYTHON_REQUIRED_USE}
 RESTRICT="!test? ( test )"
 
 RDEPEND="
 	libedit? ( dev-libs/libedit:0= )
+	lzma? ( app-arch/xz-utils:= )
 	ncurses? ( >=sys-libs/ncurses-5.9-r3:0= )
 	python? (
 		$(python_gen_cond_dep '
@@ -52,14 +53,16 @@ pkg_setup() {
 
 src_configure() {
 	local mycmakeargs=(
-		-DLLDB_DISABLE_CURSES=$(usex !ncurses)
-		-DLLDB_DISABLE_LIBEDIT=$(usex !libedit)
-		-DLLDB_DISABLE_PYTHON=$(usex !python)
+		-DLLDB_ENABLE_CURSES=$(usex ncurses)
+		-DLLDB_ENABLE_LIBEDIT=$(usex libedit)
+		-DLLDB_ENABLE_PYTHON=$(usex python)
+		-DLLDB_ENABLE_LZMA=$(usex lzma)
 		-DLLDB_USE_SYSTEM_SIX=1
 		-DLLVM_ENABLE_TERMINFO=$(usex ncurses)
 
 		-DLLDB_INCLUDE_TESTS=$(usex test)
 
+		-DCLANG_LINK_CLANG_DYLIB=ON
 		# TODO: fix upstream to detect this properly
 		-DHAVE_LIBDL=ON
 		-DHAVE_LIBPTHREAD=ON
@@ -73,8 +76,7 @@ src_configure() {
 	use test && mycmakeargs+=(
 		-DLLVM_BUILD_TESTS=$(usex test)
 		# compilers for lit tests
-		-DLLDB_TEST_C_COMPILER="$(type -P clang)"
-		-DLLDB_TEST_CXX_COMPILER="$(type -P clang++)"
+		-DLLDB_TEST_COMPILER="$(type -P clang)"
 
 		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
 		-DLLVM_EXTERNAL_LIT="${EPREFIX}/usr/bin/lit"
@@ -92,6 +94,7 @@ src_test() {
 
 src_install() {
 	cmake-utils_src_install
+	find "${D}" -name '*.a' -delete || die
 
 	use python && python_optimize
 }
