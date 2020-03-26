@@ -14,7 +14,7 @@ SRC_URI="https://dev.gentoo.org/~mgorny/dist/${P}.tar.xz"
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( MIT BSD )"
 SLOT="0"
 KEYWORDS="amd64 x86"
-IUSE_VIDEO_CARDS="video_cards_nvidia video_cards_r600 video_cards_radeonsi"
+IUSE_VIDEO_CARDS="video_cards_nvidia video_cards_gallium-r600 video_cards_radeonsi"
 IUSE="${IUSE_VIDEO_CARDS}"
 REQUIRED_USE="|| ( ${IUSE_VIDEO_CARDS} )"
 
@@ -47,7 +47,7 @@ src_configure() {
 	local libclc_targets=()
 
 	use video_cards_nvidia && libclc_targets+=("nvptx--" "nvptx64--" "nvptx--nvidiacl" "nvptx64--nvidiacl")
-	use video_cards_r600 && libclc_targets+=("r600--")
+	use video_cards_gallium-r600 && libclc_targets+=("r600--")
 	use video_cards_radeonsi && libclc_targets+=("amdgcn--" "amdgcn-mesa-mesa3d" "amdgcn--amdhsa")
 
 	[[ ${#libclc_targets[@]} ]] || die "libclc target missing!"
