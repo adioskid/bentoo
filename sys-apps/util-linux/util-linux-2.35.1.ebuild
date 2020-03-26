@@ -29,8 +29,8 @@ IUSE="build caps +cramfs cryptsetup fdformat hardlink kill +logger ncurses nls p
 
 # Most lib deps here are related to programs rather than our libs,
 # so we rarely need to specify ${MULTILIB_USEDEP}.
-DEPEND="
-	virtual/os-headers
+RDEPEND="
+	virtual/libcrypt:=
 	caps? ( sys-libs/libcap-ng )
 	cramfs? ( sys-libs/zlib:= )
 	cryptsetup? ( sys-fs/cryptsetup )
@@ -48,7 +48,11 @@ BDEPEND="
 	nls? ( sys-devel/gettext )
 	test? ( sys-devel/bc )
 "
-RDEPEND="${DEPEND}
+DEPEND="
+	${RDEPEND}
+	virtual/os-headers
+"
+RDEPEND+="
 	hardlink? ( !app-arch/hardlink )
 	logger? ( !>=app-admin/sysklogd-2.0[logger] )
 	kill? (
@@ -71,6 +75,11 @@ REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 RESTRICT="!test? ( test )"
 
 S="${WORKDIR}/${MY_P}"
+
+PATCHES=(
+	"${FILESDIR}"/util-linux-2.35.1-include_sys_types-header.patch
+	"${FILESDIR}"/util-linux-2.35.1-cleanup-pidfd-include.patch
+)
 
 src_prepare() {
 	default

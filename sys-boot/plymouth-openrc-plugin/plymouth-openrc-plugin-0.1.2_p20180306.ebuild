@@ -8,8 +8,10 @@ inherit eutils
 DESCRIPTION="Plymouth plugin for OpenRC"
 HOMEPAGE="https://github.com/aidecoe/plymouth-openrc-plugin"
 
+MY_PV=${PV/_p*}
+
 COMMIT="4f22b915bf7a9cccd2734bb5abbeb1ffe77d39dd"
-SRC_URI="https://github.com/aidecoe/${PN}/archive/${COMMIT}.tar.gz -> ${PN}-${PV}.tar.gz"
+SRC_URI="https://github.com/aidecoe/${PN}/archive/${COMMIT}.tar.gz -> ${PN}-${MY_PV}.tar.gz"
 
 LICENSE="GPL-2+"
 SLOT="0"

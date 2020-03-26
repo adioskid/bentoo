@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="6"
@@ -9,14 +9,14 @@ inherit flag-o-matic pam python-single-r1 linux-info autotools
 
 DESCRIPTION="eCryptfs userspace utilities"
 HOMEPAGE="https://launchpad.net/ecryptfs"
-SRC_URI="https://launchpad.net/ecryptfs/trunk/${PV}/+download/${PN}_${PV}.orig.tar.gz"
+SRC_URI="https://dev.gentoo.org/~bkohler/dist/${P}.tar.gz"
 
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~ppc ~ppc64 ~x86"
 IUSE="doc gpg gtk nls openssl pam pkcs11 python suid tpm"
 
-RDEPEND=">=sys-apps/keyutils-1.0:=
+RDEPEND=">=sys-apps/keyutils-1.5.11-r1:=
 	>=dev-libs/libgcrypt-1.2.0:0
 	dev-libs/nss
 	gpg? ( app-crypt/gpgme )
@@ -44,6 +44,16 @@ pkg_setup() {
 	linux-info_pkg_setup
 }
 
+src_unpack() {
+	mkdir -p "${S}" || die
+	tar -xf "${DISTDIR}/${P}.tar.gz" --strip-components=3 -C "${S}"
+}
+
+src_prepare() {
+	default
+	eautoreconf
+}
+
 src_configure() {
 	append-cppflags -D_FILE_OFFSET_BITS=64
 
@@ -61,7 +71,7 @@ src_configure() {
 		$(use_enable tpm tspi)
 }
 
-src_install(){
+src_install() {
 	emake DESTDIR="${D}" install
 
 	if use python; then
