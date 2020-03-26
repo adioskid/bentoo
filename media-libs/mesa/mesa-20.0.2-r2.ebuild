@@ -24,9 +24,6 @@ fi
 
 LICENSE="MIT"
 SLOT="0"
-RESTRICT="
-	!test? ( test )
-"
 
 RADEON_CARDS="r100 r200 r300 r600 radeon radeonsi"
 INTEL_CARDS="i915 i965"
