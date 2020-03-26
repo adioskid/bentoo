@@ -3,16 +3,9 @@
 
 EAPI=7
 
-EGIT_REPO_URI="https://anongit.freedesktop.org/git/mesa/mesa.git"
-
-if [[ ${PV} = 9999 ]]; then
-	GIT_ECLASS="git-r3"
-	EXPERIMENTAL="true"
-fi
-
 PYTHON_COMPAT=( python3_{6,7,8} )
 
-inherit meson eutils llvm python-any-r1 pax-utils ${GIT_ECLASS}
+inherit llvm meson eutils python-any-r1 pax-utils
 
 OPENGL_DIR="xorg-x11"
 
@@ -21,8 +14,9 @@ MY_P="${P/_/-}"
 DESCRIPTION="OpenGL-like graphic library for Linux"
 HOMEPAGE="https://www.mesa3d.org/ https://mesa.freedesktop.org/"
 
-if [[ $PV == 9999 ]]; then
-	SRC_URI=""
+if [[ ${PV} == 9999 ]]; then
+	EGIT_REPO_URI="https://gitlab.freedesktop.org/mesa/mesa.git"
+	inherit git-r3
 else
 	SRC_URI="https://mesa.freedesktop.org/archive/${MY_P}.tar.xz"
 	KEYWORDS="*"
@@ -30,8 +24,11 @@ fi
 
 LICENSE="MIT"
 SLOT="0"
+RESTRICT="
+	!test? ( test )
+"
 
-RADEON_CARDS="r100 r200 r300 r600 radeonsi"
+RADEON_CARDS="r100 r200 r300 r600 radeon radeonsi"
 INTEL_CARDS="i915 i965"
 
 ALL_DRI_DRIVERS="i915 i965 r100 r200 nouveau swrast"
@@ -100,7 +97,7 @@ REQUIRED_USE_APIS="
 "
 
 REQUIRED_USE="
-	d3d9?	( video_cards_gallium-swrast )
+	d3d9?	( video_cards_gallium-iris video_cards_gallium-r300 video_cards_gallium-r600 video_cards_gallium-radeonsi video_cards_gallium-vmware )
 	opencl? (
 		llvm
 		|| ( ${ALL_GALLIUM_CARDS} )
