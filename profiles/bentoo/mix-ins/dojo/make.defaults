@@ -1,0 +1,27 @@
+CORE="cryptsetup device-mapper elogind introspection lvm python plymouth qt5 symlink threads xcb xkb"
+COMPRESSOR="lzma lz4 lzo zstd"
+GRAPHICS="cairo corefonts egl glamor gtk nvenc vaapi vdpau xa xinerama xvmc wayland"
+DEVELOPMENT=" source webengine"
+FILESYSTEM="btrfs"
+IMAGE="openimageio raw"
+AUDIO="pulseaudio sdl"
+NETWORK="networkmanager"
+DEVICES="gphoto2 lm_sensors usb"
+SECURITY="nss seccomp"
+DESKTOPS="kde"
+REMOVED="-consolekit -cuda -handbook -qt3support -qt4 -webkit"
+
+USE="
+ ${CORE}\
+ ${COMPRESSOR}\
+ ${GRAPHICS}\
+ ${DEVELOPMENT}\
+ ${FILESYSTEM}\
+ ${IMAGE}\
+ ${AUDIO}\
+ ${NETWORK}\
+ ${DEVICES}\
+ ${SECURITY}\
+ ${DESKTOPS}\
+ ${REMOVED}
+"
