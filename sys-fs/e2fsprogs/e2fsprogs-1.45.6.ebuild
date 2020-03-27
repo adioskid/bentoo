@@ -13,7 +13,7 @@ SRC_URI="mirror://sourceforge/e2fsprogs/${P}.tar.xz
 
 LICENSE="GPL-2 BSD"
 SLOT="0"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux ~m68k-mint"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~m68k-mint"
 IUSE="cron fuse nls static-libs elibc_FreeBSD"
 
 RDEPEND="~sys-libs/${PN}-libs-${PV}
@@ -29,7 +29,6 @@ BDEPEND="
 "
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-1.44.6-parallel_install.patch
 	"${FILESDIR}"/${PN}-1.40-fbsd.patch
 	"${FILESDIR}"/${PN}-1.42.13-fix-build-cflags.patch #516854
 
@@ -114,7 +113,7 @@ src_install() {
 		STRIP=: \
 		root_libdir="${EPREFIX}/usr/$(get_libdir)" \
 		DESTDIR="${D}" \
-		install install-libs
+		install
 
 	einstalldocs
 
