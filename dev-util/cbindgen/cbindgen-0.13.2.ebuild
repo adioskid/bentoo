@@ -8,7 +8,7 @@ ansi_term-0.11.0
 atty-0.2.13
 bitflags-1.2.1
 c2-chacha-0.2.3
-cbindgen-0.13.1
+cbindgen-0.13.2
 cfg-if-0.1.10
 clap-2.33.0
 getrandom-0.1.13
@@ -49,4 +49,4 @@ HOMEPAGE="https://github.com/eqrion/cbindgen/"
 SRC_URI="$(cargo_crate_uris ${CRATES})"
 LICENSE="MIT MPL-2.0"
 SLOT="0"
-KEYWORDS="amd64 arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
