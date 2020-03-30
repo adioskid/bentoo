@@ -13,7 +13,7 @@ SRC_URI="https://github.com/${PN}/${PN}/releases/download/v${PV}/${P}.tar.gz"
 KEYWORDS="~amd64"
 SLOT=5
 LICENSE="GPL-3"
-IUSE="+bootloader +btrfs +displaymanager doas +finished +fstab +grubcfg +keyboard +locale +machineid +mount +networkmanager +packages +partition pythonqt +removeuser +services-openrc +shellprocess +umount +unpackfs +upower +users webview +welcome +xfs"
+IUSE="+bootloader +btrfs +displaymanager doas +finished +fstab +grubcfg +keyboard +locale +machineid +mount +networkmanager +packages +partition pythonqt +removeuser +services-openrc +shellprocess +umount +unpackfs +upower +users webview +welcome xfs"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
@@ -61,7 +61,7 @@ RDEPEND="${COMMON_DEPEND}
 	sys-boot/os-prober
 	sys-fs/squashfs-tools
 	btrfs? ( sys-fs/btrfs-progs )
-	xfs? ( sys-fs/xfs-progs )
+	xfs? ( sys-fs/xfsprogs )
 	sys-libs/timezone-data
 	virtual/udev
 	networkmanager? ( net-misc/networkmanager )
