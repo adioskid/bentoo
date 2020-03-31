@@ -67,6 +67,8 @@ BDEPEND="
 	virtual/pkgconfig
 "
 
+PDEPEND="media-fonts/open-sans"
+
 REQUIRED_USE="|| ( alsa pulseaudio )
 	spell? (
 		^^ ( enchant hunspell )

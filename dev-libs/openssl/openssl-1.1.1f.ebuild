@@ -14,7 +14,7 @@ MY_P=${P/_/-}
 # - ec_curve.c (SOURCE12) -- MODIFIED
 # - ectest.c (SOURCE13)
 # - openssl-1.1.1-ec-curves.patch (PATCH37) -- MODIFIED
-BINDIST_PATCH_SET="openssl-1.1.1d-bindist-1.0.tar.xz"
+BINDIST_PATCH_SET="openssl-1.1.1e-bindist-1.0.tar.xz"
 
 DESCRIPTION="full-strength general purpose cryptography library (including SSL and TLS)"
 HOMEPAGE="https://www.openssl.org/"
@@ -27,7 +27,7 @@ SRC_URI="mirror://openssl/source/${MY_P}.tar.gz
 LICENSE="openssl"
 SLOT="0/1.1" # .so version of libssl/libcrypto
 [[ "${PV}" = *_pre* ]] || \
-KEYWORDS="~alpha amd64 arm arm64 hppa ia64 m68k ~mips ppc ppc64 ~riscv s390 sh sparc x86 ~x86-linux"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~x86-linux"
 IUSE="+asm bindist elibc_musl rfc3779 sctp cpu_flags_x86_sse2 sslv3 static-libs test tls-heartbeat vanilla zlib"
 RESTRICT="!bindist? ( bindist )
 	!test? ( test )"
@@ -47,10 +47,6 @@ PDEPEND="app-misc/ca-certificates"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-1.1.0j-parallel_install_fix.patch #671602
-	"${FILESDIR}"/${P}-fix-zlib.patch
-	"${FILESDIR}"/${P}-fix-potential-memleaks-w-BN_to_ASN1_INTEGER.patch
-	"${FILESDIR}"/${P}-reenable-the-stitched-AES-CBC-HMAC-SHA-implementations.patch
-	"${FILESDIR}"/${P}-config-Drop-linux-alpha-gcc-bwx.patch
 )
 
 S="${WORKDIR}/${MY_P}"
