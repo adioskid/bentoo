@@ -14,7 +14,7 @@ SRC_URI="https://github.com/docker/compose/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="Apache-2.0"
 SLOT="0"
-KEYWORDS="amd64"
+KEYWORDS="~amd64"
 IUSE="test"
 RESTRICT="!test? ( test )"
 
@@ -34,7 +34,7 @@ RDEPEND="dev-python/setuptools[${PYTHON_USEDEP}]
 
 DEPEND="${RDEPEND}
 	test? (
-		<dev-python/pytest-4[${PYTHON_USEDEP}]
+		>=dev-python/pytest-5[${PYTHON_USEDEP}]
 		dev-python/ddt[${PYTHON_USEDEP}]
 	)"
 
