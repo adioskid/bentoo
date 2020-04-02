@@ -16,9 +16,9 @@ SRC_URI="https://github.com/google/re2/archive/${RE2_VER}.tar.gz -> re2-${RE2_VE
 LICENSE="BSD"
 # NOTE: Always run libre2 through abi-compliance-checker!
 # https://abi-laboratory.pro/tracker/timeline/re2/
-SONAME="gentoo-2019-01-01"
+SONAME="6"
 SLOT="0/${SONAME}"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
 IUSE="icu"
 
 RDEPEND="icu? ( dev-libs/icu:0=[${MULTILIB_USEDEP}] )"
@@ -32,7 +32,7 @@ HTML_DOCS=( doc/syntax.html )
 
 src_prepare() {
 	default
-	grep -qv '^SONAME=0$' Makefile || die "Check SONAME in Makefile"
+	grep -q "^SONAME=${SONAME}\$" Makefile || die "SONAME mismatch"
 	if use icu; then
 		sed -i -e 's:^# \(\(CC\|LD\)ICU=.*\):\1:' Makefile || die
 	fi

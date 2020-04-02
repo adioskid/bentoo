@@ -16,7 +16,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="amd64 ~arm64 ~x86"
 IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts kerberos pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="component-build? ( !suid )"
@@ -134,6 +134,14 @@ theme that covers the appropriate MIME types, and configure this as your
 GTK+ icon theme.
 
 For native file dialogs in KDE, install kde-apps/kdialog.
+
+To make password storage work with your desktop environment you may
+have install one of the supported credentials management applications:
+- app-crypt/libsecret (GNOME)
+- kde-frameworks/kwallet (KDE)
+If you have one of above packages installed, but don't want to use
+them in Chromium, then add --password-store=basic to CHROMIUM_FLAGS
+in /etc/chromium/default.
 "
 
 PATCHES=(
