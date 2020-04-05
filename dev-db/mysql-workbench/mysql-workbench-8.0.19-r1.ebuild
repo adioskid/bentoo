@@ -20,7 +20,7 @@ SRC_URI="https://cdn.mysql.com/Downloads/MySQLGUITools/${MY_P}.tar.gz
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
+KEYWORDS="amd64 x86 ~amd64-linux ~x86-linux"
 IUSE="debug doc"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
@@ -50,7 +50,7 @@ CDEPEND="${PYTHON_DEPS}
 		virtual/opengl
 		|| ( sys-libs/e2fsprogs-libs dev-libs/ossp-uuid )
 		dev-libs/tinyxml[stl]
-		>=dev-db/mysql-connector-c++-1.1.8
+		>=dev-db/mysql-connector-c++-1.1.8 =dev-db/mysql-connector-c++-1*
 		dev-db/vsqlite++
 		|| ( dev-db/libiodbc dev-db/unixODBC )
 		dev-python/pexpect

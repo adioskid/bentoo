@@ -10,7 +10,7 @@ inherit linux-info xorg-3 flag-o-matic
 if [[ ${PV} == 9999* ]]; then
 	SRC_URI=""
 else
-	KEYWORDS="~amd64 ~x86"
+	KEYWORDS="amd64 x86"
 	COMMIT_ID="f66d39544bb8339130c96d282a80f87ca1606caf"
 	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
 	S="${WORKDIR}/${PN}-${COMMIT_ID}"
@@ -30,7 +30,6 @@ RDEPEND="
 	>=x11-libs/pixman-0.27.1
 	>=x11-libs/libdrm-2.4.52[video_cards_intel]
 	>=x11-base/xorg-server-1.18
-	!<=media-libs/mesa-12.0.4
 	tools? (
 		x11-libs/libX11
 		x11-libs/libxcb
