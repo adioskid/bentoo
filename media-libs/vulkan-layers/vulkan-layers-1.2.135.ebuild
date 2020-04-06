@@ -13,7 +13,7 @@ if [[ ${PV} == *9999* ]]; then
 	EGIT_SUBMODULES=()
 	inherit git-r3
 else
-	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}a.tar.gz"
+	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~ppc64 ~x86"
 	S="${WORKDIR}"/${MY_PN}-${PV}
 fi
@@ -27,8 +27,8 @@ IUSE="wayland X"
 
 BDEPEND=">=dev-util/cmake-3.10.2"
 DEPEND="${PYTHON_DEPS}
-	>=dev-util/glslang-7.12.3353_pre20191027-r1:=[${MULTILIB_USEDEP}]
-	>=dev-util/spirv-tools-2020.1:=
+	>=dev-util/glslang-8.13.3560_pre20200404:=[${MULTILIB_USEDEP}]
+	>=dev-util/spirv-tools-2020.1:=[${MULTILIB_USEDEP}]
 	>=dev-util/vulkan-headers-${PV}
 	wayland? ( dev-libs/wayland:=[${MULTILIB_USEDEP}] )
 	X? (
@@ -36,8 +36,6 @@ DEPEND="${PYTHON_DEPS}
 		x11-libs/libXrandr:=[${MULTILIB_USEDEP}]
 	)
 "
-
-PATCHES=( "${FILESDIR}/${PN}-${PV}-Fix-build.patch" )
 
 multilib_src_configure() {
 	local mycmakeargs=(

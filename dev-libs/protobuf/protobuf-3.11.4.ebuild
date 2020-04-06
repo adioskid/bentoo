@@ -1,4 +1,4 @@
-# Copyright 2008-2019 Gentoo Authors
+# Copyright 2008-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -21,21 +21,21 @@ else
 fi
 
 LICENSE="BSD"
-SLOT="0/20"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos"
+SLOT="0/22"
+KEYWORDS="~alpha amd64 arm ~arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos"
 IUSE="emacs examples static-libs test zlib"
 RESTRICT="!test? ( test )"
 
-BDEPEND="emacs? ( >=app-editors/emacs-23.1:* )"
+BDEPEND="emacs? ( app-editors/emacs:* )"
 DEPEND="test? ( >=dev-cpp/gtest-1.9[${MULTILIB_USEDEP}] )
 	zlib? ( sys-libs/zlib[${MULTILIB_USEDEP}] )"
-RDEPEND="emacs? ( >=app-editors/emacs-23.1:* )
+RDEPEND="emacs? ( app-editors/emacs:* )
 	zlib? ( sys-libs/zlib[${MULTILIB_USEDEP}] )"
 
 PATCHES=(
-	"${FILESDIR}/${PN}-3.8.0-disable_no-warning-test.patch"
-	"${FILESDIR}/${PN}-3.8.0-system_libraries.patch"
-	"${FILESDIR}/${PN}-3.8.0-protoc_input_output_files.patch"
+	"${FILESDIR}/${PN}-3.11.0-disable_no-warning-test.patch"
+	"${FILESDIR}/${PN}-3.11.0-system_libraries.patch"
+	"${FILESDIR}/${PN}-3.11.0-protoc_input_output_files.patch"
 )
 
 DOCS=(CHANGES.txt CONTRIBUTORS.txt README.md)
