@@ -1,8 +1,8 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python2_7 )
+PYTHON_COMPAT=( python3_{6,7,8} )
 
 inherit autotools python-any-r1 xdg-utils toolchain-funcs
 
@@ -26,7 +26,7 @@ CDEPEND="
 		>=media-libs/gegl-0.4.14:0.4[introspection?]
 	)
 	introspection? ( >=dev-libs/gobject-introspection-1.32 )
-	openmp? ( sys-devel/gcc:*[openmp] )
+	openmp? ( >sys-devel/gcc-5:*[openmp] )
 	nls? ( sys-devel/gettext )
 	"
 DEPEND="${CDEPEND}
@@ -42,6 +42,8 @@ S="${WORKDIR}"/${MY_P}
 PATCHES=(
 	"${FILESDIR}"/${PN}-1.4.0-drop-libmypaint-gegl-versioning.patch
 	"${FILESDIR}"/${PN}-1.4.0-gegl-0.4.14.patch
+	"${FILESDIR}"/${PN}-1.4.0-adjust-generation-script-to-be-runnable-in-Py3.patch
+	"${FILESDIR}"/${PN}-1.4.0-drop-python2-requirement-recommendation.patch
 )
 
 src_prepare() {
