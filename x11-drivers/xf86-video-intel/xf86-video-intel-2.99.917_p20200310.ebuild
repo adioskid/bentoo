@@ -11,7 +11,7 @@ if [[ ${PV} == 9999* ]]; then
 	SRC_URI=""
 else
 	KEYWORDS="amd64 x86"
-	COMMIT_ID="f66d39544bb8339130c96d282a80f87ca1606caf"
+	COMMIT_ID="652d93cbbdc159c0883f1b626ea48e28bac63ae3"
 	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
 	S="${WORKDIR}/${PN}-${COMMIT_ID}"
 fi
@@ -54,7 +54,7 @@ DEPEND="${RDEPEND}
 	x11-base/xorg-proto"
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-fno-common.patch
+	"${FILESDIR}"/${PN}-gcc-pr65873.patch
 )
 
 src_configure() {
