@@ -11,13 +11,13 @@ SRC_URI="https://www.wireshark.org/download/src/all-versions/${P/_/}.tar.xz"
 LICENSE="GPL-2"
 
 SLOT="0/${PV}"
-KEYWORDS="~alpha amd64 arm ~arm64 hppa ia64 ppc64 x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc64 ~x86"
 IUSE="
 	androiddump bcg729 brotli +capinfos +captype ciscodump +dftest doc dpauxmon
 	+dumpcap +editcap http2 kerberos libxml2 lua lz4 maxminddb +mergecap
 	+minizip +netlink +plugins plugin-ifdemo +pcap +qt5 +randpkt +randpktdump
 	+reordercap sbc selinux +sharkd smi snappy spandsp sshdump ssl sdjournal
-	+text2pcap tfshark +tshark +udpdump zlib
+	+text2pcap tfshark +tshark +udpdump zlib +zstd
 "
 S=${WORKDIR}/${P/_/}
 
@@ -54,6 +54,7 @@ CDEPEND="
 	sshdump? ( >=net-libs/libssh-0.6 )
 	ssl? ( net-libs/gnutls:= )
 	zlib? ( sys-libs/zlib )
+	zstd? ( app-arch/zstd )
 "
 # We need perl for `pod2html`. The rest of the perl stuff is to block older
 # and broken installs. #455122
@@ -86,7 +87,6 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.4-androiddump.patch
 	"${FILESDIR}"/${PN}-2.6.0-redhat.patch
 	"${FILESDIR}"/${PN}-2.9.0-tfshark-libm.patch
-	"${FILESDIR}"/${PN}-99999999-about_dialog-plugins_add_description.patch
 	"${FILESDIR}"/${PN}-99999999-androiddump-wsutil.patch
 	"${FILESDIR}"/${PN}-99999999-qtsvg.patch
 	"${FILESDIR}"/${PN}-99999999-ui-needs-wiretap.patch
@@ -167,6 +167,7 @@ src_configure() {
 		-DENABLE_SNAPPY=$(usex snappy)
 		-DENABLE_SPANDSP=$(usex spandsp)
 		-DENABLE_ZLIB=$(usex zlib)
+		-DENABLE_ZSTD=$(usex zstd)
 	)
 
 	cmake_src_configure
