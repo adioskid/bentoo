@@ -14,7 +14,7 @@ SRC_URI="
 
 LICENSE="Apache-1.1 Apache-2.0 BSD BSD-2 MIT"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ~ppc ~ppc64 x86 ~amd64-linux ~x64-macos"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86 ~amd64-linux ~x64-macos"
 IUSE="cpu_flags_x86_sse2 debug doc icu inspector +npm +snapshot +ssl +system-ssl systemtap test"
 REQUIRED_USE="
 	inspector? ( icu ssl )
@@ -23,7 +23,7 @@ REQUIRED_USE="
 "
 
 RDEPEND="
-	>=dev-libs/libuv-1.34.0:=
+	>=dev-libs/libuv-1.34.2:=
 	>=net-dns/c-ares-1.15.0
 	>=net-libs/http-parser-2.9.3:=
 	>=net-libs/nghttp2-1.40.0
