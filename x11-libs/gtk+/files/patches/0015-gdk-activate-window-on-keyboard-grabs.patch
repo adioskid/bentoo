@@ -1,0 +1,107 @@
+From 853f786727a954d10ed78405adc18e0772ccd1cb Mon Sep 17 00:00:00 2001
+From: Samuel Thibault <samuel.thibault@ens-lyon.org>
+Date: Fri, 1 Jun 2018 16:43:01 +0200
+Subject: [PATCH 15/20] gdk: activate window on keyboard grabs
+
+In 01455399e83a ("gdk: do not deactivate surface on keyboard grabs"), we
+made gdk avoid deactivating surfaces when another application takes a
+keyboard grab, by using has_focus_window instead of has_focus. That however
+broke activating surfaces when the gdk application acquired a grab itself,
+in which case has_focus_window is false but has_focus is true.
+
+We thus actually need to use both: surfaces should be activated either
+because we have normal keyboard focus, or because we grabbed the keyboard.
+
+This also renames HAS_FOCUS to APPEARS_FOCUSED to better reflect its
+role.
+
+Fixes #85
+
+(cherry picked from commit 3287ac96e02ff236d74db10164c5b0c1e7b2b0bf)
+(cherry picked from commit 039285deb92b6baf6ef594b0d718e8f7a7e1d0ac)
+---
+ gdk/x11/gdkevents-x11.c | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/gdk/x11/gdkevents-x11.c b/gdk/x11/gdkevents-x11.c
+index 360b0c7930..bef77b5bf8 100644
+--- a/gdk/x11/gdkevents-x11.c
++++ b/gdk/x11/gdkevents-x11.c
+@@ -621,8 +621,8 @@ gdk_check_wm_state_changed (GdkWindow *window)
+     do_net_wm_state_changes (window);
+ }
+ 
+-#define HAS_FOCUS(toplevel)                           \
+-  ((toplevel)->has_focus_window || (toplevel)->has_pointer_focus)
++#define APPEARS_FOCUSED(toplevel)                           \
++  ((toplevel)->has_focus || (toplevel)->has_focus_window || (toplevel)->has_pointer_focus)
+ 
+ static void
+ generate_focus_event (GdkWindow *window,
+@@ -1344,11 +1344,11 @@ gdk_event_translate (GdkDisplay *display,
+ 
+ 	  if (xevent->xcrossing.focus && !toplevel->has_focus_window)
+ 	    {
+-	      gboolean had_focus = HAS_FOCUS (toplevel);
++	      gboolean had_focus = APPEARS_FOCUSED (toplevel);
+ 	      
+ 	      toplevel->has_pointer_focus = TRUE;
+ 	      
+-	      if (HAS_FOCUS (toplevel) != had_focus)
++	      if (APPEARS_FOCUSED (toplevel) != had_focus)
+ 		generate_focus_event (window, TRUE);
+ 	    }
+ 	}
+@@ -1441,11 +1441,11 @@ gdk_event_translate (GdkDisplay *display,
+ 
+ 	  if (xevent->xcrossing.focus && !toplevel->has_focus_window)
+ 	    {
+-	      gboolean had_focus = HAS_FOCUS (toplevel);
++	      gboolean had_focus = APPEARS_FOCUSED (toplevel);
+ 	      
+ 	      toplevel->has_pointer_focus = FALSE;
+ 	      
+-	      if (HAS_FOCUS (toplevel) != had_focus)
++	      if (APPEARS_FOCUSED (toplevel) != had_focus)
+ 		generate_focus_event (window, FALSE);
+ 	    }
+ 	}
+@@ -1523,7 +1523,7 @@ gdk_event_translate (GdkDisplay *display,
+       
+       if (toplevel)
+ 	{
+-	  gboolean had_focus = HAS_FOCUS (toplevel);
++	  gboolean had_focus = APPEARS_FOCUSED (toplevel);
+ 	  
+ 	  switch (xevent->xfocus.detail)
+ 	    {
+@@ -1569,7 +1569,7 @@ gdk_event_translate (GdkDisplay *display,
+ 	      break;
+ 	    }
+ 
+-	  if (HAS_FOCUS (toplevel) != had_focus)
++	  if (APPEARS_FOCUSED (toplevel) != had_focus)
+ 	    generate_focus_event (window, TRUE);
+ 	}
+       break;
+@@ -1582,7 +1582,7 @@ gdk_event_translate (GdkDisplay *display,
+       
+       if (toplevel)
+ 	{
+-	  gboolean had_focus = HAS_FOCUS (toplevel);
++	  gboolean had_focus = APPEARS_FOCUSED (toplevel);
+ 	    
+ 	  switch (xevent->xfocus.detail)
+ 	    {
+@@ -1620,7 +1620,7 @@ gdk_event_translate (GdkDisplay *display,
+ 	      break;
+ 	    }
+ 
+-	  if (HAS_FOCUS (toplevel) != had_focus)
++	  if (APPEARS_FOCUSED (toplevel) != had_focus)
+ 	    generate_focus_event (window, FALSE);
+ 	}
+       break;
+-- 
+2.17.0
+

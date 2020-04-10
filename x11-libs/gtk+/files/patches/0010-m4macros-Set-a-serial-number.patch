@@ -1,0 +1,35 @@
+From acb78c9c6086f0d3a0eba06cc9becf2eb849e615 Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Fri, 6 Apr 2018 11:31:06 +0100
+Subject: [PATCH 10/20] m4macros: Set a serial number
+
+When a project has a bundled copy of our macro included in tarball
+source releases, typically in a m4/ or aclocal/ directory, aclocal
+uses the serial number to determine whether the system copy in
+/usr/share/aclocal is newer or older than the bundled copy. Without
+a serial number, the bundled copy will always be used and will not
+be overwritten, even if it is outdated.
+
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ m4macros/gtk-2.0.m4 | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/m4macros/gtk-2.0.m4 b/m4macros/gtk-2.0.m4
+index 3c6b6dd8eb..a89477fabb 100644
+--- a/m4macros/gtk-2.0.m4
++++ b/m4macros/gtk-2.0.m4
+@@ -1,6 +1,10 @@
+ # Configure paths for GTK+
+ # Owen Taylor     1997-2001
+ 
++# Version number used by aclocal, see `info automake Serials`.
++# Increment on every change.
++#serial 1
++
+ dnl AM_PATH_GTK_2_0([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND [, MODULES]]]])
+ dnl Test for GTK+, and define GTK_CFLAGS and GTK_LIBS, if gthread is specified in MODULES, 
+ dnl pass to pkg-config
+-- 
+2.17.0
+

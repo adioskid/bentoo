@@ -1,0 +1,61 @@
+From 4d37ee2e79b0d459183d0abb7f2453a26940511b Mon Sep 17 00:00:00 2001
+From: Brady Minardi <bradyminardi@fake-box.com>
+Date: Sat, 14 Jul 2018 08:00:56 +0000
+Subject: [PATCH 18/20] modules/other/gail/gailtreeview.c: Fix
+ -Wunused-but-set-variable warning
+
+---
+ modules/other/gail/gailtreeview.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/modules/other/gail/gailtreeview.c b/modules/other/gail/gailtreeview.c
+index bcc406a581..ee8fa00af2 100644
+--- a/modules/other/gail/gailtreeview.c
++++ b/modules/other/gail/gailtreeview.c
+@@ -3983,7 +3983,6 @@ static void
+ toggle_cell_toggled (GailCell *cell)
+ {
+   GailTreeViewCellInfo *cell_info;
+-  GtkTreeView *tree_view;
+   GtkTreePath *path;
+   gchar *pathstring;
+   GList *renderers, *cur_renderer;
+@@ -4002,7 +4001,6 @@ toggle_cell_toggled (GailCell *cell)
+   gail_return_if_fail (cell_info->cell_col_ref);
+   gail_return_if_fail (cell_info->cell_row_ref);
+ 
+-  tree_view = GTK_TREE_VIEW (GTK_ACCESSIBLE (parent)->widget);
+   path = gtk_tree_row_reference_get_path (cell_info->cell_row_ref);
+   gail_return_if_fail (path);
+   pathstring = gtk_tree_path_to_string (path);
+@@ -4040,13 +4038,11 @@ edit_cell (GailCell *cell)
+   GtkTreeView *tree_view;
+   GtkTreePath *path;
+   AtkObject *parent;
+-  gboolean is_container_cell = FALSE;
+ 
+   editing = TRUE;
+   parent = atk_object_get_parent (ATK_OBJECT (cell));
+   if (GAIL_IS_CONTAINER_CELL (parent))
+     {
+-      is_container_cell = TRUE;
+       parent = atk_object_get_parent (parent);
+     }
+ 
+@@ -4070,13 +4066,11 @@ activate_cell (GailCell *cell)
+   GtkTreeView *tree_view;
+   GtkTreePath *path;
+   AtkObject *parent;
+-  gboolean is_container_cell = FALSE;
+ 
+   editing = TRUE;
+   parent = atk_object_get_parent (ATK_OBJECT (cell));
+   if (GAIL_IS_CONTAINER_CELL (parent))
+     {
+-      is_container_cell = TRUE;
+       parent = atk_object_get_parent (parent);
+     }
+ 
+-- 
+2.17.0
+

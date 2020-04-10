@@ -1,0 +1,49 @@
+From 78c34e11c3021cdf1f2f6beadad9c40c6da76464 Mon Sep 17 00:00:00 2001
+From: Chris Lamb <chris@chris-lamb.co.uk>
+Date: Fri, 25 Aug 2017 16:24:38 +0100
+Subject: [PATCH 02/20] gtk/queryimmodules.c: Make the output deterministic.
+
+Whilst working on the Reproducible Builds effort [0], we noticed that
+queryimmodules generates non-reproducible output as it iterates over the
+filesystem without sorting.
+
+Patch attached.
+
+ [0] https://reproducible-builds.org/
+
+Signed-off-by: Chris Lamb <lamby@debian.org>
+
+https://bugzilla.gnome.org/show_bug.cgi?id=786528
+---
+ gtk/queryimmodules.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/gtk/queryimmodules.c b/gtk/queryimmodules.c
+index a91ea47b63..e87391b28b 100644
+--- a/gtk/queryimmodules.c
++++ b/gtk/queryimmodules.c
+@@ -204,13 +204,19 @@ int main (int argc, char **argv)
+             if (dir)
+               {
+                 const char *dent;
++                GList *list = NULL, *iterator = NULL;
+ 
+                 while ((dent = g_dir_read_name (dir)))
++                  list = g_list_prepend (list, g_strdup (dent));
++
++                list = g_list_sort (list, (GCompareFunc) strcmp);
++                for (iterator = list; iterator; iterator = iterator->next)
+                   {
+-                    if (g_str_has_suffix (dent, SOEXT))
+-                      error |= query_module (dirs[i], dent, contents);
++                    if (g_str_has_suffix (iterator->data, SOEXT))
++                      error |= query_module (dirs[i], iterator->data, contents);
+                   }
+ 
++                g_list_free_full (list, g_free);
+                 g_dir_close (dir);
+               }
+ 
+-- 
+2.17.0
+

@@ -1,0 +1,45 @@
+From 00b17063ac8e58d436b7ee5e79da83e74cbbbb30 Mon Sep 17 00:00:00 2001
+From: Samuel Thibault <samuel.thibault@ens-lyon.org>
+Date: Thu, 19 Apr 2018 14:10:23 +0200
+Subject: [PATCH 11/20] gdk: do not deactivate surface on keyboard grabs
+
+When pressing e.g. a window manager shortcut, which acquires keyboard grab,
+Xorg would send FocusOut NotifyGrab then FocusIn NotifyUngrab.  Currently
+gdk would then deactivate the current surface, which makes accessibility
+screen readers think that we have switched to a non-accessible application
+and came back again, and thus reannounce the application frame etc. which we
+don't want when e.g. just raising volume.
+
+And actually, receiving FocusOut NotifyGrab does not mean losing the
+X focus, it only means an application aqcuired a grab, i.e. it is
+temporarily stealing keyboard events. On Wayland, this isn't even
+notified actually.
+
+This commit makes gdk only deactivate surfaces when there was an actual
+focus switch to another window, as determined by has_focus_window (instead
+of just has_focus), which happens either normally through FocusOut with
+NotifyNormal, or during grabs through FocusOut with NotifyWhileGrabbed.
+
+Fixes #85
+
+(cherry picked from commit 01455399e83a3dbafb0cdc6e12c7003b2f472a40)
+---
+ gdk/x11/gdkevents-x11.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gdk/x11/gdkevents-x11.c b/gdk/x11/gdkevents-x11.c
+index 186a8f5cb2..360b0c7930 100644
+--- a/gdk/x11/gdkevents-x11.c
++++ b/gdk/x11/gdkevents-x11.c
+@@ -622,7 +622,7 @@ gdk_check_wm_state_changed (GdkWindow *window)
+ }
+ 
+ #define HAS_FOCUS(toplevel)                           \
+-  ((toplevel)->has_focus || (toplevel)->has_pointer_focus)
++  ((toplevel)->has_focus_window || (toplevel)->has_pointer_focus)
+ 
+ static void
+ generate_focus_event (GdkWindow *window,
+-- 
+2.17.0
+

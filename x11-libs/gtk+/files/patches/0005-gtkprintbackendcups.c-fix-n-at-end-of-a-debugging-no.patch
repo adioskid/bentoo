@@ -1,0 +1,26 @@
+From 7461ceebe34bfc6f882145e89e1ba2f187d08303 Mon Sep 17 00:00:00 2001
+From: Ivan Zakharyaschev <imz@altlinux.org>
+Date: Sat, 17 Feb 2018 06:19:56 +0300
+Subject: [PATCH 05/20] gtkprintbackendcups.c: fix \n at end of a debugging
+ note
+
+---
+ modules/printbackends/cups/gtkprintbackendcups.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/printbackends/cups/gtkprintbackendcups.c b/modules/printbackends/cups/gtkprintbackendcups.c
+index 24d4d8b487..2a000dc16f 100644
+--- a/modules/printbackends/cups/gtkprintbackendcups.c
++++ b/modules/printbackends/cups/gtkprintbackendcups.c
+@@ -2184,7 +2184,7 @@ cups_printer_handle_attribute (GtkPrintBackendCups *cups_backend,
+   else
+     {
+       GTK_NOTE (PRINTING,
+-		g_print ("CUPS Backend: Attribute %s ignored", ippGetName (attr)));
++		g_print ("CUPS Backend: Attribute %s ignored\n", ippGetName (attr)));
+     }
+ 
+ }
+-- 
+2.17.0
+

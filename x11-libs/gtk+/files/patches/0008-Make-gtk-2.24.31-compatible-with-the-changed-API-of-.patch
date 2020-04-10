@@ -1,0 +1,33 @@
+From 88bb7ecc47f5cd4d9ca9d2a7a8e096fec0d2e867 Mon Sep 17 00:00:00 2001
+From: Dennis Schridde <devurandom@gmx.net>
+Date: Sun, 18 Mar 2018 19:49:38 +0100
+Subject: [PATCH 08/20] Make gtk+-2.24.31 compatible with the changed API of
+ glib-2.54.3
+
+glib-2.54.3 changed API, compared to glib-2.52.3 and gtk+-2.24.31's
+ expectations.  This commit fixes the resulting issue in a backwards
+ compatible way.
+
+See-Also: https://bugs.gentoo.org/650536
+---
+ gtk/gtk.symbols | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gtk/gtk.symbols b/gtk/gtk.symbols
+index 6d5d5b6fa2..a264df87fb 100644
+--- a/gtk/gtk.symbols
++++ b/gtk/gtk.symbols
+@@ -2498,8 +2498,8 @@ gtk_input_dialog_new
+ #endif
+ #endif
+ 
+-#if IN_HEADER(__gtk_marshal_MARSHAL_H__)
+-#if IN_FILE(__gtk_marshal_MARSHAL_C__)
++#if IN_HEADER(__gtk_marshal_MARSHAL_H__) || IN_HEADER(__GTK_MARSHAL_MARSHAL_H__)
++#if IN_FILE(__gtk_marshal_MARSHAL_C__) || IN_FILE(__GTK_MARSHAL_MARSHAL_C__)
+ #ifndef GTK_DISABLE_DEPRECATED
+ gtk_marshal_BOOLEAN__POINTER
+ gtk_marshal_BOOLEAN__POINTER_INT_INT
+-- 
+2.17.0
+

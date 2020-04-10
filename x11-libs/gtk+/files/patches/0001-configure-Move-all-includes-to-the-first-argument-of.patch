@@ -1,0 +1,40 @@
+From c3ededb119405c26c684cef569177b73255b7a22 Mon Sep 17 00:00:00 2001
+From: Ting-Wei Lan <lantw@src.gnome.org>
+Date: Sat, 20 Jan 2018 17:52:33 +0800
+Subject: [PATCH 01/20] configure: Move all includes to the first argument of
+ AC_TRY_LINK
+
+Putting includes in the second argument of AC_TRY_LINK is not safe. If
+a header having inline functions is included inside the main function,
+it becomes a nested function. This is not supported by clang.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=792720
+---
+ configure.ac | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index b75f9c644d..44d3056082 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -715,7 +715,7 @@ oLIBS="$LIBS"
+ LIBS="$LIBS $GDK_WLIBS"
+ # The following is necessary for Linux libc-5.4.38
+ AC_MSG_CHECKING(if iswalnum() and friends are properly defined)
+-AC_TRY_LINK([#include <stdlib.h>],[
++AC_TRY_LINK([#include <stdlib.h>
+ #if (defined(HAVE_WCTYPE_H) || defined(HAVE_WCHAR_H))
+ #  ifdef HAVE_WCTYPE_H
+ #    include <wctype.h>
+@@ -726,7 +726,7 @@ AC_TRY_LINK([#include <stdlib.h>],[
+ #  endif
+ #else
+ #  define iswalnum(c) ((wchar_t)(c) <= 0xFF && isalnum(c))
+-#endif
++#endif],[
+ iswalnum((wchar_t) 0);
+ ], gdk_working_wctype=yes, gdk_working_wctype=no)
+ LIBS="$oLIBS"
+-- 
+2.17.0
+

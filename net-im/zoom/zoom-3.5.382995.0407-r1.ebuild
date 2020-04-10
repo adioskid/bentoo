@@ -17,7 +17,8 @@ KEYWORDS="-* ~amd64 ~x86"
 IUSE="bundled-libjpeg-turbo pulseaudio"
 RESTRICT="mirror bindist strip"
 
-RDEPEND="dev-libs/glib:2
+RDEPEND="!games-engines/zoom
+	dev-libs/glib:2
 	dev-libs/icu
 	dev-qt/qtcore:5
 	dev-qt/qtdbus:5
@@ -28,10 +29,10 @@ RDEPEND="dev-libs/glib:2
 	dev-qt/qtscript:5
 	dev-qt/qtsvg:5
 	dev-qt/qtwidgets:5
-	media-libs/libglvnd
 	media-sound/mpg123
 	sys-apps/dbus
 	sys-apps/util-linux
+	virtual/opengl
 	x11-libs/libX11
 	x11-libs/libxcb
 	x11-libs/libXext

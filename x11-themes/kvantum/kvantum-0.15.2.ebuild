@@ -3,11 +3,13 @@
 
 EAPI=7
 
-inherit cmake
+inherit cmake-utils
 
-DESCRIPTION="SVG-based theme engine for Qt5, KDE Plasma and LXQt"
+MY_PN="Kvantum"
+
+DESCRIPTION="SVG-based theme engine for Qt5, KDE and LXQt"
 HOMEPAGE="https://github.com/tsujan/Kvantum"
-SRC_URI="https://github.com/tsujan/${PN^}/archive/V${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/tsujan/${MY_PN}/archive/V${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
@@ -27,4 +29,4 @@ DEPEND="
 RDEPEND="${DEPEND}"
 BDEPEND="dev-qt/linguist-tools:5"
 
-S="${WORKDIR}/${PN^}-${PV}/${PN^}"
+S="${WORKDIR}/${MY_PN}-${PV}/${MY_PN}"

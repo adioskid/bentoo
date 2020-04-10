@@ -117,7 +117,6 @@ src_prepare() {
 	default
 
 	if use !minimal ; then
-		python_export EPYTHON PYTHON
 		python_fix_shebang .
 	fi
 
@@ -264,7 +263,6 @@ src_install() {
 	find "${D}" -name '*.la' -delete || die
 
 	if use !minimal ; then
-		python_export EPYTHON PYTHON
 		python_optimize "${ED}"/usr/share/hplip
 	fi
 
