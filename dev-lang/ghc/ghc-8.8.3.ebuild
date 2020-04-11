@@ -491,7 +491,8 @@ src_prepare() {
 		eapply "${FILESDIR}"/${PN}-8.0.2-no-relax-everywhere.patch
 		eapply "${FILESDIR}"/${PN}-8.4.2-allow-cross-bootstrap.patch
 		eapply "${FILESDIR}"/${PN}-8.6.5-numa.patch
-		eapply "${FILESDIR}"/${PN}-8.8.1-revert-CPP.patch
+		# rumors say this is fixed properly in 8.8.3. Let's check!
+		#eapply "${FILESDIR}"/${PN}-8.8.1-revert-CPP.patch
 
 		# a bunch of crosscompiler patches
 		# needs newer version:

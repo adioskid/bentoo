@@ -107,7 +107,7 @@ HTTP_DAV_EXT_MODULE_URI="https://github.com/arut/nginx-dav-ext-module/archive/v$
 HTTP_DAV_EXT_MODULE_WD="${WORKDIR}/nginx-dav-ext-module-${HTTP_DAV_EXT_MODULE_PV}"
 
 # echo-nginx-module (https://github.com/openresty/echo-nginx-module, BSD license)
-HTTP_ECHO_MODULE_PV="0.61"
+HTTP_ECHO_MODULE_PV="0.62rc1"
 HTTP_ECHO_MODULE_P="ngx_http_echo-${HTTP_ECHO_MODULE_PV}"
 HTTP_ECHO_MODULE_URI="https://github.com/openresty/echo-nginx-module/archive/v${HTTP_ECHO_MODULE_PV}.tar.gz"
 HTTP_ECHO_MODULE_WD="${WORKDIR}/echo-nginx-module-${HTTP_ECHO_MODULE_PV}"
@@ -150,7 +150,7 @@ HTTP_LDAP_MODULE_URI="https://github.com/kvspb/nginx-auth-ldap/archive/${HTTP_LD
 HTTP_LDAP_MODULE_WD="${WORKDIR}/nginx-auth-ldap-${HTTP_LDAP_MODULE_PV}"
 
 # geoip2 (https://github.com/leev/ngx_http_geoip2_module, BSD-2)
-GEOIP2_MODULE_PV="3.2"
+GEOIP2_MODULE_PV="3.3"
 GEOIP2_MODULE_P="ngx_http_geoip2_module-${GEOIP2_MODULE_PV}"
 GEOIP2_MODULE_URI="https://github.com/leev/ngx_http_geoip2_module/archive/${GEOIP2_MODULE_PV}.tar.gz"
 GEOIP2_MODULE_WD="${WORKDIR}/ngx_http_geoip2_module-${GEOIP2_MODULE_PV}"
@@ -335,13 +335,14 @@ DEPEND="${CDEPEND}
 PDEPEND="vim-syntax? ( app-vim/nginx-syntax )"
 
 REQUIRED_USE="pcre-jit? ( pcre )
+	nginx_modules_http_fancyindex? ( nginx_modules_http_addition )
 	nginx_modules_http_grpc? ( http2 )
 	nginx_modules_http_lua? (
 		luajit
 		nginx_modules_http_rewrite
 	)
 	nginx_modules_http_naxsi? ( pcre )
-	nginx_modules_http_dav_ext? ( nginx_modules_http_dav )
+	nginx_modules_http_dav_ext? ( nginx_modules_http_dav nginx_modules_http_xslt )
 	nginx_modules_http_metrics? ( nginx_modules_http_stub_status )
 	nginx_modules_http_security? ( pcre )
 	nginx_modules_http_push_stream? ( ssl )"
@@ -713,7 +714,7 @@ src_compile() {
 src_install() {
 	emake DESTDIR="${D%/}" install
 
-	cp "${FILESDIR}"/nginx.conf-r2 "${ED}"etc/nginx/nginx.conf || die
+	cp "${FILESDIR}"/nginx.conf-r2 "${ED%/}"/etc/nginx/nginx.conf || die
 
 	newinitd "${FILESDIR}"/nginx.initd-r4 nginx
 	newconfd "${FILESDIR}"/nginx.confd nginx
@@ -725,7 +726,7 @@ src_install() {
 
 	# just keepdir. do not copy the default htdocs files (bug #449136)
 	keepdir /var/www/localhost
-	rm -rf "${D}"usr/html || die
+	rm -rf "${ED%/}"/usr/html || die
 
 	# set up a list of directories to keep
 	local keepdir_list="${NGINX_HOME_TMP}"/client
@@ -750,6 +751,9 @@ src_install() {
 	# logrotate
 	insinto /etc/logrotate.d
 	newins "${FILESDIR}"/nginx.logrotate-r1 nginx
+
+	# Don't create /run
+	rm -rf "${ED%/}"/run || die
 
 	if use luajit; then
 		pax-mark m "${ED%/}/usr/sbin/nginx"

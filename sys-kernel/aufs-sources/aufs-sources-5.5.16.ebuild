@@ -7,6 +7,7 @@ ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
 K_GENPATCHES_VER=18
 UNIPATCH_STRICTORDER=1
+
 inherit kernel-2 eutils readme.gentoo-r1
 
 AUFS_VERSION=5.5-20200302

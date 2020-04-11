@@ -83,7 +83,7 @@ COMMON_DEPEND="
 		virtual/glu[${MULTILIB_USEDEP}]
 		virtual/opengl[${MULTILIB_USEDEP}]
 	)
-	osmesa? ( >=media-libs/mesa-13[video_cards_osmesa,${MULTILIB_USEDEP}] )
+	osmesa? ( >=media-libs/mesa-13[osmesa,${MULTILIB_USEDEP}] )
 	pcap? ( net-libs/libpcap[${MULTILIB_USEDEP}] )
 	png? ( media-libs/libpng:0=[${MULTILIB_USEDEP}] )
 	pulseaudio? ( media-sound/pulseaudio[${MULTILIB_USEDEP}] )
@@ -142,7 +142,6 @@ usr/share/applications/wine-winecfg.desktop"
 PATCHES=(
 	"${PATCHDIR}/patches/${MY_PN}-5.0-winegcc.patch" #260726
 	"${PATCHDIR}/patches/${MY_PN}-4.7-multilib-portage.patch" #395615
-	"${PATCHDIR}/patches/${MY_PN}-5.0-memset-O3.patch" #480508
 	"${PATCHDIR}/patches/${MY_PN}-2.0-multislot-apploader.patch" #310611
 )
 PATCHES_BIN=()

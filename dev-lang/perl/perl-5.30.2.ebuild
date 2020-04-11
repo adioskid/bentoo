@@ -15,7 +15,7 @@ DIST_AUTHOR=SHAY
 # Greatest first, don't include yourself
 # Devel point-releases are not ABI-intercompatible, but stable point releases are
 # BIN_OLDVERSEN is contains only C-ABI-intercompatible versions
-PERL_BIN_OLDVERSEN="5.30.0"
+PERL_BIN_OLDVERSEN="5.30.0 5.30.1"
 
 if [[ "${PV##*.}" == "9999" ]]; then
 	DIST_VERSION=5.30.0
@@ -51,7 +51,7 @@ LICENSE="|| ( Artistic GPL-1+ )"
 SLOT="0/${SUBSLOT}"
 
 if [[ "${PV##*.}" != "9999" ]] && [[ "${PV/rc//}" == "${PV}" ]] ; then
-KEYWORDS="~alpha amd64 arm arm64 hppa ia64 m68k ~mips ppc ppc64 ~riscv s390 sh sparc x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 fi
 
 IUSE="berkdb debug doc gdbm ithreads"
@@ -83,7 +83,7 @@ dual_scripts() {
 	src_remove_dual      perl-core/ExtUtils-ParseXS   3.400.0       xsubpp
 	src_remove_dual      perl-core/IO-Compress        2.84.0        zipdetails
 	src_remove_dual      perl-core/JSON-PP            4.20.0        json_pp
-	src_remove_dual      perl-core/Module-CoreList    5.201.910.270 corelist
+	src_remove_dual      perl-core/Module-CoreList    5.202.003.140 corelist
 	src_remove_dual      perl-core/Pod-Parser         1.630.0       pod2usage podchecker podselect
 	src_remove_dual      perl-core/Pod-Perldoc        3.280.100     perldoc
 	src_remove_dual      perl-core/Test-Harness       3.420.0       prove
@@ -302,7 +302,6 @@ src_prepare() {
 	if use hppa ; then
 		epatch "${FILESDIR}/${PN}-5.26.2-hppa.patch" # bug 634162
 	fi
-	eapply "${FILESDIR}"/${PN}-5.30.1-gcc-10.patch # bug 708744
 
 	if [[ ${CHOST} == *-solaris* ]] ; then
 		# do NOT mess with nsl, on Solaris this is always necessary,
