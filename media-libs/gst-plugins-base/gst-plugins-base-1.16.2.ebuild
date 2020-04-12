@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -10,7 +10,7 @@ DESCRIPTION="Basepack of plugins for gstreamer"
 HOMEPAGE="https://gstreamer.freedesktop.org/"
 
 LICENSE="GPL-2+ LGPL-2+"
-KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+KEYWORDS="amd64 arm arm64 ~hppa ~ia64 ppc ppc64 ~sparc x86"
 
 # For OpenGL we have three separate concepts, with a list of possibilities in each:
 #  * opengl APIs - opengl and/or gles2; USE=opengl and USE=gles2 enable these accordingly; if neither is enabled, OpenGL helper library and elements are not built at all and all the other options aren't relevant
@@ -43,7 +43,7 @@ REQUIRED_USE="
 # Dependencies needed by opengl library and plugin (enabled via USE gles2 and/or opengl)
 # dmabuf automagic from libdrm headers (drm_fourcc.h) and EGL, so ensure it with USE=egl (platform independent header used only, thus no MULTILIB_USEDEP); provides dmabuf based upload/download/eglimage options
 GL_DEPS="
-	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland?]
+	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland?,${MULTILIB_USEDEP}]
 	egl? (
 		x11-libs/libdrm
 	)
@@ -70,7 +70,7 @@ RDEPEND="
 	ivorbis? ( >=media-libs/tremor-0_pre20130223[${MULTILIB_USEDEP}] )
 	ogg? ( >=media-libs/libogg-1.3.0[${MULTILIB_USEDEP}] )
 	orc? ( >=dev-lang/orc-0.4.24[${MULTILIB_USEDEP}] )
-	pango? ( >=x11-libs/pango-1.36.3 )
+	pango? ( >=x11-libs/pango-1.36.3[${MULTILIB_USEDEP}] )
 	theora? ( >=media-libs/libtheora-1.1.1[encode,${MULTILIB_USEDEP}] )
 	vorbis? ( >=media-libs/libvorbis-1.3.3-r1[${MULTILIB_USEDEP}] )
 	X? (
@@ -89,6 +89,10 @@ DEPEND="${RDEPEND}
 	>=dev-util/gtk-doc-am-1.12
 	X? ( x11-base/xorg-proto )
 "
+
+PATCHES=(
+	"${FILESDIR}"/${PN}-1.14.5-make43.patch # remove when bumping and switching to Meson
+)
 
 src_prepare() {
 	# Disable GL tests for now; prone to fail with EGL_NOT_INITIALIZED, etc
