@@ -12,7 +12,7 @@ SRC_URI="https://github.com/libfuse/libfuse/releases/download/${P}/${P}.tar.xz"
 
 LICENSE="GPL-2 LGPL-2.1"
 SLOT="3"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
+KEYWORDS="~alpha ~amd64 ~arm arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 IUSE="+suid test"
 RESTRICT="!test? ( test )"
 
@@ -26,11 +26,11 @@ RDEPEND=">=sys-fs/fuse-common-3.3.0-r1"
 DOCS=( AUTHORS ChangeLog.rst README.md doc/README.NFS doc/kernel.txt )
 
 python_check_deps() {
-	has_version "dev-python/pytest[${PYTHON_USEDEP}]"
+	has_version -b "dev-python/pytest[${PYTHON_USEDEP}]"
 }
 
 pkg_setup() {
-	use test && python-any-r1_pkg_setup
+	use test && python_setup
 }
 
 src_prepare() {
@@ -38,13 +38,11 @@ src_prepare() {
 
 	# lto not supported yet -- https://github.com/libfuse/libfuse/issues/198
 	filter-flags '-flto*'
-
-	# passthough_ll is broken on systems with 32-bit pointers
-	cat /dev/null > example/meson.build || die
 }
 
 multilib_src_configure() {
 	local emesonargs=(
+		-Dexamples=$(usex test true false)
 		-Duseroot=false
 		-Dudevrulesdir="${EPREFIX}$(get_udevdir)/rules.d"
 	)
@@ -53,6 +51,16 @@ multilib_src_configure() {
 
 multilib_src_compile() {
 	eninja
+}
+
+src_test() {
+	if [[ ${EUID} != 0 ]]; then
+		ewarn "Running as non-root user, skipping tests"
+	elif has sandbox ${FEATURES}; then
+		ewarn "Sandbox enabled, skipping tests"
+	else
+		multilib-minimal_src_test
+	fi
 }
 
 multilib_src_test() {

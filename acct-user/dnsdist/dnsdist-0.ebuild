@@ -5,8 +5,9 @@ EAPI=7
 
 inherit acct-user
 
-DESCRIPTION="user for cyrus-imapd daemon"
-ACCT_USER_ID=416
-ACCT_USER_GROUPS=( mail )
+DESCRIPTION="A user for net-dns/dnsdist"
+
+ACCT_USER_GROUPS=( "dnsdist" )
+ACCT_USER_ID="414"
 
 acct-user_add_deps
