@@ -8,7 +8,7 @@ inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.7.6"
+PATCHSET="python-gentoo-patches-3.8.1-r2"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -17,8 +17,8 @@ SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}/${PYVER}m"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ppc64 ~riscv ~s390 sparc ~x86"
+SLOT="${PYVER}"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86"
 IUSE="bluetooth build examples gdbm hardened ipv6 libressl +ncurses +readline sqlite +ssl test tk wininst +xml"
 RESTRICT="!test? ( test )"
 
@@ -67,6 +67,8 @@ src_prepare() {
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
 		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
+		# add module importing numpy to blacklist
+		"${FILESDIR}/test-__all__-numpy.patch"
 	)
 
 	default
@@ -110,6 +112,11 @@ src_configure() {
 	if is-flagq -O3; then
 		is-flagq -fstack-protector-all && replace-flags -O3 -O2
 		use hardened && replace-flags -O3 -O2
+	fi
+
+	# https://bugs.gentoo.org/700012
+	if is-flagq -flto || is-flagq '-flto=*'; then
+		append-cflags $(test-flags-CC -ffat-lto-objects)
 	fi
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
@@ -298,13 +305,11 @@ src_install() {
 	chmod +x "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
 		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
-	# 2to3, pydoc, pyvenv
+	# 2to3, pydoc
 	ln -s "../../../bin/2to3-${PYVER}" \
 		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
 		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
-	ln -s "../../../bin/pyvenv-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \

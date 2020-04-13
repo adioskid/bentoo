@@ -33,8 +33,6 @@ RDEPEND="
 	)
 "
 
-PATCHES=( "${FILESDIR}/${P}-no_ipv6_build_fix.patch" )
-
 src_configure() {
 	local myeconfargs=(
 		--dbdir="${EPREFIX}/var/lib/dhcpcd"

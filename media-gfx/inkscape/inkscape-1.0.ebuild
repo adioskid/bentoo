@@ -62,7 +62,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dbus? ( dev-libs/dbus-glib )
 	exif? ( media-libs/libexif )
 	imagemagick? (
-		!graphicsmagick? ( media-gfx/imagemagick:=[cxx] )
+		!graphicsmagick? ( <media-gfx/imagemagick-7:=[cxx] )
 		graphicsmagick? ( media-gfx/graphicsmagick:=[cxx] )
 	)
 	jemalloc? ( dev-libs/jemalloc )
