@@ -6,47 +6,11 @@ inherit meson
 
 DESCRIPTION="X.Org combined protocol headers"
 HOMEPAGE="https://cgit.freedesktop.org/xorg/proto/xorgproto/"
-
-GITHUB_REPO="xorg-xorgproto"
-GITHUB_USER="freedesktop"
-GITHUB_TAG="e0bba743ae7c549c58f92677b239ec7878548228"
-SRC_URI="https://www.github.com/${GITHUB_USER}/${GITHUB_REPO}/tarball/${GITHUB_TAG} -> ${PN}-${GITHUB_TAG}.tar.gz"
+SRC_URI="https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/archive/xorgproto-${PV}/xorgproto-xorgproto-${PV}.tar.gz -> xorgproto-${PV}.tar.gz"
 KEYWORDS="*"
-
-src_unpack() {
-	unpack ${A}
-	mv "${WORKDIR}/${GITHUB_USER}-${GITHUB_REPO}"-??????? "${S}" || die
-}
 
 LICENSE="GPL-2 MIT"
 SLOT="0"
-
-src_configure() {
-	local emesonargs=(
-		--datadir="${EPREFIX}/usr/share"
-		-Dlegacy=false
-	)
-	meson_src_configure
-}
-
-src_compile() {
-	meson_src_compile
-}
-
-src_install() {
-	meson_src_install
-}
-
-src_install_all() {
-	DOCS=(
-		AUTHORS
-		PM_spec
-		README
-		$(set +f; echo COPYING-*)
-		$(set +f; echo *.txt | grep -v meson.txt)
-	)
-	einstalldocs
-}
 
 PDEPEND="
 	=x11-proto/evieproto-1.1.1*:0/stub
@@ -85,4 +49,36 @@ PDEPEND="
 	=x11-proto/xf86vidmodeproto-2.3.1*:0/stub
 	=x11-proto/xineramaproto-1.2.1*:0/stub
 	=x11-proto/xproto-7.0.32*:0/stub
-	=x11-proto/xproxymngproto-1.0.3*:0/stub"
+	=x11-proto/xproxymngproto-1.0.3*:0/stub
+"
+
+src_unpack() {
+	unpack ${A}
+}
+
+src_configure() {
+	local emesonargs=(
+		--datadir="${EPREFIX}/usr/share"
+		-Dlegacy=false
+	)
+	meson_src_configure
+}
+
+src_compile() {
+	meson_src_compile
+}
+
+src_install() {
+	meson_src_install
+}
+
+src_install_all() {
+	DOCS=(
+		AUTHORS
+		PM_spec
+		README
+		$(set +f; echo COPYING-*)
+		$(set +f; echo *.txt | grep -v meson.txt)
+	)
+	einstalldocs
+}

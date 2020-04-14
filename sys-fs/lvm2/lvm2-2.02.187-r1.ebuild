@@ -223,7 +223,7 @@ src_install() {
 
 	if use !device-mapper-only ; then
 		newinitd "${FILESDIR}"/dmeventd.initd-2.02.184-r2 dmeventd
-		newinitd "${FILESDIR}"/lvm.rc-2.02.184-r3 lvm
+		newinitd "${FILESDIR}"/lvm.rc-2.02.187 lvm
 		newconfd "${FILESDIR}"/lvm.confd-2.02.184-r3 lvm
 		if ! use udev ; then
 			# We keep the variable but remove udev from it.
