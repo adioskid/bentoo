@@ -3,10 +3,11 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{6,7} )
+PYTHON_COMPAT=( python2_7 python3_{6,7,8} )
 PYTHON_REQ_USE="xml(+)"
+DISTUTILS_USE_SETUPTOOLS=no
 
-inherit distutils-r1 multilib prefix
+inherit distutils-r1 prefix
 
 DESCRIPTION="Collection of Gentoo-specific tools for Java"
 HOMEPAGE="https://wiki.gentoo.org/wiki/Project:Java"
@@ -23,5 +24,5 @@ python_prepare_all() {
 
 python_install() {
 	distutils-r1_python_install \
-		--install-scripts="${EPREFIX}"/usr/$(get_libdir)/${PN}/bin
+		--install-scripts="${EPREFIX}"/usr/libexec/${PN}
 }
