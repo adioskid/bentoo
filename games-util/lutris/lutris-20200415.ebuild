@@ -11,7 +11,7 @@ inherit distutils-r1 virtualx xdg
 DESCRIPTION="An open source gaming platform for GNU/Linux"
 HOMEPAGE="https://lutris.net/"
 
-COMMIT="10ec196653766875411550268bdaf5202b2f4278"
+COMMIT="df3b878b3d1f0bec72752fc135f43fc57da6982d"
 SRC_URI="https://github.com/${PN}/${PN}/archive/${COMMIT}.tar.gz -> ${P}.tar.gz"
 
 S="${WORKDIR}/${PN}-${COMMIT}"

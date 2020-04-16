@@ -52,6 +52,8 @@ PDEPEND="
 	=x11-proto/xproxymngproto-1.0.3*:0/stub
 "
 
+S="${WORKDIR}/xorgproto-xorgproto-2020.1"
+
 src_unpack() {
 	unpack ${A}
 }
