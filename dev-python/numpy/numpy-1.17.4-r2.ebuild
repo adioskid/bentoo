@@ -5,6 +5,7 @@ EAPI=7
 
 PYTHON_COMPAT=( python3_{6,7,8} )
 PYTHON_REQ_USE="threads(+)"
+DISTUTILS_USE_SETUPTOOLS=rdepend
 
 FORTRAN_NEEDED=lapack
 
@@ -22,7 +23,7 @@ SRC_URI="
 	)"
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 IUSE="doc lapack test"
 RESTRICT="!test? ( test )"
 
@@ -33,7 +34,6 @@ RDEPEND="
 	)"
 DEPEND="${RDEPEND}"
 BDEPEND="app-arch/unzip
-	dev-python/setuptools[${PYTHON_USEDEP}]
 	lapack? ( virtual/pkgconfig )
 	test? (
 		dev-python/pytest[${PYTHON_USEDEP}]
