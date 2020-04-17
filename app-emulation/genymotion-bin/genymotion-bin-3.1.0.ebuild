@@ -86,16 +86,17 @@ src_install() {
 	doins -r "${MY_PN}"/{geoservices,Qt,QtGraphicalEffects,QtLocation,QtPositioning,QtQuick,QtQuick.2}
 	doins -r "${MY_PN}"/{icons,imageformats,platforms,plugins,sqldrivers,translations,xcbglintegrations}
 	doins "${MY_PN}"/libQt*
+	doins "${MY_PN}"/libqgsttools_p.so.1
 	doins "${MY_PN}"/qt.conf
 	doins "${MY_PN}"/libicu*
 
 	doexe "${MY_PN}"/{libcom,librendering,libswscale,libavutil}.so*
 	# android library
-	doexe "${MY_PN}"/{libEGL_translator,libGLES_CM_translator,libGLES_V2_translator,libOpenglRender}.so*
+	doexe "${MY_PN}"/{libEGL_translator,libGLES_CM_translator,libGLES_V2_translator,libOpenglRender,libemugl_logger}.so*
 
 	find "${ED}/opt/${MY_PN}" -name "*.so*" -type f -exec chmod +x {} \; || die "Change .so permission failed"
 
-	doexe "${MY_PN}"/{genymotion,genyshell,player,genymotionadbtunneld,gmtool}
+	doexe "${MY_PN}"/{genymotion,genyshell,player,gmtool}
 
 	pax-mark -m "${ED}/opt/${MY_PN}/genymotion"
 	pax-mark -m "${ED}/opt/${MY_PN}/gmtool"
