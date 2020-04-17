@@ -221,6 +221,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-4.0.0-sanitize-interp_info.patch
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
 	"${FILESDIR}"/${PN}-4.2.0-CVE-2020-11102.patch #716518
+	"${FILESDIR}"/${PN}-4.2.0-epoll_create1.patch #717548
 	"${WORKDIR}"/patches
 )
 
