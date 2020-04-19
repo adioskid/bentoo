@@ -31,7 +31,7 @@ S="${WORKDIR}/${PARCH}"
 
 LICENSE="BSD GPL-2"
 SLOT="0"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 # Probably want to drop ssl defaulting to on in a future version.
 IUSE="abi_mips_n32 audit bindist debug hpn kerberos kernel_linux ldns libedit libressl livecd pam +pie sctp security-key selinux +ssl static test X X509 xmss"
 
@@ -182,6 +182,7 @@ src_prepare() {
 		cp $(printf -- "${DISTDIR}/%s\n" "${HPN_PATCHES[@]}") "${hpn_patchdir}" || die
 		pushd "${hpn_patchdir}" &>/dev/null || die
 		eapply "${FILESDIR}"/${P}-hpn-${HPN_VER}-glue.patch
+		eapply "${FILESDIR}"/${P}-hpn-${HPN_VER}-libressl.patch
 		if use X509; then
 		#	einfo "Will disable MT AES cipher due to incompatbility caused by X509 patch set"
 		#	# X509 and AES-CTR-MT don't get along, let's just drop it

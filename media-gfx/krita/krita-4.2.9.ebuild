@@ -11,7 +11,8 @@ VIRTUALX_REQUIRED="test"
 inherit ecm kde.org python-single-r1
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	SRC_URI="mirror://kde/stable/${PN}/$(ver_cut 1-3)/${P}.tar.xz"
+	SRC_URI="mirror://kde/stable/${PN}/$(ver_cut 1-3)/${P}.tar.xz
+		https://dev.gentoo.org/~asturm/distfiles/${P}-patchset.tar.xz"
 	KEYWORDS="~amd64 ~ppc64 ~x86"
 fi
 
@@ -38,7 +39,7 @@ RDEPEND="${PYTHON_DEPS}
 	>=dev-qt/qtconcurrent-${QTMIN}:5
 	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtdeclarative-${QTMIN}:5
-	>=dev-qt/qtgui-${QTMIN}:5=[-gles2]
+	>=dev-qt/qtgui-${QTMIN}:5=[-gles2-only]
 	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtprintsupport-${QTMIN}:5
 	>=dev-qt/qtsvg-${QTMIN}:5
@@ -89,7 +90,7 @@ RESTRICT+=" test"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-4.2.4-tests-optional.patch
-	"${FILESDIR}"/${P}-ecm-findopenexr.patch
+	"${WORKDIR}"/${P}-patchset
 )
 
 pkg_setup() {
