@@ -5,7 +5,7 @@ EAPI=6
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER=18
+K_GENPATCHES_VER=21
 UNIPATCH_STRICTORDER=1
 
 inherit kernel-2 eutils readme.gentoo-r1
