@@ -25,7 +25,7 @@ if [[ ${PV} = *9999* ]]; then
 else
 	SRC_URI="https://download.qemu.org/${P}.tar.xz
 		https://dev.gentoo.org/~tamiko/distfiles/${P}-patches-r2.tar.xz"
-	KEYWORDS="amd64 ~arm64 ~ppc ~ppc64 x86"
+	KEYWORDS="amd64 ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 DESCRIPTION="QEMU + Kernel-based Virtual Machine userland tools"
@@ -218,6 +218,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.5.0-cflags.patch
 	"${FILESDIR}"/${PN}-2.11.1-capstone_include_path.patch
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
+	"${FILESDIR}"/${PN}-4.2.0-ati-vga-crash.patch #719266
 	"${WORKDIR}"/patches
 )
 

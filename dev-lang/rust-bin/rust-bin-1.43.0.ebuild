@@ -3,7 +3,9 @@
 
 EAPI=7
 
-inherit bash-completion-r1 rust-toolchain toolchain-funcs
+MULTILIB_COMPAT=( abi_x86_{32,64} )
+
+inherit bash-completion-r1 rust-toolchain toolchain-funcs multilib-minimal
 
 MY_P="rust-${PV}"
 
@@ -47,8 +49,13 @@ src_unpack() {
 	mv "${WORKDIR}/${MY_P}-$(rust_abi)" "${S}" || die
 }
 
-src_install() {
-	local std=$(grep 'std' ./components)
+multilib_src_install() {
+	if multilib_is_native_abi; then
+
+	# start native abi install
+	pushd ${S} >/dev/null || die
+	local std
+	std="$(grep 'std' ./components)"
 	local components="rustc,cargo,${std}"
 	use doc && components="${components},rust-docs"
 	use clippy && components="${components},clippy-preview"
@@ -136,6 +143,16 @@ src_install() {
 
 	insinto /etc/env.d/rust
 	doins "${T}/provider-${P}"
+	popd >/dev/null || die
+	#end native abi install
+
+	else
+		local rust_target
+		rust_target="$(rust_abi $(get_abi_CHOST ${v##*.}))"
+		dodir "/opt/${P}/lib/rustlib"
+		cp -vr "${WORKDIR}/rust-${PV}-${rust_target}/rust-std-${rust_target}/lib/rustlib/${rust_target}"\
+			"${ED}/opt/${P}/lib/rustlib" || die
+	fi
 }
 
 pkg_postinst() {
@@ -157,7 +174,7 @@ pkg_postinst() {
 		ewarn ""
 		ewarn "you will need to set RUSTFLAGS=\"-C target-feature=-crt-static\" in make.conf"
 		ewarn "to use it with portage, otherwise you may see failures like"
-		ewarn "error: cannot produce proc-macro for serde_derive v1.0.98 as the target "
+		ewarn "error: cannot produce proc-macro for serde_derive as the target "
 		ewarn "x86_64-unknown-linux-musl does not support these crate types"
 	fi
 }

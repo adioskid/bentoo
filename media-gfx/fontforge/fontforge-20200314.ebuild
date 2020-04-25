@@ -12,7 +12,7 @@ SRC_URI="https://github.com/fontforge/fontforge/releases/download/${PV}/fontforg
 
 LICENSE="BSD GPL-3+"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x86-macos"
+KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~mips ppc ~ppc64 ~s390 sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x86-macos"
 IUSE="doc truetype-debugger gif gtk jpeg png +python readline test tiff svg unicode woff2 X"
 RESTRICT="!test? ( test )"
 
@@ -94,7 +94,12 @@ src_configure() {
 	fi
 
 	if use truetype-debugger ; then
-		mycmakeargs+=( -DENABLE_FREETYPE_DEBUGGER="${EPREFIX}/usr/include/freetype2/internal4fontforge" )
+		local ft2="${ESYSROOT}/usr/include/freetype2"
+		local ft2i="${ft2}/internal4fontforge"
+		mycmakeargs+=(
+			-DENABLE_FREETYPE_DEBUGGER="${ft2}"
+			-DFreeTypeSource_INCLUDE_DIRS="${ft2};${ft2i}/include;${ft2i}/include/freetype;${ft2i}/src/truetype"
+		)
 	fi
 
 	cmake_src_configure
