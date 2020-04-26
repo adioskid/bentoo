@@ -44,6 +44,7 @@ RDEPEND="${COMMON_DEPEND}
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.1.3-dots-in-usernames.patch"
+	"${FILESDIR}/shadow-4.7-disable-subids-useradd.patch"
 )
 
 src_prepare() {
