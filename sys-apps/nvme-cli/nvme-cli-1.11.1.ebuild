@@ -12,7 +12,7 @@ RESTRICT="test"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="amd64 ~ppc64 ~x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 IUSE="+uuid"
 
 RDEPEND="uuid? ( sys-apps/util-linux:= )"
@@ -21,10 +21,8 @@ DEPEND="${RDEPEND}"
 src_prepare() {
 	default
 	sed -e 's|^LIBUUID =|LIBUUID ?=|' \
-		-e 's|^install-hostparams:$|\0 install-etc|' \
+		-e '/DESTDIROLD/d' \
 		-i Makefile || die
-	sed -e "s|/usr/lib/udev|$(get_udevdir)|" \
-		-i nvmf-autoconnect/dracut-conf/70-nvmf-autoconnect.conf || die
 }
 
 src_configure() {

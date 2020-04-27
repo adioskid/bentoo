@@ -22,7 +22,7 @@ HOMEPAGE="https://www.digikam.org/"
 
 LICENSE="GPL-2"
 SLOT="5"
-IUSE="addressbook calendar dnn heif +imagemagick gphoto2 +lensfun libav marble mediaplayer mysql opengl openmp +panorama scanner semantic-desktop vkontakte webkit X"
+IUSE="addressbook calendar dnn heif +imagemagick gphoto2 +lensfun marble mediaplayer mysql opengl openmp +panorama scanner semantic-desktop vkontakte webkit X"
 
 BDEPEND="
 	>=dev-util/cmake-3.14.3
@@ -36,7 +36,7 @@ COMMON_DEPEND="
 	dev-libs/expat
 	>=dev-qt/qtconcurrent-${QTMIN}:5
 	>=dev-qt/qtdbus-${QTMIN}:5
-	>=dev-qt/qtgui-${QTMIN}:5[-gles2]
+	>=dev-qt/qtgui-${QTMIN}:5[-gles2-only]
 	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtprintsupport-${QTMIN}:5
 	>=dev-qt/qtsql-${QTMIN}:5[mysql?]
@@ -80,8 +80,7 @@ COMMON_DEPEND="
 	)
 	mediaplayer? (
 		media-libs/qtav[opengl]
-		!libav? ( media-video/ffmpeg:= )
-		libav? ( media-video/libav:= )
+		media-video/ffmpeg:=
 	)
 	opengl? (
 		>=dev-qt/qtopengl-${QTMIN}:5
@@ -103,7 +102,7 @@ DEPEND="${COMMON_DEPEND}
 	dev-libs/boost[threads]
 "
 RDEPEND="${COMMON_DEPEND}
-	mysql? ( virtual/mysql[server] )
+	mysql? ( virtual/mysql[server(+)] )
 	panorama? ( media-gfx/hugin )
 "
 

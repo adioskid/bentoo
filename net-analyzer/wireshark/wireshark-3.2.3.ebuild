@@ -11,13 +11,13 @@ SRC_URI="https://www.wireshark.org/download/src/all-versions/${P/_/}.tar.xz"
 LICENSE="GPL-2"
 
 SLOT="0/${PV}"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc64 ~x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc64 x86"
 IUSE="
 	androiddump bcg729 brotli +capinfos +captype ciscodump +dftest doc dpauxmon
 	+dumpcap +editcap http2 kerberos libxml2 lua lz4 maxminddb +mergecap
 	+minizip +netlink +plugins plugin-ifdemo +pcap +qt5 +randpkt +randpktdump
 	+reordercap sbc selinux +sharkd smi snappy spandsp sshdump ssl sdjournal
-	+text2pcap tfshark +tshark +udpdump zlib +zstd
+	test +text2pcap tfshark +tshark +udpdump zlib +zstd
 "
 S=${WORKDIR}/${P/_/}
 
@@ -73,6 +73,10 @@ BDEPEND="
 	)
 	qt5? (
 		dev-qt/linguist-tools:5
+	)
+	test? (
+		dev-python/pytest
+		dev-python/pytest-xdist
 	)
 "
 RDEPEND="
@@ -174,6 +178,7 @@ src_configure() {
 }
 
 src_test() {
+	cmake_build test-programs
 	cmake_src_test
 }
 

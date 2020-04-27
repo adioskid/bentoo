@@ -21,7 +21,7 @@ sv-SE tr uk vi zh-CN zh-TW )
 MOZ_PV="${PV/_beta/b}"
 
 # Patches
-PATCHFF="firefox-68.0-patches-12"
+PATCHFF="firefox-68.0-patches-13"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/releases"
 
@@ -81,7 +81,7 @@ CDEPEND="
 	>=dev-libs/glib-2.26:2
 	>=sys-libs/zlib-1.2.3
 	>=virtual/libffi-3.0.10:=
-	virtual/ffmpeg
+	media-video/ffmpeg
 	x11-libs/libX11
 	x11-libs/libXcomposite
 	x11-libs/libXdamage
