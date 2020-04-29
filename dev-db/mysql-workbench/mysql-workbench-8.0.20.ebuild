@@ -20,7 +20,7 @@ SRC_URI="https://cdn.mysql.com/Downloads/MySQLGUITools/${MY_P}.tar.gz
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="amd64 x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~amd64 ~x86 ~amd64-linux ~x86-linux"
 IUSE="debug doc"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
@@ -70,7 +70,7 @@ S="${WORKDIR}"/"${MY_P}"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-6.2.5-wbcopytables.patch"
-	"${FILESDIR}/${P}-mysql-connector-8.patch"
+	"${FILESDIR}/${PN}-8.0.19-mysql-connector-8.patch"
 )
 
 src_unpack() {

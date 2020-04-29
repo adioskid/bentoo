@@ -12,11 +12,11 @@ if [[ ${PV} == 9999 ]]; then
 	EGIT_REPO_URI="https://${EGO_PN}.git"
 else
 	SRC_URI="https://${EGO_PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="amd64 arm ~arm64 ~ppc64 ~x86"
+	KEYWORDS="amd64 arm arm64 ~ppc64 ~x86"
 fi
 
 DESCRIPTION="A flexible DNS proxy, with support for encrypted DNS protocols"
-HOMEPAGE="https://github.com/jedisct1/dnscrypt-proxy"
+HOMEPAGE="https://github.com/DNSCrypt/dnscrypt-proxy"
 
 LICENSE="Apache-2.0 BSD ISC MIT MPL-2.0"
 SLOT="0"
