@@ -8,13 +8,13 @@ MULTILIB_COMPAT=( abi_x86_64 )
 inherit desktop eutils multilib-build pax-utils unpacker xdg-utils
 
 DESCRIPTION="Team collaboration tool"
-HOMEPAGE="https://www.slack.com/"
+HOMEPAGE="https://www.slack.com"
 SRC_URI="https://downloads.slack-edge.com/linux_releases/${PN}-desktop-${PV}-amd64.deb"
 
 LICENSE="all-rights-reserved"
 SLOT="0"
 KEYWORDS="-* ~amd64"
-IUSE="ayatana"
+IUSE="ayatana suid"
 RESTRICT="bindist mirror"
 
 RDEPEND="app-accessibility/at-spi2-atk:2[${MULTILIB_USEDEP}]
@@ -48,12 +48,13 @@ RDEPEND="app-accessibility/at-spi2-atk:2[${MULTILIB_USEDEP}]
 	x11-libs/pango:0[${MULTILIB_USEDEP}]
 	ayatana? ( dev-libs/libappindicator:3[${MULTILIB_USEDEP}] )"
 
-QA_PREBUILT="/opt/slack/chrome-sandbox
-	opt/slack/slack
-	opt/slack/resources/app.asar.unpacked/node_modules/*
-	opt/slack/libffmpeg.so
+QA_PREBUILT="opt/slack/chrome-sandbox
 	opt/slack/libEGL.so
+	opt/slack/libffmpeg.so
 	opt/slack/libGLESv2.so
+	opt/slack/resources/app.asar.unpacked/node_modules/*/*/build/Release/*.node
+	opt/slack/resources/app.asar.unpacked/node_modules/*/build/Release/*.node
+	opt/slack/slack
 	opt/slack/swiftshader/libEGL.so
 	opt/slack/swiftshader/libGLESv2.so
 	opt/slack/swiftshader/libvk_swiftshader.so"
@@ -83,7 +84,8 @@ src_install() {
 
 	insinto /opt/slack
 	doins -r usr/lib/slack/.
-	fperms +x /opt/slack/slack
+	for i in $(echo -n "${QA_PREBUILT}") ; do fperms +x "$i" ; done
+	use suid && fperms u+s /opt/slack/chrome-sandbox # wrt 713094
 	dosym ../../opt/slack/slack usr/bin/slack
 
 	pax-mark -m "${ED}"/opt/slack/slack
