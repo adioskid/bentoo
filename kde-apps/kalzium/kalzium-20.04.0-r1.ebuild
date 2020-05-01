@@ -14,7 +14,7 @@ https://edu.kde.org/kalzium/"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64"
+KEYWORDS="~amd64 ~arm64"
 IUSE="editor solver"
 
 DEPEND="
@@ -41,7 +41,7 @@ DEPEND="
 		dev-cpp/eigen:3
 		>=kde-frameworks/knewstuff-${KFMIN}:5
 		sci-chemistry/openbabel
-		sci-libs/avogadrolibs[qt5]
+		>=sci-libs/avogadrolibs-1.93[qt5]
 	)
 	solver? ( dev-ml/facile[ocamlopt] )
 "

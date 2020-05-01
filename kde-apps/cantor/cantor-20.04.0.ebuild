@@ -18,7 +18,7 @@ https://edu.kde.org/cantor/"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64"
+KEYWORDS="~amd64 ~arm64"
 IUSE="+analitza julia lua postscript python qalculate R"
 
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
@@ -97,7 +97,6 @@ src_configure() {
 	use julia && addpredict /proc/self/mem # bug 602894
 
 	local mycmakeargs=(
-		-DCMAKE_DISABLE_FIND_PACKAGE_PythonLibs=ON
 		$(cmake_use_find_package analitza Analitza5)
 		$(cmake_use_find_package julia Julia)
 		$(cmake_use_find_package lua LuaJIT)

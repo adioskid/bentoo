@@ -13,7 +13,7 @@ HOMEPAGE="https://community.kde.org/KTp"
 
 LICENSE="LGPL-2.1"
 SLOT="5"
-KEYWORDS="~amd64"
+KEYWORDS="~amd64 ~arm64"
 IUSE=""
 
 COMMON_DEPEND="
@@ -42,4 +42,4 @@ RDEPEND="${COMMON_DEPEND}
 	>=kde-apps/signon-kwallet-extension-${PVCUT}:5
 "
 
-PATCHES=( "${WORKDIR}/${P}-ktp_integration_module.patch" )
+PATCHES=( "${FILESDIR}/${P}-ktp_integration_module.patch" )
