@@ -13,7 +13,7 @@ SRC_URI="https://dev.mysql.com/get/Downloads/${URI_DIR}/${P}-src.tar.gz"
 
 LICENSE="Artistic GPL-2"
 SLOT="0"
-KEYWORDS="amd64 arm ~arm64 ~ppc ~ppc64 ~sparc x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~sparc ~x86"
 IUSE="+legacy libressl"
 
 RDEPEND="
@@ -29,7 +29,7 @@ S="${WORKDIR}/${P}-src"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-8.0.19-fix-build.patch
-	"${FILESDIR}"/${PN}-8.0.19-fix-libressl-support.patch
+	"${FILESDIR}"/${PN}-8.0.20-fix-libressl-support.patch
 )
 
 src_configure() {
