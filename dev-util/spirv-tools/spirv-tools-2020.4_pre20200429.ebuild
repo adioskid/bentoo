@@ -12,9 +12,10 @@ if [[ ${PV} == *9999* ]]; then
 	EGIT_REPO_URI="https://github.com/KhronosGroup/${MY_PN}.git"
 	inherit git-r3
 else
-	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+	SNAPSHOT_COMMIT="49ca250b44c633ba7cb8897002e62781a451421c"
+	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/${SNAPSHOT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~ppc64 ~x86"
-	S="${WORKDIR}"/${MY_PN}-${PV}
+	S="${WORKDIR}"/${MY_PN}-${SNAPSHOT_COMMIT}
 fi
 
 DESCRIPTION="Provides an API and commands for processing SPIR-V modules"
@@ -25,7 +26,7 @@ SLOT="0"
 # Tests fail upon finding symbols that do not match a regular expression
 # in the generated library. Easily hit with non-standard compiler flags
 RESTRICT="test"
-COMMON_DEPEND=">=dev-util/spirv-headers-1.5.1"
+COMMON_DEPEND=">=dev-util/spirv-headers-1.5.3"
 DEPEND="${COMMON_DEPEND}"
 RDEPEND=""
 BDEPEND="${PYTHON_DEPS}
