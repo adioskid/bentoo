@@ -2,11 +2,7 @@
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
 	<maintainer type="person">
-		<email>ryao@gentoo.org</email>
-		<name>Richard Yao</name>
+		<email>williamh@gentoo.org</email>
+		<name>William Hubbs</name>
 	</maintainer>
-	<use>
-		<flag name="capi">Enable ISDN support via CAPI</flag>
-		<flag name="opencl">Enable OpenCL support</flag>
-	</use>
 </pkgmetadata>

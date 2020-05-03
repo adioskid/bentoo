@@ -165,7 +165,7 @@ _meson_create_cross_file() {
 	local system cpu_family cpu
 	_meson_get_machine_info "${CHOST}"
 
-	local fn=${T}/meson.${CHOST}.ini
+	local fn=${T}/meson.${CHOST}.${ABI}.ini
 
 	cat > "${fn}" <<-EOF
 	[binaries]
@@ -215,7 +215,7 @@ _meson_create_native_file() {
 	local system cpu_family cpu
 	_meson_get_machine_info "${CBUILD}"
 
-	local fn=${T}/meson.${CBUILD}.ini
+	local fn=${T}/meson.${CBUILD}.${ABI}.ini
 
 	cat > "${fn}" <<-EOF
 	[binaries]
@@ -248,7 +248,7 @@ _meson_create_native_file() {
 	system = '${system}'
 	cpu_family = '${cpu_family}'
 	cpu = '${cpu}'
-	endian = '$(tc-endian "${CHOST}")'
+	endian = '$(tc-endian "${CBUILD}")'
 	EOF
 
 	echo "${fn}"
@@ -288,9 +288,15 @@ meson_src_configure() {
 	debug-print-function ${FUNCNAME} "$@"
 
 	tc-export_build_env
-	: ${BUILD_FCFLAGS:=${FCFLAGS}}
-	: ${BUILD_OBJCFLAGS:=${OBJCFLAGS}}
-	: ${BUILD_OBJCXXFLAGS:=${OBJCXXFLAGS}}
+	if tc-is-cross-compiler; then
+		: ${BUILD_FCFLAGS:=-O1 -pipe}
+		: ${BUILD_OBJCFLAGS:=-O1 -pipe}
+		: ${BUILD_OBJCXXFLAGS:=-O1 -pipe}
+	else
+		: ${BUILD_FCFLAGS:=${FCFLAGS}}
+		: ${BUILD_OBJCFLAGS:=${OBJCFLAGS}}
+		: ${BUILD_OBJCXXFLAGS:=${OBJCXXFLAGS}}
+	fi
 
 	local mesonargs=(
 		meson setup
@@ -338,6 +344,9 @@ meson_src_configure() {
 
 	# https://bugs.gentoo.org/625396
 	python_export_utf8_locale
+
+	# https://bugs.gentoo.org/720818
+	unset {C,CPP,CXX,F,FC,OBJC,OBJCXX,LD}FLAGS
 
 	echo "${mesonargs[@]}" >&2
 	"${mesonargs[@]}" || die
