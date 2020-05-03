@@ -19,13 +19,13 @@ IUSE="nautilus test"
 RESTRICT="!test? ( test )"
 
 DEPEND="${PYTHON_DEPS}
-	test? ( dev-python/pycrypto[${PYTHON_USEDEP}]
+	test? ( dev-python/pycryptodome[${PYTHON_USEDEP}]
 		dev-python/PyQt5[${PYTHON_USEDEP},testlib]
 		dev-python/pytest[${PYTHON_USEDEP}] )"
 RDEPEND="${PYTHON_DEPS}
 	dev-python/flask[${PYTHON_USEDEP}]
 	>=dev-python/flask-httpauth-3.2.4[${PYTHON_USEDEP}]
-	dev-python/pycrypto[${PYTHON_USEDEP}]
+	dev-python/pycryptodome[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP}]
 	dev-python/PySocks[${PYTHON_USEDEP}]
 	>=net-libs/stem-1.6.0[${PYTHON_USEDEP}]
