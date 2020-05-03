@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -6,13 +6,13 @@ GST_ORG_MODULE=gst-plugins-bad
 
 inherit gstreamer
 
-DESCRIPTION="OpenCV elements for Gstreamer"
+DESCRIPTION="OpenCV elements for GStreamer"
 KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 RDEPEND="
-	>=media-libs/opencv-2.3.0[contrib(+),${MULTILIB_USEDEP}]
-	<media-libs/opencv-3.5
+	>=media-libs/opencv-3.0.0[contrib(+),${MULTILIB_USEDEP}]
+	<media-libs/opencv-4.2
 "
 DEPEND="${RDEPEND}"
 
