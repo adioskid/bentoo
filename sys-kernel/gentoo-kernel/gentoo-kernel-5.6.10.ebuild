@@ -6,13 +6,13 @@ EAPI=7
 inherit kernel-build
 
 MY_P=linux-${PV%.*}
-GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 2 ))
+GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 3 ))
 # https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
-AMD64_CONFIG_VER=5.5.5-arch1
-AMD64_CONFIG_HASH=e4d4ca36741d228042185e2a9047cd88fb5b4169
+AMD64_CONFIG_VER=5.6.8-arch1
+AMD64_CONFIG_HASH=7dcb86e3e6f24c6d5462c5c8d25c3fa09e7e9f55
 # https://git.archlinux32.org/packages/log/core/linux/config.i686
-I686_CONFIG_VER=5.5.6-arch1
-I686_CONFIG_HASH=7d53d8a42f68648bce5b002aaf8c2b14e6298275
+I686_CONFIG_VER=5.6.8-arch1
+I686_CONFIG_HASH=bc42cce2cca0d42b5cfeb8c6bcbf9f39430791f2
 
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"
