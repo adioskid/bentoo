@@ -1,0 +1,14 @@
+diff -urN shadow-4.7/src/useradd.c shadow-4.7-fixed/src/useradd.c
+--- shadow-4.7/src/useradd.c	2019-05-03 23:38:23.000000000 -0600
++++ shadow-4.7-fixed/src/useradd.c	2019-10-28 18:56:29.966359651 -0600
+@@ -131,6 +131,10 @@
+ static bool is_shadow_grp;
+ static bool sgr_locked = false;
+ #endif
++
++/* shadow is set up weird. This keeps shadow building but disables subid support in useradd. */
++
++#undef ENABLE_SUBIDS
+ #ifdef ENABLE_SUBIDS
+ static bool is_sub_uid = false;
+ static bool is_sub_gid = false;

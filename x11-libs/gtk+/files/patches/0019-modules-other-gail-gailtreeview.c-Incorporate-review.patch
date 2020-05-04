@@ -1,0 +1,61 @@
+From 8f8336cd9410c39ac53da40de69907a0844024d5 Mon Sep 17 00:00:00 2001
+From: Brady Minardi <bradyminardi@fake-box.com>
+Date: Sat, 14 Jul 2018 14:45:28 +0000
+Subject: [PATCH 19/20] modules/other/gail/gailtreeview.c: Incorporate review
+ suggestions
+
+Incorporate review suggestions by Emmanuele Bassi.
+---
+ modules/other/gail/gailtreeview.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/modules/other/gail/gailtreeview.c b/modules/other/gail/gailtreeview.c
+index ee8fa00af2..23923c59a1 100644
+--- a/modules/other/gail/gailtreeview.c
++++ b/modules/other/gail/gailtreeview.c
+@@ -223,7 +223,7 @@ static void             adjustment_changed              (GtkAdjustment
+ 
+ /* Misc */
+ 
+-static void             set_iter_nth_row                (GtkTreeView            *tree_view,
++static gboolean         set_iter_nth_row                (GtkTreeView            *tree_view,
+                                                          GtkTreeIter            *iter,
+                                                          gint                   row);
+ static gint             get_row_from_tree_path          (GtkTreeView            *tree_view,
+@@ -1466,8 +1466,10 @@ gail_tree_view_add_row_selection (AtkTable *table,
+         }
+       else
+         { 
+-          set_iter_nth_row (tree_view, &iter_to_row, row);
+-          gtk_tree_selection_select_iter (selection, &iter_to_row);
++          if (set_iter_nth_row (tree_view, &iter_to_row, row))
++            gtk_tree_selection_select_iter (selection, &iter_to_row);
++          else
++            return FALSE;
+         }
+     }
+ 
+@@ -3236,7 +3238,7 @@ update_cell_value (GailRendererCell *renderer_cell,
+   return gail_renderer_cell_update_cache (renderer_cell, emit_change_signal);
+ }
+ 
+-static void 
++static gboolean 
+ set_iter_nth_row (GtkTreeView *tree_view, 
+                   GtkTreeIter *iter, 
+                   gint        row)
+@@ -3245,7 +3247,10 @@ set_iter_nth_row (GtkTreeView *tree_view,
+   
+   tree_model = gtk_tree_view_get_model (tree_view);
+   gtk_tree_model_get_iter_first (tree_model, iter);
+-  iter = return_iter_nth_row (tree_view, tree_model, iter, 0 , row);
++  if (return_iter_nth_row (tree_view, tree_model, iter, 0 , row) != NULL)
++    return TRUE;
++    
++  return FALSE;
+ }
+ 
+ static gint 
+-- 
+2.17.0
+

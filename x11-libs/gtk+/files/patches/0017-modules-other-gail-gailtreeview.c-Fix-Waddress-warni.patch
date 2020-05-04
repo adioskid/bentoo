@@ -1,0 +1,29 @@
+From 8715570f45be46e4afbad42b188ff11d74a2200a Mon Sep 17 00:00:00 2001
+From: Brady Minardi <bradyminardi@fake-box.com>
+Date: Sat, 14 Jul 2018 07:56:39 +0000
+Subject: [PATCH 17/20] modules/other/gail/gailtreeview.c: Fix -Waddress
+ warning
+
+---
+ modules/other/gail/gailtreeview.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/modules/other/gail/gailtreeview.c b/modules/other/gail/gailtreeview.c
+index df0fc69f9f..bcc406a581 100644
+--- a/modules/other/gail/gailtreeview.c
++++ b/modules/other/gail/gailtreeview.c
+@@ -1467,10 +1467,7 @@ gail_tree_view_add_row_selection (AtkTable *table,
+       else
+         { 
+           set_iter_nth_row (tree_view, &iter_to_row, row);
+-          if (&iter_to_row != NULL)
+-            gtk_tree_selection_select_iter (selection, &iter_to_row);
+-          else
+-            return FALSE;
++          gtk_tree_selection_select_iter (selection, &iter_to_row);
+         }
+     }
+ 
+-- 
+2.17.0
+

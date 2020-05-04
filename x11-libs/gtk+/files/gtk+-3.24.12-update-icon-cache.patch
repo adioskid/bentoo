@@ -1,0 +1,28 @@
+--- a/gtk/meson.build	2019-09-03 13:53:07.000000000 -0500
++++ b/gtk/meson.build	2019-09-04 12:13:53.887414484 -0500
+@@ -1062,7 +1062,7 @@
+   'updateiconcache.c',
+   c_args: gtk_cargs,
+   dependencies: libgtk_dep,
+-  install: true
++  install: false
+ )
+ 
+  gtk_query_immodules = executable(
+--- a/docs/reference/gtk/meson.build	2019-04-18 09:38:23.000000000 -0500
++++ b/docs/reference/gtk/meson.build	2019-09-04 12:15:14.966618873 -0500
+@@ -394,6 +394,5 @@
+   'gtk-launch.xml',
+   'gtk-query-immodules-3.0.xml',
+   'gtk-query-settings.xml',
+-  'gtk-update-icon-cache.xml',
+   'osx.sgml',
+   'overview.xml',
+@@ -500,7 +499,6 @@
+ 
+   man_files = [
+     [ 'gtk-query-immodules-3.0', '1', ],
+-    [ 'gtk-update-icon-cache', '1', ],
+     [ 'gtk-encode-symbolic-svg', '1', ],
+     [ 'gtk-launch', '1', ],
+     [ 'gtk3-demo', '1', ],

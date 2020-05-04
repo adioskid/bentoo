@@ -1,0 +1,32 @@
+From 9ce6f8086e3b264f30add5bd5bfab005c359ac66 Mon Sep 17 00:00:00 2001
+From: John Lindgren <john@jlindgren.net>
+Date: Sat, 17 Feb 2018 22:03:27 -0500
+Subject: [PATCH 12/20] Fix incorrect optimization in find_builtin_icon().
+
+When we found an icon with exactly the requested size, we'd stop
+searching immediately (good), but we'd neglect to set the returned
+min_difference to 0 (bad).  This caused theme_lookup_icon() to
+prefer other, potentially much worse, matches over the exact one.
+
+Cherry-picked from 5aa939dc (gtk-3-22)
+
+https://bugzilla.gnome.org/show_bug.cgi?id=792738
+---
+ gtk/gtkicontheme.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/gtk/gtkicontheme.c b/gtk/gtkicontheme.c
+index 532d94bee5..470158ceea 100644
+--- a/gtk/gtkicontheme.c
++++ b/gtk/gtkicontheme.c
+@@ -3396,6 +3396,7 @@ find_builtin_icon (const gchar *icon_name,
+       
+       if (difference == 0)
+ 	{
++	  min_difference = 0;
+ 	  min_icon = default_icon;
+ 	  break;
+ 	}
+-- 
+2.17.0
+

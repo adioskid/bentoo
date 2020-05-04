@@ -1,0 +1,406 @@
+From 303858fa76629a85f9272567f84667b9efcf1131 Mon Sep 17 00:00:00 2001
+From: Eduard Braun <eduard.braun2@gmx.de>
+Date: Sat, 13 Jan 2018 23:09:51 +0100
+Subject: [PATCH 20/20] Consistently use g_stat and GStatBuf
+
+Replace "stat struct" with "GStatBuf" and "stat" with "g_stat" where
+appropriate to fix cross-platform issues, specifically on Windows.
+
+Code should be identical on *nix but fixes some serious issues
+on Windows:
+- Field widths of "struct stat" are not constant on Windows.
+  If the stat function does not match the stat struct used
+  it will cause overwrites and undefined behavior
+- The Windows stat function needs a properly encoded filename.
+  In many places we pass an UTF-8 encoded value which breaks as soon
+  as non-ASCII characters are involved.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=787772
+---
+ demos/pixbuf-init.c     |  8 +++-----
+ gtk/gtkfilesel.c        | 30 +++++++++++++++---------------
+ gtk/gtkiconcache.c      |  4 ++--
+ gtk/gtkicontheme.c      |  6 +++---
+ gtk/gtkrc.c             |  4 ++--
+ gtk/gtkrecentmanager.c  |  4 ++--
+ gtk/tests/pixbuf-init.c |  8 +++-----
+ gtk/updateiconcache.c   |  4 ++--
+ tests/testfilechooser.c | 10 +++++-----
+ tests/testgtk.c         |  6 +++---
+ tests/testtext.c        |  6 +++---
+ 11 files changed, 43 insertions(+), 47 deletions(-)
+
+diff --git a/demos/pixbuf-init.c b/demos/pixbuf-init.c
+index 898de45586..20e35e51b6 100644
+--- a/demos/pixbuf-init.c
++++ b/demos/pixbuf-init.c
+@@ -1,15 +1,13 @@
+ #include "config.h"
+ #include <glib.h>
+-
+-#include <sys/stat.h>
+-#include <stdlib.h>
++#include <glib/gstdio.h>
+ 
+ static gboolean
+ file_exists (const char *filename)
+ {
+-  struct stat statbuf;
++  GStatBuf statbuf;
+ 
+-  return stat (filename, &statbuf) == 0;
++  return g_stat (filename, &statbuf) == 0;
+ }
+ 
+ void
+diff --git a/gtk/gtkfilesel.c b/gtk/gtkfilesel.c
+index d18c307f1f..245bdf11cb 100644
+--- a/gtk/gtkfilesel.c
++++ b/gtk/gtkfilesel.c
+@@ -325,7 +325,7 @@ static CompletionDir* open_ref_dir         (gchar* text_to_complete,
+ 					    CompletionState* cmpl_state);
+ #ifndef G_PLATFORM_WIN32
+ static gboolean       check_dir            (gchar *dir_name, 
+-					    struct stat *result, 
++					    GStatBuf *result, 
+ 					    gboolean *stat_subdirs);
+ #endif
+ static CompletionDir* open_dir             (gchar* dir_name,
+@@ -337,11 +337,11 @@ static CompletionDir* open_user_dir        (const gchar* text_to_complete,
+ static CompletionDir* open_relative_dir    (gchar* dir_name, CompletionDir* dir,
+ 					    CompletionState *cmpl_state);
+ static CompletionDirSent* open_new_dir     (gchar* dir_name, 
+-					    struct stat* sbuf,
++					    GStatBuf *sbuf,
+ 					    gboolean stat_subdirs);
+ static gint           correct_dir_fullname (CompletionDir* cmpl_dir);
+ static gint           correct_parent       (CompletionDir* cmpl_dir,
+-					    struct stat *sbuf);
++					    GStatBuf *sbuf);
+ #ifndef G_PLATFORM_WIN32
+ static gchar*         find_parent_dir_fullname    (gchar* dirname);
+ #endif
+@@ -2984,9 +2984,9 @@ open_relative_dir (gchar           *dir_name,
+ 
+ /* after the cache lookup fails, really open a new directory */
+ static CompletionDirSent*
+-open_new_dir (gchar       *dir_name,
+-	      struct stat *sbuf,
+-	      gboolean     stat_subdirs)
++open_new_dir (gchar    *dir_name,
++	      GStatBuf *sbuf,
++	      gboolean  stat_subdirs)
+ {
+   CompletionDirSent *sent;
+   GDir *directory;
+@@ -2995,7 +2995,7 @@ open_new_dir (gchar       *dir_name,
+   gint entry_count = 0;
+   gint n_entries = 0;
+   gint i;
+-  struct stat ent_sbuf;
++  GStatBuf ent_sbuf;
+   GString *path;
+   gchar *sys_dir_name;
+ 
+@@ -3101,9 +3101,9 @@ open_new_dir (gchar       *dir_name,
+ #ifndef G_PLATFORM_WIN32
+ 
+ static gboolean
+-check_dir (gchar       *dir_name,
+-	   struct stat *result,
+-	   gboolean    *stat_subdirs)
++check_dir (gchar    *dir_name,
++	   GStatBuf *result,
++	   gboolean *stat_subdirs)
+ {
+   /* A list of directories that we know only contain other directories.
+    * Trying to stat every file in these directories would be very
+@@ -3113,7 +3113,7 @@ check_dir (gchar       *dir_name,
+   static struct {
+     const gchar name[5];
+     gboolean present;
+-    struct stat statbuf;
++    GStatBuf statbuf;
+   } no_stat_dirs[] = {
+     { "/afs", FALSE, { 0 } },
+     { "/net", FALSE, { 0 } }
+@@ -3172,7 +3172,7 @@ open_dir (gchar           *dir_name,
+ 	  CompletionState *cmpl_state)
+ {
+ #ifndef G_PLATFORM_WIN32
+-  struct stat sbuf;
++  GStatBuf sbuf;
+   gboolean stat_subdirs;
+   GList* cdsl;
+ #endif
+@@ -3238,7 +3238,7 @@ correct_dir_fullname (CompletionDir* cmpl_dir)
+   gint length = strlen (cmpl_dir->fullname);
+   gchar *first_slash = strchr (cmpl_dir->fullname, G_DIR_SEPARATOR);
+   gchar *sys_filename;
+-  struct stat sbuf;
++  GStatBuf sbuf;
+ 
+   /* Does it end with /. (\.) ? */
+   if (length >= 2 &&
+@@ -3338,9 +3338,9 @@ correct_dir_fullname (CompletionDir* cmpl_dir)
+ 
+ static gint
+ correct_parent (CompletionDir *cmpl_dir,
+-		struct stat   *sbuf)
++		GStatBuf      *sbuf)
+ {
+-  struct stat parbuf;
++  GStatBuf parbuf;
+   gchar *last_slash;
+   gchar *first_slash;
+ #ifndef G_PLATFORM_WIN32
+diff --git a/gtk/gtkiconcache.c b/gtk/gtkiconcache.c
+index 576dd948ec..143f8f14b8 100644
+--- a/gtk/gtkiconcache.c
++++ b/gtk/gtkiconcache.c
+@@ -92,8 +92,8 @@ _gtk_icon_cache_new_for_path (const gchar *path)
+ 
+   gchar *cache_filename;
+   gint fd = -1;
+-  struct stat st;
+-  struct stat path_st;
++  GStatBuf st;
++  GStatBuf path_st;
+   CacheInfo info;
+ 
+    /* Check if we have a cache file */
+diff --git a/gtk/gtkicontheme.c b/gtk/gtkicontheme.c
+index 470158ceea..60661c8e72 100644
+--- a/gtk/gtkicontheme.c
++++ b/gtk/gtkicontheme.c
+@@ -902,7 +902,7 @@ insert_theme (GtkIconTheme *icon_theme, const char *theme_name)
+   GKeyFile *theme_file;
+   GError *error = NULL;
+   IconThemeDirMtime *dir_mtime;
+-  struct stat stat_buf;
++  GStatBuf stat_buf;
+   
+   priv = icon_theme->priv;
+ 
+@@ -1052,7 +1052,7 @@ load_themes (GtkIconTheme *icon_theme)
+   IconSuffix old_suffix, new_suffix;
+   GTimeVal tv;
+   IconThemeDirMtime *dir_mtime;
+-  struct stat stat_buf;
++  GStatBuf stat_buf;
+   
+   priv = icon_theme->priv;
+ 
+@@ -1898,7 +1898,7 @@ rescan_themes (GtkIconTheme *icon_theme)
+   IconThemeDirMtime *dir_mtime;
+   GList *d;
+   int stat_res;
+-  struct stat stat_buf;
++  GStatBuf stat_buf;
+   GTimeVal tv;
+ 
+   priv = icon_theme->priv;
+diff --git a/gtk/gtkrc.c b/gtk/gtkrc.c
+index 50b256360c..952010ed0d 100644
+--- a/gtk/gtkrc.c
++++ b/gtk/gtkrc.c
+@@ -983,7 +983,7 @@ gtk_rc_context_parse_one_file (GtkRcContext *context,
+ 			       gboolean      reload)
+ {
+   GtkRcFile *rc_file;
+-  struct stat statbuf;
++  GStatBuf statbuf;
+   gint saved_priority;
+ 
+   g_return_if_fail (filename != NULL);
+@@ -1764,7 +1764,7 @@ gtk_rc_reparse_all_for_settings (GtkSettings *settings,
+   GtkRcFile *rc_file;
+   GSList *tmp_list;
+   GtkRcContext *context;
+-  struct stat statbuf;
++  GStatBuf statbuf;
+ 
+   g_return_val_if_fail (GTK_IS_SETTINGS (settings), FALSE);
+ 
+diff --git a/gtk/gtkrecentmanager.c b/gtk/gtkrecentmanager.c
+index 609ee1ff61..1f67c13e0a 100644
+--- a/gtk/gtkrecentmanager.c
++++ b/gtk/gtkrecentmanager.c
+@@ -2221,7 +2221,7 @@ gboolean
+ gtk_recent_info_exists (GtkRecentInfo *info)
+ {
+   gchar *filename;
+-  struct stat stat_buf;
++  GStatBuf stat_buf;
+   gboolean retval = FALSE;
+   
+   g_return_val_if_fail (info != NULL, FALSE);
+@@ -2233,7 +2233,7 @@ gtk_recent_info_exists (GtkRecentInfo *info)
+   filename = g_filename_from_uri (info->uri, NULL, NULL);
+   if (filename)
+     {
+-      if (stat (filename, &stat_buf) == 0)
++      if (g_stat (filename, &stat_buf) == 0)
+         retval = TRUE;
+      
+       g_free (filename);
+diff --git a/gtk/tests/pixbuf-init.c b/gtk/tests/pixbuf-init.c
+index 47573abc04..5184a38b2a 100644
+--- a/gtk/tests/pixbuf-init.c
++++ b/gtk/tests/pixbuf-init.c
+@@ -1,15 +1,13 @@
+ #include "config.h"
+ #include <glib.h>
+-
+-#include <sys/stat.h>
+-#include <stdlib.h>
++#include <glib/gstdio.h>
+ 
+ static gboolean
+ file_exists (const char *filename)
+ {
+-  struct stat statbuf;
++  GStatBuf statbuf;
+ 
+-  return stat (filename, &statbuf) == 0;
++  return g_stat (filename, &statbuf) == 0;
+ }
+ 
+ void
+diff --git a/gtk/updateiconcache.c b/gtk/updateiconcache.c
+index 32c8f4112a..39e13452b1 100644
+--- a/gtk/updateiconcache.c
++++ b/gtk/updateiconcache.c
+@@ -119,7 +119,7 @@ static int check_dir_mtime (const char        *dir,
+ gboolean
+ is_cache_up_to_date (const gchar *path)
+ {
+-  struct stat path_stat, cache_stat;
++  GStatBuf path_stat, cache_stat;
+   gchar *cache_path;
+   int retval; 
+   
+@@ -1478,7 +1478,7 @@ build_cache (const gchar *path)
+ #endif
+   GHashTable *files;
+   FILE *cache;
+-  struct stat path_stat, cache_stat;
++  GStatBuf path_stat, cache_stat;
+   struct utimbuf utime_buf;
+   GList *directories = NULL;
+   int fd;
+diff --git a/tests/testfilechooser.c b/tests/testfilechooser.c
+index 443f5c38a8..86cb14dfcb 100644
+--- a/tests/testfilechooser.c
++++ b/tests/testfilechooser.c
+@@ -21,13 +21,13 @@
+ 
+ #include <string.h>
+ #include <sys/types.h>
+-#include <sys/stat.h>
+ #include <stdlib.h>
+ #include <time.h>
+ #ifdef HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
+ #include <gtk/gtk.h>
++#include <glib/gstdio.h>
+ 
+ #ifdef G_OS_WIN32
+ #  include <io.h>
+@@ -189,7 +189,7 @@ my_new_from_file_at_size (const char *filename,
+ 	GdkPixbufLoader *loader;
+ 	GdkPixbuf       *pixbuf;
+ 	int              info[2];
+-	struct stat st;
++	GStatBuf st;
+ 
+ 	guchar buffer [4096];
+ 	int length;
+@@ -198,7 +198,7 @@ my_new_from_file_at_size (const char *filename,
+ 	g_return_val_if_fail (filename != NULL, NULL);
+         g_return_val_if_fail (width > 0 && height > 0, NULL);
+ 
+-	if (stat (filename, &st) != 0) {
++	if (g_stat (filename, &st) != 0) {
+                 int errsv = errno;
+ 
+ 		g_set_error (error,
+@@ -298,8 +298,8 @@ update_preview_cb (GtkFileChooser *chooser)
+ 	}
+       else
+ 	{
+-	  struct stat buf;
+-	  if (stat (filename, &buf) == 0)
++	  GStatBuf buf;
++	  if (g_stat (filename, &buf) == 0)
+ 	    {
+ 	      gchar *preview_text;
+ 	      gchar *size_str;
+diff --git a/tests/testgtk.c b/tests/testgtk.c
+index ec2c57c2c6..b7ea442827 100644
+--- a/tests/testgtk.c
++++ b/tests/testgtk.c
+@@ -35,7 +35,6 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <sys/stat.h>
+ #include <math.h>
+ #include <time.h>
+ #ifdef HAVE_UNISTD_H
+@@ -46,6 +45,7 @@
+ #include "gtk/gtk.h"
+ #include "gdk/gdk.h"
+ #include "gdk/gdkkeysyms.h"
++#include "glib/gstdio.h"
+ 
+ #ifdef G_OS_WIN32
+ #define sleep(n) _sleep(n)
+@@ -59,9 +59,9 @@
+ gboolean
+ file_exists (const char *filename)
+ {
+-  struct stat statbuf;
++  GStatBuf statbuf;
+ 
+-  return stat (filename, &statbuf) == 0;
++  return g_stat (filename, &statbuf) == 0;
+ }
+ 
+ GtkWidget *
+diff --git a/tests/testtext.c b/tests/testtext.c
+index 880eaa7b5a..b9678bfc99 100644
+--- a/tests/testtext.c
++++ b/tests/testtext.c
+@@ -20,7 +20,6 @@
+ 
+ #include "config.h"
+ #include <stdio.h>
+-#include <sys/stat.h>
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -30,6 +29,7 @@
+ 
+ #include <gtk/gtk.h>
+ #include <gdk/gdkkeysyms.h>
++#include <glib/gstdio.h>
+ 
+ #include "prop-editor.h"
+ 
+@@ -2096,9 +2096,9 @@ save_as_ok_func (const char *filename, gpointer data)
+ 
+   if (!buffer->filename || strcmp (filename, buffer->filename) != 0)
+     {
+-      struct stat statbuf;
++      GStatBuf statbuf;
+ 
+-      if (stat (filename, &statbuf) == 0)
++      if (g_stat (filename, &statbuf) == 0)
+ 	{
+ 	  gchar *err = g_strdup_printf ("Ovewrite existing file '%s'?", filename);
+ 	  gint result = msgbox_run (NULL, err, "Yes", "No", NULL, 1);
+-- 
+2.17.0
+

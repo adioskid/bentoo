@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=Visual Studio Code
+Comment=Multiplatform Visual Studio Code from Microsoft
+Exec=vscode-bin --unity-launch %F
+Icon=vscode-bin
+Type=Application
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=text/plain;inode/directory;
+Actions=new-empty-window;
+Keywords=vscode;vscode-bin;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=vscode-bin --new-window %F
+Icon=vscode-bin

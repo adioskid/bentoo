@@ -1,0 +1,65 @@
+From f14fbca64509a5b79607f20ecbbe69239eb24e15 Mon Sep 17 00:00:00 2001
+From: Emmanuele Bassi <ebassi@gnome.org>
+Date: Sat, 10 Feb 2018 18:55:59 +0000
+Subject: [PATCH 03/20] Revert "Fix abicheck"
+
+This reverts commit 331877fe367f9c4e9472f5a211499b4225ef2513.
+
+The newly visible symbols were the result of a bug in the Python port of
+glib-genmarshal, which was fixed in GLib 2.54.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=793057
+---
+ gtk/abicheck.sh | 2 +-
+ gtk/gtk.symbols | 9 ---------
+ 2 files changed, 1 insertion(+), 10 deletions(-)
+
+diff --git a/gtk/abicheck.sh b/gtk/abicheck.sh
+index 23b2b0a098..0d033fb0a1 100755
+--- a/gtk/abicheck.sh
++++ b/gtk/abicheck.sh
+@@ -1,5 +1,5 @@
+ #! /bin/sh
+ 
+ cpp -DINCLUDE_VARIABLES -P -DG_OS_UNIX -DGTK_WINDOWING_X11 -DALL_FILES ${srcdir:-.}/gtk.symbols | sed -e '/^$/d' -e 's/ G_GNUC.*$//' -e 's/ PRIVATE//' | sort > expected-abi
+-nm -D -g --defined-only .libs/libgtk-x11-2.0.so | cut -d ' ' -f 3 | egrep -v '^(__bss_start|_edata|_end)' | egrep -v '^g_cclosure_marshal' | sort > actual-abi
++nm -D -g --defined-only .libs/libgtk-x11-2.0.so | cut -d ' ' -f 3 | egrep -v '^(__bss_start|_edata|_end)' | sort > actual-abi
+ diff -u expected-abi actual-abi && rm -f expected-abi actual-abi
+diff --git a/gtk/gtk.symbols b/gtk/gtk.symbols
+index 5f9ba56d47..6d5d5b6fa2 100644
+--- a/gtk/gtk.symbols
++++ b/gtk/gtk.symbols
+@@ -2510,16 +2510,10 @@ gtk_marshal_BOOLEAN__VOID
+ gtk_marshal_ENUM__ENUM
+ gtk_marshal_INT__POINTER
+ gtk_marshal_INT__POINTER_CHAR_CHAR
+-gtk_marshal_VOID__BOOLEAN
+-gtk_marshal_VOID__BOXED
+-gtk_marshal_VOID__ENUM
+ gtk_marshal_VOID__ENUM_FLOAT
+ gtk_marshal_VOID__ENUM_FLOAT_BOOLEAN
+-gtk_marshal_VOID__INT
+ gtk_marshal_VOID__INT_INT
+ gtk_marshal_VOID__INT_INT_POINTER
+-gtk_marshal_VOID__OBJECT
+-gtk_marshal_VOID__POINTER
+ gtk_marshal_VOID__POINTER_INT
+ gtk_marshal_VOID__POINTER_INT_INT_POINTER_UINT_UINT
+ gtk_marshal_VOID__POINTER_POINTER
+@@ -2529,13 +2523,10 @@ gtk_marshal_VOID__POINTER_STRING_STRING
+ gtk_marshal_VOID__POINTER_UINT
+ gtk_marshal_VOID__POINTER_UINT_ENUM
+ gtk_marshal_VOID__POINTER_UINT_UINT
+-gtk_marshal_VOID__STRING
+ gtk_marshal_VOID__STRING_INT_POINTER
+-gtk_marshal_VOID__UINT
+ gtk_marshal_VOID__UINT_POINTER_UINT_ENUM_ENUM_POINTER
+ gtk_marshal_VOID__UINT_POINTER_UINT_UINT_ENUM
+ gtk_marshal_VOID__UINT_STRING
+-gtk_marshal_VOID__VOID
+ #endif
+ #endif
+ #endif
+-- 
+2.17.0
+

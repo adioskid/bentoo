@@ -1,0 +1,32 @@
+Date:   Wed Jan 2 15:11:27 2019 -0800
+
+    add wierd bin/vmware-netcfg & lib/libcrypto.so.1.0.2-x86-64 symlinks
+---
+ .../vmware-workstation/vmware-workstation-15.0.2.10952284-r2.ebuild | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/app-emulation/vmware-workstation/vmware-workstation-15.0.2.10952284-r2.ebuild b/app-emulation/vmware-workstation/vmware-workstation-15.0.2.10952284-r2.ebuild
+index ceb328b..89c24b1 100644
+--- a/app-emulation/vmware-workstation/vmware-workstation-15.0.2.10952284-r2.ebuild
++++ b/app-emulation/vmware-workstation/vmware-workstation-15.0.2.10952284-r2.ebuild
+@@ -345,6 +345,11 @@ src_install() {
+ 	doins -r */lib/* vmware-vmx/roms
+ 	rm -rf "${D}${VM_INSTALL_DIR}"/lib/vmware/*.so
+ 
++	# it wants this for whatever reason... fine, but what if ! use bundled-libs, still needed?
++	if use bundled-libs; then
++		dosym "libcrypto.so.1.0.2" "${VM_INSTALL_DIR}"/lib/vmware/lib/libcrypto.so.1.0.2-x86-64
++	fi
++
+ 	# install the installer
+ 	insinto /etc/vmware-installer
+ 	doins vmware-installer/bootstrap
+@@ -482,6 +487,7 @@ src_install() {
+ 	done
+ 	dosym "${VM_INSTALL_DIR}"/lib/vmware/bin/vmplayer "${VM_INSTALL_DIR}"/bin/vmplayer
+ 	dosym "${VM_INSTALL_DIR}"/lib/vmware/bin/vmware "${VM_INSTALL_DIR}"/bin/vmware
++	dosym "${VM_INSTALL_DIR}"/lib/vmware/bin/vmware-netcfg "${VM_INSTALL_DIR}"/bin/vmware-netcfg
+ 	dosym "${VM_INSTALL_DIR}"/lib/vmware/icu /etc/vmware/icu
+ 	dosym "${VM_INSTALL_DIR}"/lib/vmware-installer/${vmware_installer_version}/vmware-installer "${VM_INSTALL_DIR}"/bin/vmware-installer
+ 
+

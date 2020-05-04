@@ -1,0 +1,48 @@
+From 168434c4a1ba90609b6f58d0098436c6be7be75b Mon Sep 17 00:00:00 2001
+From: Daniel Boles <dboles.src@gmail.com>
+Date: Fri, 22 Jun 2018 15:10:56 +0100
+Subject: [PATCH 16/20] FileChooserDefault: Avoid printf()ing a NULL char*
+
+If the name of the bookmark is NULL, using it with the printf %s format
+specifier is undefined behaviour per the C Standard. Besides, it would
+result in a completely unhelpful tooltip even if it were well-defined.
+
+We already have an else case for when nothing is selected, which avoids
+trying to use the name, so ensure we go there if it's NULL or empty too.
+
+https://gitlab.gnome.org/GNOME/gtk/issues/1169
+---
+ gtk/gtkfilechooserdefault.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/gtk/gtkfilechooserdefault.c b/gtk/gtkfilechooserdefault.c
+index fb982a3b89..c11354248e 100644
+--- a/gtk/gtkfilechooserdefault.c
++++ b/gtk/gtkfilechooserdefault.c
+@@ -2810,8 +2810,8 @@ bookmarks_check_remove_sensitivity (GtkFileChooserDefault *impl)
+ {
+   GtkTreeIter iter;
+   gboolean removable = FALSE;
++  gboolean have_name = FALSE;
+   gchar *name = NULL;
+-  gchar *tip;
+   
+   if (shortcuts_get_selected (impl, &iter))
+     {
+@@ -2821,6 +2821,13 @@ bookmarks_check_remove_sensitivity (GtkFileChooserDefault *impl)
+                           -1);
+       gtk_widget_set_sensitive (impl->browse_shortcuts_remove_button, removable);
+ 
++      have_name = name != NULL && name[0] != '\0';
++    }
++
++  if (have_name)
++    {
++      char *tip;
++
+       if (removable)
+         tip = g_strdup_printf (_("Remove the bookmark '%s'"), name);
+       else
+-- 
+2.17.0
+

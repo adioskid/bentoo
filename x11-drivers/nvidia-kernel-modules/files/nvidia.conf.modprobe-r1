@@ -1,0 +1,3 @@
+# Nvidia drivers support
+alias char-major-195 nvidia
+alias /dev/nvidiactl char-major-195
