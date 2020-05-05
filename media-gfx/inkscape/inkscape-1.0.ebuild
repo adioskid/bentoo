@@ -6,13 +6,11 @@ EAPI=7
 PYTHON_COMPAT=( python3_{6,7,8} )
 PYTHON_REQ_USE="xml"
 
-RELEASE_SUFFIX="1.0rc1_2020-04-09_09960d6f05"
-
 inherit cmake flag-o-matic xdg toolchain-funcs python-single-r1
 
 DESCRIPTION="SVG based generic vector-drawing program"
 HOMEPAGE="https://inkscape.org/"
-SRC_URI="https://dev.gentoo.org/~zlogene/distfiles/${CATEGORY}/${PN}/${P}.tar.xz"
+SRC_URI="https://gitlab.com/inkscape/inkscape/-/archive/${PN^^}_$(ver_rs 1-2 "_")/${PN}-${PN^^}_$(ver_rs 1-2 "_").tar.gz"
 
 LICENSE="GPL-2 LGPL-2.1"
 SLOT="0"
@@ -100,7 +98,7 @@ DEPEND="${COMMON_DEPEND}
 
 RESTRICT="test"
 
-S="${WORKDIR}"/${PN}-${RELEASE_SUFFIX}
+S="${WORKDIR}"/${PN}-${PN^^}_$(ver_rs 1-2 "_")
 
 pkg_pretend() {
 	if [[ ${MERGE_TYPE} != binary ]] && use openmp; then
@@ -150,6 +148,10 @@ src_install() {
 	cmake_src_install
 
 	find "${ED}" -type f -name "*.la" -delete || die
+
+	find "${ED}"/usr/share/man -type f -maxdepth 3 -name '*.bz2' -exec bzip2 -d {} \; || die
+
+	find "${ED}"/usr/share/man -type f -maxdepth 3 -name '*.gz' -exec gzip -d {} \; || die
 
 	# No extensions are present in beta1
 	local extdir="${ED}"/usr/share/${PN}/extensions

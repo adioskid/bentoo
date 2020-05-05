@@ -36,11 +36,11 @@ MOZ_GENERATE_LANGPACKS=1
 MOZ_L10N_SOURCEDIR="${S}/${P}-l10n"
 inherit autotools check-reqs flag-o-matic mozcoreconf-v6 mozextension mozlinguas-v2 nsplugins pax-utils toolchain-funcs xdg-utils
 
-PATCH="${PN}-2.53.1-patches-02"
+PATCH="${PN}-2.53.2-patches-01"
 
 DESCRIPTION="Seamonkey Web Browser"
 HOMEPAGE="http://www.seamonkey-project.org"
-KEYWORDS="amd64 ~ppc64 x86"
+KEYWORDS="~amd64 ~ppc64 ~x86"
 
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
@@ -179,13 +179,6 @@ src_prepare() {
 	pushd "${S}"/mozilla &>/dev/null || die
 	eapply "${WORKDIR}"/firefox
 	popd &>/dev/null || die
-
-	if grep -q '^sdkdir.*$(MOZ_APP_NAME)-devel' mozilla/config/baseconfig.mk ; then
-		sed '/^sdkdir/s@-devel@@' \
-			-i mozilla/config/baseconfig.mk || die
-	else
-		einfo "baseconfig.mk hackery no longer needed."
-	fi
 
 	# Shell scripts sometimes contain DOS line endings; bug 391889
 	grep -rlZ --include="*.sh" $'\r$' . |
@@ -460,7 +453,7 @@ src_install() {
 
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
 	emake DESTDIR="${D}" install
-	MOZ_P="${P/_*}" mozlinguas_src_install
+	MOZ_P="${MY_MOZ_P}" mozlinguas_src_install
 	cp "${FILESDIR}"/${PN}.desktop "${T}" || die
 
 	sed 's|^\(MimeType=.*\)$|\1text/x-vcard;text/directory;application/mbox;message/rfc822;x-scheme-handler/mailto;|' \
