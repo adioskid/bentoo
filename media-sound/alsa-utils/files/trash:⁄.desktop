@@ -1,0 +1,6 @@
+[Desktop Entry]
+EmptyIcon=user-trash
+Icon=user-trash-full
+Name=Lixeira
+Type=Link
+URL[$e]=trash:/
