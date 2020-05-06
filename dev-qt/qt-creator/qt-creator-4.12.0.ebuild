@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-LLVM_MAX_SLOT=8
+LLVM_MAX_SLOT=9
 PLOCALES="cs da de fr ja pl ru sl uk zh-CN zh-TW"
 
 inherit llvm qmake-utils virtualx xdg
@@ -26,10 +26,10 @@ fi
 
 # TODO: unbundle sqlite and KSyntaxHighlighting
 
-QTC_PLUGINS=(android +autotest baremetal beautifier
+QTC_PLUGINS=(android +autotest baremetal beautifier boot2qt
 	'+clang:clangcodemodel|clangformat|clangpchmanager|clangrefactoring|clangtools' clearcase
-	cmake:cmakeprojectmanager cppcheck cvs +designer git glsl:glsleditor +help ios lsp:languageclient
-	mercurial modeling:modeleditor nim perforce perfprofiler python:pythoneditor qbs:qbsprojectmanager
+	cmake:cmakeprojectmanager cppcheck ctfvisualizer cvs +designer git glsl:glsleditor +help ios +lsp:languageclient
+	mercurial modeling:modeleditor nim perforce perfprofiler python qbs:qbsprojectmanager
 	+qmldesigner qmlprofiler qnx remotelinux scxml:scxmleditor serialterminal silversearcher subversion
 	valgrind winrt)
 IUSE="doc systemd test +webengine ${QTC_PLUGINS[@]%:*}"
@@ -37,12 +37,15 @@ RESTRICT="!test? ( test )"
 REQUIRED_USE="
 	clang? ( test? ( qbs ) )
 	qnx? ( remotelinux )
+	boot2qt? ( remotelinux )
+	python? ( lsp )
 "
 
 # minimum Qt version required
 QT_PV="5.12.3:5"
 
 CDEPEND="
+	>=dev-cpp/yaml-cpp-0.6.2
 	>=dev-qt/qtconcurrent-${QT_PV}
 	>=dev-qt/qtcore-${QT_PV}
 	>=dev-qt/qtdeclarative-${QT_PV}[widgets]
@@ -56,7 +59,7 @@ CDEPEND="
 	>=dev-qt/qtwidgets-${QT_PV}
 	>=dev-qt/qtx11extras-${QT_PV}
 	>=dev-qt/qtxml-${QT_PV}
-	clang? ( sys-devel/clang:8= )
+	clang? ( >=sys-devel/clang-9.0.1:= )
 	designer? ( >=dev-qt/designer-${QT_PV} )
 	help? (
 		>=dev-qt/qthelp-${QT_PV}
@@ -129,7 +132,7 @@ src_prepare() {
 	fi
 	if ! use perfprofiler; then
 		rm -rf src/tools/perfparser || die
-		if ! use qmlprofiler; then
+		if ! use qmlprofiler && ! use ctfvisualizer; then
 			sed -i -e '/tracing/d' src/libs/libs.pro tests/auto/auto.pro || die
 		fi
 	fi
