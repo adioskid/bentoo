@@ -6,7 +6,7 @@ inherit eutils desktop
 
 SLOT="0"
 PV_STRING="$(ver_cut 2-6)"
-MY_PV="$(ver_cut 1-2)"
+MY_PV="$(ver_cut 1-3)"
 MY_PN="idea"
 # Using the most recent Jetbrains Runtime binaries available at the time of writing
 # As the exact bundled versions ( jre 11 build 159.30 and jre 8 build 1483.39 ) aren't
@@ -25,7 +25,7 @@ then
 else
 	# upstream stable
 	KEYWORDS="~amd64 ~x86"
-	SRC_URI="https://download.jetbrains.com/idea/${MY_PN}IC-${MY_PV}-no-jbr.tar.gz -> ${MY_PN}IC-${PV_STRING}.tar.gz
+	SRC_URI="https://download.jetbrains.com/idea/${MY_PN}IC-${MY_PV}-no-jbr.tar.gz -> ${MY_PN}IC-${PV_STRING}_20200507.tar.gz
 		jbr8? ( x86? ( https://bintray.com/jetbrains/intellij-jdk/download_file?file_path=jbrx-${JRE_BASE}-linux-i586-b${JRE_VER}.tar.gz -> jbrx-${JRE_BASE}-linux-i586-b${JRE_VER}.tar.gz )
 		amd64? ( https://bintray.com/jetbrains/intellij-jdk/download_file?file_path=jbrx-${JRE_BASE}-linux-x64-b${JRE_VER}.tar.gz -> jbrx-${JRE_BASE}-linux-x64-b${JRE_VER}.tar.gz ) )
 		jbr11? ( amd64? ( https://bintray.com/jetbrains/intellij-jdk/download_file?file_path=jbr-${JRE11_BASE}-linux-x64-b${JRE11_VER}.tar.gz -> jbr-${JRE11_BASE}-linux-x64-b${JRE11_VER}.tar.gz ) )"

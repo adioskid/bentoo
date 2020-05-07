@@ -6,7 +6,7 @@ EAPI=7
 inherit kernel-build
 
 MY_P=linux-${PV%.*}
-GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 3 ))
+GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 4 ))
 # https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
 AMD64_CONFIG_VER=5.6.8-arch1
 AMD64_CONFIG_HASH=7dcb86e3e6f24c6d5462c5c8d25c3fa09e7e9f55
