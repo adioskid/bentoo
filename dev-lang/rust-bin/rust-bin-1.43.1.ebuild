@@ -14,17 +14,10 @@ SRC_URI="$(rust_all_arch_uris ${MY_P})"
 LICENSE="|| ( MIT Apache-2.0 ) BSD-1 BSD-2 BSD-4 UoI-NCSA"
 SLOT="stable"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
-IUSE="clippy cpu_flags_x86_sse2 doc libressl rustfmt"
+IUSE="clippy cpu_flags_x86_sse2 doc rustfmt"
 
 DEPEND=""
-RDEPEND="
-	>=app-eselect/eselect-rust-20190311
-	sys-libs/zlib
-	!libressl? ( dev-libs/openssl:0= )
-	libressl? ( dev-libs/libressl:0= )
-	net-libs/libssh2
-	net-misc/curl[ssl]
-"
+RDEPEND=">=app-eselect/eselect-rust-20190311"
 
 REQUIRED_USE="x86? ( cpu_flags_x86_sse2 )"
 
