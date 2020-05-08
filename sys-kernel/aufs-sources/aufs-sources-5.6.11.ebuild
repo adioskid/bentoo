@@ -5,13 +5,13 @@ EAPI=6
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER=21
+K_GENPATCHES_VER=14
 UNIPATCH_STRICTORDER=1
 
 inherit kernel-2 eutils readme.gentoo-r1
 
-AUFS_VERSION=5.5-20200302
-COMMIT="70f3cb53a59d3948151639ecf4e8a41ad80345ef"
+AUFS_VERSION=5.6-20200413
+COMMIT="7c07d9737e9de058981f020d66ac0d4407a80899"
 AUFS_URI="https://github.com/sfjro/aufs5-standalone/archive/${COMMIT}.tar.gz -> ${PN}-${AUFS_VERSION}.tar.gz"
 AUFS_TARBALL="${PN}-${AUFS_VERSION}.tar.gz"
 
