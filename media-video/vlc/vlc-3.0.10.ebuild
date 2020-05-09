@@ -19,7 +19,7 @@ else
 	else
 		SRC_URI="https://download.videolan.org/pub/videolan/testing/${MY_P}/${MY_P}.tar.xz"
 	fi
-	KEYWORDS="amd64 ~arm arm64 ppc ppc64 -sparc x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ppc ppc64 -sparc ~x86"
 fi
 inherit autotools flag-o-matic toolchain-funcs virtualx xdg
 
@@ -29,15 +29,16 @@ HOMEPAGE="https://www.videolan.org/vlc/"
 LICENSE="LGPL-2.1 GPL-2"
 SLOT="0/5-9" # vlc - vlccore
 
-IUSE="a52 alsa altivec aom archive aribsub bidi bluray cddb chromaprint chromecast
+IUSE="a52 alsa aom archive aribsub bidi bluray cddb chromaprint chromecast
 	dav1d dbus dc1394 debug directx dts +dvbpsi dvd +encode faad fdk +ffmpeg flac
 	fluidsynth fontconfig +gcrypt gme gnome-keyring gstreamer ieee1394 jack jpeg kate
 	libass libcaca libnotify +libsamplerate libtar libtiger linsys lirc
 	live lua macosx-notifications mad matroska modplug mp3 mpeg mtp musepack ncurses
-	nfs ogg omxil optimisememory opus png postproc projectm pulseaudio +qt5 rdp
+	nfs ogg omxil optimisememory opus png projectm pulseaudio +qt5 rdp
 	run-as-root samba sdl-image sftp shout sid skins soxr speex srt ssl svg taglib
 	theora tremor truetype twolame udev upnp vaapi v4l vdpau vnc vorbis vpx wayland +X
-	x264 x265 xml zeroconf zvbi cpu_flags_arm_neon cpu_flags_x86_mmx cpu_flags_x86_sse
+	x264 x265 xml zeroconf zvbi cpu_flags_arm_neon cpu_flags_ppc_altivec cpu_flags_x86_mmx
+	cpu_flags_x86_sse
 "
 REQUIRED_USE="
 	chromecast? ( encode )
@@ -46,7 +47,6 @@ REQUIRED_USE="
 	libcaca? ( X )
 	libtar? ( skins )
 	libtiger? ( kate )
-	postproc? ( ffmpeg )
 	skins? ( qt5 truetype X xml )
 	ssl? ( gcrypt )
 	vaapi? ( ffmpeg X )
@@ -95,9 +95,7 @@ RDEPEND="
 	)
 	faad? ( media-libs/faad2 )
 	fdk? ( media-libs/fdk-aac:= )
-	ffmpeg? (
-		>=media-video/ffmpeg-3.1.3:0=[vaapi?,vdpau?]
-	)
+	ffmpeg? ( >=media-video/ffmpeg-3.1.3:0=[postproc,vaapi?,vdpau?] )
 	flac? (
 		media-libs/flac
 		media-libs/libogg
@@ -280,7 +278,6 @@ src_configure() {
 		--enable-vlc
 		$(use_enable a52)
 		$(use_enable alsa)
-		$(use_enable altivec)
 		$(use_enable aom)
 		$(use_enable archive)
 		$(use_enable aribsub)
@@ -292,6 +289,7 @@ src_configure() {
 		$(use_enable chromecast)
 		$(use_enable chromecast microdns)
 		$(use_enable cpu_flags_arm_neon neon)
+		$(use_enable cpu_flags_ppc_altivec altivec)
 		$(use_enable cpu_flags_x86_mmx mmx)
 		$(use_enable cpu_flags_x86_sse sse)
 		$(use_enable dav1d)
@@ -312,6 +310,7 @@ src_configure() {
 		$(use_enable fdk fdkaac)
 		$(use_enable ffmpeg avcodec)
 		$(use_enable ffmpeg avformat)
+		$(use_enable ffmpeg postproc)
 		$(use_enable ffmpeg swscale)
 		$(use_enable flac)
 		$(use_enable fluidsynth)
@@ -343,13 +342,13 @@ src_configure() {
 		$(use_enable mtp)
 		$(use_enable musepack mpc)
 		$(use_enable ncurses)
+		$(use_enable nfs)
 		$(use_enable ogg)
 		$(use_enable omxil)
 		$(use_enable omxil omxil-vout)
 		$(use_enable optimisememory optimize-memory)
 		$(use_enable opus)
 		$(use_enable png)
-		$(use_enable postproc)
 		$(use_enable projectm)
 		$(use_enable pulseaudio pulse)
 		$(use_enable qt5 qt)
