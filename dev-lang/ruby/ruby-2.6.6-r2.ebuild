@@ -18,7 +18,7 @@ SRC_URI="https://cache.ruby-lang.org/pub/ruby/${SLOT}/${MY_P}.tar.xz"
 
 LICENSE="|| ( Ruby-BSD BSD-2 )"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
-IUSE="berkdb debug doc examples gdbm ipv6 jemalloc jit libressl +rdoc rubytests socks5 +ssl static-libs tk xemacs"
+IUSE="berkdb debug doc examples gdbm ipv6 jemalloc jit libressl +rdoc rubytests socks5 +ssl static-libs systemtap tk xemacs"
 
 RDEPEND="
 	berkdb? ( sys-libs/db:= )
@@ -30,6 +30,7 @@ RDEPEND="
 		libressl? ( dev-libs/libressl )
 	)
 	socks5? ( >=net-proxy/dante-1.1.13 )
+	systemtap? ( dev-util/systemtap )
 	tk? (
 		dev-lang/tcl:0=[threads]
 		dev-lang/tk:0=[threads]
@@ -132,6 +133,7 @@ src_configure() {
 		$(use_with jemalloc jemalloc) \
 		$(use_enable jit jit-support ) \
 		$(use_enable socks5 socks) \
+		$(use_enable systemtap dtrace) \
 		$(use_enable doc install-doc) \
 		--enable-ipv6 \
 		$(use_enable static-libs static) \

@@ -17,16 +17,16 @@ ICEDTEA_BRANCH=$(get_version_component_range 1-2)
 ICEDTEA_PKG=icedtea-${ICEDTEA_VER}
 ICEDTEA_PRE=$(get_version_component_range _)
 
-CORBA_TARBALL="f59374a41938.tar.xz"
-JAXP_TARBALL="f42bdc74d2f5.tar.xz"
-JAXWS_TARBALL="4dee0def390a.tar.xz"
-JDK_TARBALL="c2f574d16c2f.tar.xz"
-LANGTOOLS_TARBALL="9cb3b18d9139.tar.xz"
-OPENJDK_TARBALL="c0ec72b715dd.tar.xz"
-NASHORN_TARBALL="04210bbb67cd.tar.xz"
-HOTSPOT_TARBALL="f76744714698.tar.xz"
-SHENANDOAH_TARBALL="9fcff2250bb4.tar.xz"
-AARCH32_TARBALL="4107aea57664.tar.xz"
+CORBA_TARBALL="ea3169880d70.tar.xz"
+JAXP_TARBALL="883803235596.tar.xz"
+JAXWS_TARBALL="e5d96dc9988a.tar.xz"
+JDK_TARBALL="bb9b9a0ad162.tar.xz"
+LANGTOOLS_TARBALL="e47d37e5fe0b.tar.xz"
+OPENJDK_TARBALL="bca1f7228ce8.tar.xz"
+NASHORN_TARBALL="1d70dcb4ab53.tar.xz"
+HOTSPOT_TARBALL="eeb08cfebded.tar.xz"
+SHENANDOAH_TARBALL="e4e81ae21643.tar.xz"
+AARCH32_TARBALL="ecc1eb1dc760.tar.xz"
 
 CACAO_TARBALL="cacao-c182f119eaad.tar.xz"
 JAMVM_TARBALL="jamvm-ec18fb9e49e62dce16c5094ef1527eed619463aa.tar.gz"
@@ -195,6 +195,9 @@ src_unpack() {
 }
 
 src_configure() {
+	# GCC10/-fno-common handling
+	append-flags -fcommon
+
 	# For bootstrap builds as the sandbox control file might not yet exist.
 	addpredict /proc/self/coredump_filter #nowarn
 
@@ -308,8 +311,6 @@ src_configure() {
 		--with-jdk-home="$(java-config -O)" \
 		--prefix="${EPREFIX}/usr/$(get_libdir)/icedtea${SLOT}" \
 		--mandir="${EPREFIX}/usr/$(get_libdir)/icedtea${SLOT}/man" \
-		--docdir="${EPREFIX}/usr/share/doc/${PF}" \
-		--htmldir="${EPREFIX}/usr/share/doc/${PF}/html" \
 		--with-pkgversion="Gentoo ${PF}" \
 		--disable-ccache \
 		--disable-downloading --disable-Werror --disable-tests \
