@@ -14,7 +14,7 @@ if [[ ${PV} == 9999 ]]; then
 	KEYWORDS=""
 else
 	SRC_URI="https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-${PV}.tar.xz"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~s390 ~sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 fi
 
 LICENSE="GPL-2"
@@ -95,10 +95,6 @@ pkg_postinst() {
 	einfo
 	einfo "  \$ chromium http://192.168.4.1"
 	einfo "  \$ ping 192.168.4.1"
-	einfo
-	einfo "If you'd like to redirect your internet traffic, you can run it with the"
-	einfo "\"default-route\" argument. You may not use this server for any abusive or illegal"
-	einfo "purposes. It is for quick testing only."
 	einfo
 	einfo "More info on getting started can be found at: https://www.wireguard.com/quickstart/"
 	einfo

@@ -19,7 +19,7 @@ else
 	else
 		SRC_URI="https://download.videolan.org/pub/videolan/testing/${MY_P}/${MY_P}.tar.xz"
 	fi
-	KEYWORDS="~amd64 ~arm ~arm64 ppc ppc64 -sparc ~x86"
+	KEYWORDS="amd64 ~arm arm64 ppc ppc64 -sparc x86"
 fi
 inherit autotools flag-o-matic toolchain-funcs virtualx xdg
 
@@ -164,7 +164,7 @@ RDEPEND="
 			x11-libs/libX11
 		)
 	)
-	rdp? ( >=net-misc/freerdp-2.0.0_rc0:=[client] )
+	rdp? ( >=net-misc/freerdp-2.0.0_rc0:=[client(+)] )
 	samba? ( >=net-fs/samba-4.0.0:0[client,-debug(-)] )
 	sdl-image? ( media-libs/sdl-image )
 	sftp? ( net-libs/libssh2 )

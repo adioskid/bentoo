@@ -36,7 +36,7 @@ HOMEPAGE="https://www.exim.org/"
 
 SLOT="0"
 LICENSE="GPL-2"
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86 ~x86-solaris"
+KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ppc ppc64 sparc x86 ~x86-solaris"
 
 COMMON_DEPEND=">=sys-apps/sed-4.0.5
 	( >=sys-libs/db-3.2:= <sys-libs/db-6:= )
@@ -115,6 +115,7 @@ src_prepare() {
 	eapply     "${FILESDIR}"/exim-4.69-r1.27021.patch
 	eapply     "${FILESDIR}"/exim-4.93-localscan_dlopen.patch
 	eapply -p2 "${FILESDIR}"/exim-4.93-radius.patch # 720364
+	eapply     "${FILESDIR}"/exim-4.93-CVE-2020-12783.patch # 722484
 
 	if use maildir ; then
 		eapply "${FILESDIR}"/exim-4.20-maildir.patch
@@ -223,7 +224,8 @@ src_configure() {
 		LOOKUP_CDB=yes
 		LOOKUP_PASSWD=yes
 		LOOKUP_DSEARCH=yes
-		LOOKUP_INCLUDE += -I$(db_includedir ${DB_VERS})
+		# keep include in CFLAGS because exim.h -> dbstuff.h -> db.h
+		CFLAGS += -I$(db_includedir ${DB_VERS})
 		DBMLIB = -l$(db_libname ${DB_VERS})
 	EOC
 
