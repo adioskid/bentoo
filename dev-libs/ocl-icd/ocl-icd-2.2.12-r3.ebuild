@@ -20,7 +20,6 @@ IUSE="+khronos-headers"
 BDEPEND="${RUBY_DEPS}"
 DEPEND="dev-util/opencl-headers"
 RDEPEND="${DEPEND}
-	!app-eselect/eselect-opencl
 	!dev-libs/opencl-icd-loader"
 
 PATCHES=("${FILESDIR}"/${P}-gcc-10.patch)
