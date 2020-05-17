@@ -26,12 +26,11 @@ SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
 PDEPEND="=sys-fs/aufs-util-4*"
 
-README_GENTOO_SUFFIX="-r1"
+#README_GENTOO_SUFFIX="-r1"
 
 STANDALONE="${WORKDIR}/aufs5-standalone-${COMMIT}"
 
 src_unpack() {
-	detect_version
 	detect_arch
 
 	UNIPATCH_LIST="
