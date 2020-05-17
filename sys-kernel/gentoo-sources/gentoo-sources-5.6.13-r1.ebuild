@@ -30,6 +30,12 @@ PDEPEND="=sys-fs/aufs-util-4*"
 
 STANDALONE="${WORKDIR}/aufs5-standalone-${COMMIT}"
 
+SRC_URI="
+	${KERNEL_URI}
+	${ARCH_URI}
+	${AUFS_URI}
+	"
+
 src_unpack() {
 	detect_arch
 
