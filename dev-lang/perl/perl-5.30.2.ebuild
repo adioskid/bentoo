@@ -502,16 +502,10 @@ src_configure() {
 	# allow fiddling via EXTRA_ECONF, bug 558070
 	eval "local -a EXTRA_ECONF=(${EXTRA_ECONF})"
 
-	# setting -Dld= to tc-getLD breaks perl and all perl things
-	# https://github.com/Perl/perl5/issues/17791#issuecomment-630145202
 	myconf \
 		-Duseshrplib \
 		-Darchname="${myarch}" \
 		-Dcc="$(tc-getCC)" \
-		-Dar="$(tc-getAR)" \
-		-Dnm="$(tc-getNM)" \
-		-Dcpp="$(tc-getCPP)" \
-		-Dranlib="$(tc-getRANLIB)" \
 		-Doptimize="${CFLAGS}" \
 		-Dldflags="${LDFLAGS}" \
 		-Dprefix="${EPREFIX}"'/usr' \

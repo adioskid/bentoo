@@ -27,10 +27,7 @@ RDEPEND="${DEPEND}
 	!<dev-qt/qtquickcontrols-5.7:5
 "
 
-PATCHES=(
-	"${FILESDIR}/${P}-QQuickItemView-fix-maxXY-extent.patch" # QTBUG-83890
-	"${FILESDIR}/${P}-fix-subpixel-positioned-text.patch" # QTBUG-49646
-)
+PATCHES=("${FILESDIR}/${P}-QQuickItemView-fix-maxXY-extent.patch" ) # QTBUG-83890
 
 src_prepare() {
 	use jit || PATCHES+=("${FILESDIR}/${PN}-5.4.2-disable-jit.patch")
