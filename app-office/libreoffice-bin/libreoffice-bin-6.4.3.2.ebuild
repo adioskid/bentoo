@@ -7,8 +7,8 @@ BASE_PACKAGENAME="bin"
 BASE_AMD64_URI="https://tamiko.kyomu.43-1.org/distfiles/amd64-${BASE_PACKAGENAME}-"
 BASE_X86_URI="https://tamiko.kyomu.43-1.org/distfiles/x86-${BASE_PACKAGENAME}-"
 
-PYTHON_COMPAT=( python3_6 )
-PYTHON_REQ_USE="threads,xml"
+PYTHON_COMPAT=( python3_7 )
+PYTHON_REQ_USE="xml"
 
 inherit java-pkg-opt-2 python-single-r1 prefix toolchain-funcs xdg-utils
 
@@ -51,20 +51,20 @@ SRC_URI="
 IUSE="gnome java kde"
 LICENSE="LGPL-3"
 SLOT="0"
-KEYWORDS="-* amd64 x86"
+KEYWORDS="-* amd64 ~x86"
 
 BIN_COMMON_DEPEND="
 	app-text/hunspell:0/1.7
 	=app-text/libexttextcat-3.4*
 	=app-text/libmwaw-0.3*
 	dev-libs/boost:0/1.72.0
-	dev-libs/icu:0/65.1
-	=dev-libs/liborcus-0.14*
+	dev-libs/icu:0/67.1
+	=dev-libs/liborcus-0.15*
 	>=media-gfx/graphite2-1.3.10
 	media-libs/harfbuzz:0/0.9.18[icu]
 	media-libs/libpng:0/16
-	>=sys-devel/gcc-9.2.0
-	>=sys-libs/glibc-2.29
+	>=sys-devel/gcc-9.3.0
+	>=sys-libs/glibc-2.30
 	virtual/jpeg-compat:62
 "
 
@@ -100,13 +100,13 @@ COMMON_DEPEND="
 	>=dev-cpp/libcmis-0.5.2
 	dev-db/unixODBC
 	dev-lang/perl
-	dev-libs/boost:=[nls]
+	>=dev-libs/boost-1.72.0:=[nls]
 	dev-libs/expat
 	dev-libs/hyphen
 	dev-libs/icu:=
 	dev-libs/libassuan
 	dev-libs/libgpg-error
-	>=dev-libs/liborcus-0.14.0
+	>=dev-libs/liborcus-0.15.0
 	dev-libs/librevenge
 	dev-libs/libxml2
 	dev-libs/libxslt
@@ -174,7 +174,7 @@ RDEPEND="${COMMON_DEPEND}
 	!app-office/openoffice
 	media-fonts/liberation-fonts
 	|| ( x11-misc/xdg-utils kde-plasma/kde-cli-tools )
-	java? ( >=virtual/jre-1.6 )
+	java? ( >=virtual/jre-1.8 )
 	kde? ( kde-frameworks/breeze-icons:* )
 "
 
