@@ -11,7 +11,7 @@ SRC_URI="https://github.com/vaeth/eix/releases/download/v${PV}/${P}.tar.xz"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="debug doc nls sqlite"
 
 BOTHDEPEND="nls? ( virtual/libintl )
@@ -49,6 +49,7 @@ src_configure() {
 		$(use_enable nls)
 		$(use_with doc extra-doc)
 		$(use_with sqlite)
+		--without-protobuf
 
 		# default configuration
 		$(use_with prefix always-accept-keywords)
@@ -88,11 +89,10 @@ src_install() {
 	dotmpfiles tmpfiles.d/eix.conf
 
 	rm -r "${ED}"/usr/bin/eix-functions.sh || die
-
 }
 
 pkg_postinst() {
-		tmpfiles_process eix.conf
+	tmpfiles_process eix.conf
 
 	local obs=${EROOT}/var/cache/eix.previous
 	if [[ -f ${obs} ]]; then
