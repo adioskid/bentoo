@@ -14,7 +14,7 @@ HOMEPAGE="https://userbase.kde.org/KInfoCenter"
 SRC_URI+=" http://www.bentoo.info/assets/img/bentoo-icon.png -> logo.png"
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 IUSE="gles2-only ieee1394 +opengl +pci wayland"
 
 REQUIRED_USE="wayland? ( || ( opengl gles2-only ) )"

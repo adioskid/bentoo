@@ -55,11 +55,6 @@ DOCS=( AUTHORS CHANGELOG.md README.md THANKS.md )
 
 S="${WORKDIR}/${MY_P}"
 
-src_prepare() {
-	sed -i -e '/^OnlyShowIn=Unity;$/d' data/desktop/org.remmina.Remmina.desktop.in || die
-	default
-}
-
 src_configure() {
 	local mycmakeargs=(
 		-DWITH_APPINDICATOR=$(usex appindicator)
