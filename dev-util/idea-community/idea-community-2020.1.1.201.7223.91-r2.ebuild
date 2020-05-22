@@ -95,7 +95,7 @@ src_prepare() {
 		done
 	fi
 
-	patchelf --replace-needed liblldb.so liblldb.so.9 "${S}"/plugins/Kotlin/bin/linux/LLDBFrontend || die "Unable to patch LLDBFrontend for lldb"
+	patchelf --set-rpath '$ORIGIN' "${S}"/plugins/Kotlin/bin/linux/LLDBFrontend || die
 
 	sed -i \
 		-e "\$a\\\\" \
