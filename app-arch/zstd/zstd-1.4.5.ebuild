@@ -19,8 +19,8 @@ RDEPEND="app-arch/xz-utils
 DEPEND="${RDEPEND}"
 
 PATCHES=(
-	"${FILESDIR}/${P}-pkgconfig_libdir.patch" #700780
-	"${FILESDIR}/${P}-make43.patch" #708110
+	"${FILESDIR}/${PN}-1.4.4-pkgconfig_libdir.patch" #700780
+	"${FILESDIR}/${PN}-1.4.4-make43.patch" #708110
 )
 
 src_prepare() {
