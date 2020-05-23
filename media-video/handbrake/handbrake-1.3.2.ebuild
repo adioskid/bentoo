@@ -13,7 +13,7 @@ if [[ ${PV} = *9999* ]]; then
 	KEYWORDS=""
 else
 	MY_P="HandBrake-${PV}"
-	SRC_URI="https://download2.handbrake.fr/${PV}/${MY_P}-source.tar.bz2 -> ${P}.tar.bz2"
+	SRC_URI="https://github.com/HandBrake/HandBrake/releases/download/${PV}/${MY_P}-source.tar.bz2 -> ${P}.tar.bz2"
 	S="${WORKDIR}/${MY_P}"
 	KEYWORDS="~amd64 ~x86"
 fi
@@ -87,11 +87,8 @@ PATCHES=(
 	# Remove faac dependency; TODO: figure out if we need to do this at all.
 	"${FILESDIR}/${PN}-9999-remove-faac-dependency.patch"
 
-	# Fix missing flags
-	"${FILESDIR}/${P}-missing-linker-flags.patch"
-
 	# Use whichever python is set by portage
-	"${FILESDIR}/${P}-dont-search-for-python.patch"
+	"${FILESDIR}/${PN}-1.3.0-dont-search-for-python.patch"
 )
 
 src_prepare() {
@@ -156,15 +153,11 @@ pkg_postinst() {
 		einfo "For the GTK+ version of HandBrake, you can run \`ghb\`."
 	fi
 
-	gnome2_icon_cache_update
+	xdg_icon_cache_update
 	xdg_desktop_database_update
 }
 
-pkg_preinst() {
-	gnome2_icon_savelist
-}
-
 pkg_postrm() {
-	gnome2_icon_cache_update
+	xdg_icon_cache_update
 	xdg_desktop_database_update
 }

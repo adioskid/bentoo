@@ -8,10 +8,11 @@ ansi_term-0.11.0
 atty-0.2.13
 bitflags-1.2.1
 c2-chacha-0.2.3
-cbindgen-0.13.2
+cbindgen-0.14.2
 cfg-if-0.1.10
 clap-2.33.0
 getrandom-0.1.13
+heck-0.3.1
 itoa-0.4.4
 libc-0.2.66
 log-0.4.8
@@ -33,6 +34,7 @@ syn-1.0.11
 tempfile-3.1.0
 textwrap-0.11.0
 toml-0.5.5
+unicode-segmentation-1.6.0
 unicode-width-0.1.7
 unicode-xid-0.2.0
 vec_map-0.8.1
