@@ -11,7 +11,7 @@ inherit ecm kde.org
 
 DESCRIPTION="Utility providing information about the computer hardware"
 HOMEPAGE="https://userbase.kde.org/KInfoCenter"
-SRC_URI+=" http://www.bentoo.info/assets/img/bentoo-icon.png -> logo.png"
+SRC_URI+=" http://binhost.bentoo.info/distfiles/bentoo-icon.png -> logo.png"
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
 KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
