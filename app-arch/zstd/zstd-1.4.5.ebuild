@@ -19,7 +19,6 @@ RDEPEND="app-arch/xz-utils
 DEPEND="${RDEPEND}"
 
 PATCHES=(
-	"${FILESDIR}/${PN}-1.4.4-pkgconfig_libdir.patch" #700780
 	"${FILESDIR}/${PN}-1.4.4-make43.patch" #708110
 )
 
