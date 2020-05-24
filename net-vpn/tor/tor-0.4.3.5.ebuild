@@ -1,7 +1,7 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI="7"
 
 inherit flag-o-matic readme.gentoo-r1 systemd
 
@@ -15,8 +15,8 @@ S="${WORKDIR}/${MY_PF}"
 
 LICENSE="BSD GPL-2"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ~mips ppc ppc64 x86 ~ppc-macos"
-IUSE="caps doc libressl lzma +man scrypt seccomp selinux systemd tor-hardening test zstd"
+KEYWORDS="~amd64 ~arm ~arm64 ~mips ~ppc ~ppc64 ~x86 ~ppc-macos"
+IUSE="caps doc libressl lzma +man scrypt seccomp selinux +server systemd tor-hardening test zstd"
 
 DEPEND="
 	dev-libs/libevent:=[ssl]
@@ -54,6 +54,7 @@ src_configure() {
 		--disable-android \
 		--disable-html-manual \
 		--disable-libfuzzer \
+		--enable-missing-doc-warnings \
 		--disable-module-dirauth \
 		--enable-pic \
 		--disable-rust \
@@ -64,6 +65,7 @@ src_configure() {
 		$(use_enable lzma) \
 		$(use_enable scrypt libscrypt) \
 		$(use_enable seccomp) \
+		$(use_enable server module-relay) \
 		$(use_enable systemd) \
 		$(use_enable tor-hardening gcc-hardening) \
 		$(use_enable tor-hardening linker-hardening) \
