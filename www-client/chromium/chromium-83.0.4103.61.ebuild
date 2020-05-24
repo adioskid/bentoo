@@ -12,7 +12,8 @@ inherit check-reqs chromium-2 desktop flag-o-matic multilib ninja-utils pax-util
 
 DESCRIPTION="Open-source version of Google Chrome web browser"
 HOMEPAGE="https://chromium.org/"
-SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}.tar.xz"
+SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}.tar.xz
+	https://files.pythonhosted.org/packages/ed/7b/bbf89ca71e722b7f9464ebffe4b5ee20a9e5c9a555a56e2d3914bb9119a6/setuptools-44.1.0.zip"
 
 LICENSE="BSD"
 SLOT="0"
@@ -28,12 +29,9 @@ COMMON_DEPEND="
 	>=dev-libs/atk-2.26
 	dev-libs/expat:=
 	dev-libs/glib:2
-	system-icu? ( >=dev-libs/icu-65:= )
 	>=dev-libs/libxml2-2.9.4-r3:=[icu]
-	dev-libs/libxslt:=
 	dev-libs/nspr:=
 	>=dev-libs/nss-3.26:=
-	>=dev-libs/re2-0.2019.08.01:=
 	>=media-libs/alsa-lib-1.0.19:=
 	media-libs/fontconfig:=
 	media-libs/freetype:=
@@ -42,7 +40,6 @@ COMMON_DEPEND="
 	media-libs/libpng:=
 	media-libs/mesa:=[gbm]
 	system-libvpx? ( >=media-libs/libvpx-1.8.2:=[postproc,svc] )
-	>=media-libs/openh264-1.6.0:=
 	pulseaudio? ( media-sound/pulseaudio:= )
 	system-ffmpeg? (
 		>=media-video/ffmpeg-4:=
@@ -70,7 +67,6 @@ COMMON_DEPEND="
 	x11-libs/libXScrnSaver:=
 	x11-libs/libXtst:=
 	x11-libs/pango:=
-	app-arch/snappy:=
 	media-libs/flac:=
 	>=media-libs/libwebp-0.4.0:=
 	sys-libs/zlib:=[minizip]
@@ -90,8 +86,9 @@ DEPEND="${COMMON_DEPEND}
 BDEPEND="
 	${PYTHON_DEPS}
 	>=app-arch/gzip-1.7
+	app-arch/unzip
 	dev-lang/perl
-	dev-util/gn
+	>=dev-util/gn-0.1726
 	dev-vcs/git
 	>=dev-util/gperf-3.0.3
 	>=dev-util/ninja-1.7.2
@@ -108,9 +105,29 @@ BDEPEND="
 "
 
 : ${CHROMIUM_FORCE_CLANG=no}
+: ${CHROMIUM_FORCE_LIBCXX=no}
 
 if [[ ${CHROMIUM_FORCE_CLANG} == yes ]]; then
-	BDEPEND+=" >=sys-devel/clang-7"
+	BDEPEND+=" >=sys-devel/clang-9"
+fi
+
+if [[ ${CHROMIUM_FORCE_LIBCXX} == yes ]]; then
+	RDEPEND+=" >=sys-libs/libcxx-9"
+	DEPEND+=" >=sys-libs/libcxx-9"
+	BDEPEND+="
+		amd64? ( dev-lang/yasm )
+		x86? ( dev-lang/yasm )
+	"
+else
+	COMMON_DEPEND="
+		app-arch/snappy:=
+		dev-libs/libxslt:=
+		>=dev-libs/re2-0.2019.08.01:=
+		>=media-libs/openh264-1.6.0:=
+		system-icu? ( >=dev-libs/icu-67.1:= )
+	"
+	RDEPEND+="${COMMON_DEPEND}"
+	DEPEND+="${COMMON_DEPEND}"
 fi
 
 if ! has chromium_pkg_die ${EBUILD_DEATH_HOOKS}; then
@@ -147,16 +164,23 @@ in /etc/chromium/default.
 "
 
 PATCHES=(
-	"${FILESDIR}/chromium-compiler-r11.patch"
+	"${FILESDIR}/chromium-compiler-r12.patch"
 	"${FILESDIR}/chromium-fix-char_traits.patch"
+	"${FILESDIR}/chromium-blink-style_format.patch"
 	"${FILESDIR}/chromium-78-protobuf-export.patch"
 	"${FILESDIR}/chromium-79-gcc-alignas.patch"
 	"${FILESDIR}/chromium-80-gcc-quiche.patch"
-	"${FILESDIR}/chromium-80-gcc-blink.patch"
-	"${FILESDIR}/chromium-81-gcc-noexcept.patch"
-	"${FILESDIR}/chromium-81-gcc-constexpr.patch"
-	"${FILESDIR}/chromium-81-gcc-10.patch"
-	"${FILESDIR}/chromium-81-icu67.patch"
+	"${FILESDIR}/chromium-82-gcc-noexcept.patch"
+	"${FILESDIR}/chromium-82-gcc-incomplete-type.patch"
+	"${FILESDIR}/chromium-82-gcc-template.patch"
+	"${FILESDIR}/chromium-82-gcc-iterator.patch"
+	"${FILESDIR}/chromium-83-gcc-template.patch"
+	"${FILESDIR}/chromium-83-gcc-include.patch"
+	"${FILESDIR}/chromium-83-gcc-permissive.patch"
+	"${FILESDIR}/chromium-83-gcc-iterator.patch"
+	"${FILESDIR}/chromium-83-gcc-serviceworker.patch"
+	"${FILESDIR}/chromium-83-gcc-10.patch"
+	"${FILESDIR}/chromium-83-icu67.patch"
 	"${FILESDIR}/chromium-81-re2-0.2020.05.01.patch"
 )
 
@@ -181,7 +205,9 @@ pre_build_checks() {
 	CHECKREQS_MEMORY="3G"
 	CHECKREQS_DISK_BUILD="7G"
 	if ( shopt -s extglob; is-flagq '-g?(gdb)?([1-9])' ); then
-		CHECKREQS_DISK_BUILD="25G"
+		if use custom-cflags || use component-build; then
+			CHECKREQS_DISK_BUILD="25G"
+		fi
 		if ! use component-build; then
 			CHECKREQS_MEMORY="16G"
 		fi
@@ -280,6 +306,7 @@ src_prepare() {
 		third_party/devscripts
 		third_party/devtools-frontend
 		third_party/devtools-frontend/src/front_end/third_party/fabricjs
+		third_party/devtools-frontend/src/front_end/third_party/lighthouse
 		third_party/devtools-frontend/src/front_end/third_party/wasmparser
 		third_party/devtools-frontend/src/third_party
 		third_party/dom_distiller_js
@@ -292,6 +319,7 @@ src_prepare() {
 		third_party/google_input_tools/third_party/closure_library
 		third_party/google_input_tools/third_party/closure_library/third_party/closure
 		third_party/googletest
+		third_party/harfbuzz-ng/utils
 		third_party/hunspell
 		third_party/iccjpeg
 		third_party/inspector_protocol
@@ -317,6 +345,7 @@ src_prepare() {
 		third_party/llvm
 		third_party/lss
 		third_party/lzma_sdk
+		third_party/mako
 		third_party/markupsafe
 		third_party/mesa
 		third_party/metrics_proto
@@ -349,6 +378,7 @@ src_prepare() {
 		third_party/qcms
 		third_party/rnnoise
 		third_party/s2cellid
+		third_party/schema_org
 		third_party/simplejson
 		third_party/skia
 		third_party/skia/include/third_party/skcms
@@ -360,6 +390,7 @@ src_prepare() {
 		third_party/SPIRV-Tools
 		third_party/sqlite
 		third_party/swiftshader
+		third_party/swiftshader/third_party/astc-encoder
 		third_party/swiftshader/third_party/llvm-7.0
 		third_party/swiftshader/third_party/llvm-subzero
 		third_party/swiftshader/third_party/marl
@@ -420,7 +451,16 @@ src_prepare() {
 	if use tcmalloc; then
 		keeplibs+=( third_party/tcmalloc )
 	fi
-
+	if [[ ${CHROMIUM_FORCE_LIBCXX} == yes ]]; then
+		keeplibs+=( third_party/libxml )
+		keeplibs+=( third_party/libxslt )
+		keeplibs+=( third_party/openh264 )
+		keeplibs+=( third_party/re2 )
+		keeplibs+=( third_party/snappy )
+		if use system-icu; then
+			keeplibs+=( third_party/icu )
+		fi
+	fi
 	# Remove most bundled libraries. Some are still needed.
 	build/linux/unbundle/remove_bundled_libraries.py "${keeplibs[@]}" --do-remove || die
 }
@@ -444,6 +484,9 @@ src_configure() {
 	if tc-is-clang; then
 		myconf_gn+=" is_clang=true clang_use_chrome_plugins=false"
 	else
+		if [[ ${CHROMIUM_FORCE_LIBCXX} == yes ]]; then
+			die "Compiling with sys-libs/libcxx requires clang."
+		fi
 		myconf_gn+=" is_clang=false"
 	fi
 
@@ -489,11 +532,6 @@ src_configure() {
 		libjpeg
 		libpng
 		libwebp
-		libxml
-		libxslt
-		openh264
-		re2
-		snappy
 		yasm
 		zlib
 	)
@@ -505,6 +543,14 @@ src_configure() {
 	fi
 	if use system-libvpx; then
 		gn_system_libraries+=( libvpx )
+	fi
+	if [[ ${CHROMIUM_FORCE_LIBCXX} != yes ]]; then
+		# unbundle only without libc++, because libc++ is not fully ABI compatible with libstdc++
+		gn_system_libraries+=( libxml )
+		gn_system_libraries+=( libxslt )
+		gn_system_libraries+=( openh264 )
+		gn_system_libraries+=( re2 )
+		gn_system_libraries+=( snappy )
 	fi
 	build/linux/unbundle/replace_gn_files.py --system-libraries "${gn_system_libraries[@]}" || die
 
@@ -555,8 +601,9 @@ src_configure() {
 		replace-flags "-Os" "-O2"
 		strip-flags
 
+		# Debug info section overflows without component build
 		# Prevent linker from running out of address space, bug #471810 .
-		if use x86; then
+		if ! use component-build || use x86; then
 			filter-flags "-g*"
 		fi
 
@@ -564,6 +611,11 @@ src_configure() {
 		if [[ ${myarch} == amd64 || ${myarch} == x86 ]]; then
 			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2
 		fi
+	fi
+
+	if [[ ${CHROMIUM_FORCE_LIBCXX} == yes ]]; then
+		append-flags -stdlib=libc++
+		append-ldflags -stdlib=libc++
 	fi
 
 	if [[ $myarch = amd64 ]] ; then
@@ -641,6 +693,9 @@ src_compile() {
 
 	# Calling this here supports resumption via FEATURES=keepwork
 	python_setup
+
+	# https://bugs.gentoo.org/717456
+	local -x PYTHONPATH="${WORKDIR}/setuptools-44.1.0${PYTHONPATH+:}${PYTHONPATH}"
 
 	#"${EPYTHON}" tools/clang/scripts/update.py --force-local-build --gcc-toolchain /usr --skip-checkout --use-system-cmake --without-android || die
 
