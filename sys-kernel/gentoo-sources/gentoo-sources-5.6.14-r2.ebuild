@@ -8,7 +8,7 @@ K_WANT_GENPATCHES="base extras experimental"
 K_GENPATCHES_VER="18"
 UNIPATCH_STRICTORDER=1
 
-inherit kernel-2 eutils
+inherit kernel-2 eutils readme.gentoo-r1
 
 detect_version
 detect_arch
@@ -33,9 +33,10 @@ SRC_URI="
 	aufs? ( ${AUFS_URI} )
 	"
 
-RDEPEND="
+PDEPEND="
 	=sys-fs/aufs-util-4*
 	"
+README_GENTOO_SUFFIX="-r1"
 
 src_unpack() {
 	if use aufs; then
@@ -66,6 +67,7 @@ src_install() {
 		kernel-2_src_install
 		dodoc "${STANDALONE}"/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 		docompress -x /usr/share/doc/${PF}/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
+		readme.gentoo_create_doc
 	fi
 }
 
@@ -76,6 +78,8 @@ pkg_postinst() {
 	if use aufs; then
 		has_version sys-fs/aufs-util || \
 			elog "In order to use aufs FS you need to install sys-fs/aufs-util"
+
+		readme.gentoo_print_elog
 
 	fi
 }
