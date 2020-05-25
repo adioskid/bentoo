@@ -10,7 +10,7 @@ if [[ ${PV} == "9999" ]] ; then
 	EGIT_REPO_URI="https://git.sr.ht/~kaniini/pkgconf"
 else
 	SRC_URI="http://distfiles.dereferenced.org/${PN}/${P}.tar.xz"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86"
 fi
 
 DESCRIPTION="pkg-config compatible replacement with no dependencies other than ANSI C89"
@@ -54,7 +54,7 @@ src_prepare() {
 
 multilib_src_configure() {
 	local ECONF_SOURCE="${S}"
-	econf
+	econf --disable-static
 }
 
 multilib_src_test() {

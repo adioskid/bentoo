@@ -24,8 +24,8 @@ LICENSE="GPL-3"
 SLOT="0"
 
 IUSE="acl addc addns ads ceph client cluster cups debug dmapi fam gpg iprint
-json ldap pam profiling-data python quota selinux syslog system-heimdal
-+system-mitkrb5 systemd test winbind zeroconf"
+json ldap pam profiling-data python quota selinux snapper syslog
+system-heimdal +system-mitkrb5 systemd test winbind zeroconf"
 
 MULTILIB_WRAPPED_HEADERS=(
 	/usr/include/samba-4.0/policy.h
@@ -48,7 +48,6 @@ CDEPEND="
 	dev-perl/Parse-Yapp
 	>=net-libs/gnutls-3.4.7[${MULTILIB_USEDEP}]
 	net-libs/libnsl:=[${MULTILIB_USEDEP}]
-	sys-apps/dbus[${MULTILIB_USEDEP}]
 	sys-libs/e2fsprogs-libs[${MULTILIB_USEDEP}]
 	>=sys-libs/ldb-2.1.3[ldap(+)?,python?,${PYTHON_SINGLE_USEDEP},${MULTILIB_USEDEP}]
 	<sys-libs/ldb-2.2.0[ldap(+)?,python?,${PYTHON_SINGLE_USEDEP},${MULTILIB_USEDEP}]
@@ -82,6 +81,7 @@ CDEPEND="
 	gpg? ( app-crypt/gpgme )
 	json? ( dev-libs/jansson )
 	ldap? ( net-nds/openldap[${MULTILIB_USEDEP}] )
+	snapper? ( sys-apps/dbus )
 	system-heimdal? ( >=app-crypt/heimdal-1.5[-ssl,${MULTILIB_USEDEP}] )
 	system-mitkrb5? ( >=app-crypt/mit-krb5-1.15.1[${MULTILIB_USEDEP}] )
 	systemd? ( sys-apps/systemd:0= )
@@ -135,6 +135,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-4.4.0-pam.patch"
 	"${FILESDIR}/${PN}-4.9.2-timespec.patch"
 	"${FILESDIR}/${PN}-4.13-winexe_option.patch"
+	"${FILESDIR}/${PN}-4.13-vfs_snapper_configure_option.patch" 
 )
 
 #CONFDIR="${FILESDIR}/$(get_version_component_range 1-2)"
@@ -211,6 +212,7 @@ multilib_src_configure() {
 		$(multilib_native_use_with pam)
 		$(multilib_native_usex pam "--with-pammodulesdir=${EPREFIX}/$(get_libdir)/security" '')
 		$(multilib_native_use_with quota quotas)
+		$(multilib_native_use_enable snapper)
 		$(multilib_native_use_with syslog)
 		$(multilib_native_use_with systemd)
 		--systemd-install-services
