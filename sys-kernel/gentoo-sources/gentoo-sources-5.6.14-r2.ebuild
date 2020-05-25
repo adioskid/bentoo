@@ -33,7 +33,9 @@ SRC_URI="
 	aufs? ( ${AUFS_URI} )
 	"
 
-PDEPEND="=sys-fs/aufs-util-4*"
+RDEPEND="
+	=sys-fs/aufs-util-4*
+	"
 
 src_unpack() {
 	if use aufs; then
