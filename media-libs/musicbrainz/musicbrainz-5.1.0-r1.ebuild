@@ -10,7 +10,7 @@ HOMEPAGE="https://musicbrainz.org/doc/libmusicbrainz"
 
 
 COMMIT="8be45b12a86bc0e46f2f836c8ac88e1e98d82aee"
-SRC_URI="https://github.com/metabrainz/lib${PN}/archive/${COMMIT}.tar.gz -> lib${PN}-${PV}.tar.gz"
+SRC_URI="https://github.com/metabrainz/lib${PN}/archive/${COMMIT}.tar.gz -> lib${PN}-20180413.tar.gz"
 
 LICENSE="LGPL-2.1"
 SLOT="5/1"	# soname of libmusicbrainz5.so
