@@ -18,7 +18,7 @@ LICENSE="BSD"
 # https://abi-laboratory.pro/tracker/timeline/re2/
 SONAME="7"
 SLOT="0/${SONAME}"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
+KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
 IUSE="icu"
 
 RDEPEND="icu? ( dev-libs/icu:0=[${MULTILIB_USEDEP}] )"
@@ -31,6 +31,9 @@ DOCS=( AUTHORS CONTRIBUTORS README doc/syntax.txt )
 HTML_DOCS=( doc/syntax.html )
 
 src_prepare() {
+	local PATCHES=(
+		"${FILESDIR}"/0.2020.05.01-test-memory-budget.patch
+	)
 	default
 	grep -q "^SONAME=${SONAME}\$" Makefile || die "SONAME mismatch"
 	if use icu; then

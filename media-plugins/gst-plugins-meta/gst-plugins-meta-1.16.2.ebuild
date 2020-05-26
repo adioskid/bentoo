@@ -1,7 +1,7 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 inherit multilib-build
 
@@ -10,7 +10,7 @@ HOMEPAGE="https://gstreamer.freedesktop.org/"
 
 LICENSE="metapackage"
 SLOT="1.0"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
 IUSE="aac a52 alsa cdda dts dv dvb dvd ffmpeg flac http jack lame libass libvisual mms mp3 modplug mpeg ogg opus oss pulseaudio taglib theora v4l vaapi vcd vorbis vpx wavpack X x264"
 REQUIRED_USE="opus? ( ogg ) theora? ( ogg ) vorbis? ( ogg )"
 
@@ -34,7 +34,7 @@ RDEPEND="
 		>=media-plugins/gst-plugins-dvdread-${PV}:1.0[${MULTILIB_USEDEP}]
 		>=media-plugins/gst-plugins-mpeg2dec-${PV}:1.0[${MULTILIB_USEDEP}]
 		>=media-plugins/gst-plugins-resindvd-${PV}:1.0[${MULTILIB_USEDEP}] )
-	ffmpeg? ( >=media-plugins/gst-plugins-libav-1.14.2:1.0[${MULTILIB_USEDEP}] )
+	ffmpeg? ( >=media-plugins/gst-plugins-libav-${PV}:1.0[${MULTILIB_USEDEP}] )
 	flac? ( >=media-plugins/gst-plugins-flac-${PV}:1.0[${MULTILIB_USEDEP}] )
 	http? ( >=media-plugins/gst-plugins-soup-${PV}:1.0[${MULTILIB_USEDEP}] )
 	jack? ( >=media-plugins/gst-plugins-jack-${PV}:1.0[${MULTILIB_USEDEP}] )

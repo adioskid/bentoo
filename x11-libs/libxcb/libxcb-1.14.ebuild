@@ -15,7 +15,7 @@ inherit python-any-r1 xorg-3
 DESCRIPTION="X C-language Bindings library"
 HOMEPAGE="https://xcb.freedesktop.org/ https://gitlab.freedesktop.org/xorg/lib/libxcb"
 
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 s390 sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="doc selinux test +xkb"
 RESTRICT="!test? ( test )"
 SLOT="0/1.12"
@@ -28,9 +28,10 @@ DEPEND="${RDEPEND}
 	test? ( dev-libs/check[${MULTILIB_USEDEP}] )
 	doc? ( app-doc/doxygen[dot] )
 	dev-libs/libxslt
-	${PYTHON_DEPS}
-	$(python_gen_any_dep \
-		">=x11-base/xcb-proto-1.14[${MULTILIB_USEDEP},\${PYTHON_USEDEP}]")"
+"
+BDEPEND="${PYTHON_DEPS}
+	$(python_gen_any_dep '>=x11-base/xcb-proto-1.14[${PYTHON_USEDEP}]')
+"
 
 python_check_deps() {
 	has_version -b ">=x11-base/xcb-proto-1.14[${PYTHON_USEDEP}]"

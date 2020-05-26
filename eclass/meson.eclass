@@ -327,8 +327,8 @@ meson_src_configure() {
 		--prefix "${EPREFIX}/usr"
 		--sysconfdir "${EPREFIX}/etc"
 		--wrap-mode nodownload
-		--build.pkg-config-path "${EPREFIX}/usr/share/pkgconfig"
-		--pkg-config-path "${EPREFIX}/usr/share/pkgconfig"
+		--build.pkg-config-path "${BUILD_PKG_CONFIG_PATH}${BUILD_PKG_CONFIG_PATH:+:}${EPREFIX}/usr/share/pkgconfig"
+		--pkg-config-path "${PKG_CONFIG_PATH}${PKG_CONFIG_PATH:+:}${EPREFIX}/usr/share/pkgconfig"
 		--native-file "$(_meson_create_native_file)"
 	)
 
@@ -365,6 +365,10 @@ meson_src_configure() {
 
 	# https://bugs.gentoo.org/625396
 	python_export_utf8_locale
+
+	# https://bugs.gentoo.org/721786
+	local -x BOOST_INCLUDEDIR="${BOOST_INCLUDEDIR-${EPREFIX}/usr/include}"
+	local -x BOOST_LIBRARYDIR="${BOOST_LIBRARYDIR-${EPREFIX}/usr/$(get_libdir)}"
 
 	(
 		# https://bugs.gentoo.org/720860

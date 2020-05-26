@@ -5,7 +5,7 @@ EAPI=7
 
 WANT_AUTOMAKE="1.15"
 
-inherit autotools linux-info pam toolchain-funcs
+inherit autotools flag-o-matic linux-info pam toolchain-funcs
 
 DESCRIPTION="A full-featured web proxy cache"
 HOMEPAGE="http://www.squid-cache.org/"
@@ -22,7 +22,7 @@ fi
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm ~hppa ~ia64 ~mips ~ppc ppc64 ~sparc x86"
+KEYWORDS="~alpha amd64 arm ~hppa ~ia64 ~mips ppc ppc64 ~sparc x86"
 IUSE="caps gnutls ipv6 pam ldap samba sasl kerberos nis radius ssl snmp selinux logrotate test \
 	ecap esi ssl-crtd \
 	mysql postgres sqlite \
@@ -172,6 +172,9 @@ src_configure() {
 	# Should be able to drop this workaround with newer versions.
 	# https://bugs.squid-cache.org/show_bug.cgi?id=4224
 	tc-is-cross-compiler && export squid_cv_gnu_atomics=no
+
+	# Bug #719662
+	(use ppc || use arm || use hppa) && append-libs -latomic
 
 	econf \
 		--sysconfdir=/etc/squid \

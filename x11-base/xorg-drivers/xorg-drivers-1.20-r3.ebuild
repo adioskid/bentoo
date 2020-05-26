@@ -17,9 +17,7 @@ IUSE_INPUT_DEVICES="
 	input_devices_elographics
 	input_devices_evdev
 	input_devices_joystick
-	input_devices_keyboard
 	input_devices_libinput
-	input_devices_mouse
 	input_devices_vmmouse
 	input_devices_void
 	input_devices_synaptics
@@ -46,9 +44,7 @@ IUSE_VIDEO_CARDS="
 	video_cards_radeonsi
 	video_cards_gallium-radeonsi
 	video_cards_siliconmotion
-	video_cards_tdfx
 	video_cards_tegra
-	video_cards_gallium-tegra
 	video_cards_vc4
 	video_cards_vesa
 	video_cards_via
@@ -66,12 +62,10 @@ PDEPEND="
 								 >=x11-drivers/xf86-input-evdev-2.10.6
 							   )
 	input_devices_joystick?    ( >=x11-drivers/xf86-input-joystick-1.6.3 )
-	input_devices_keyboard?    ( x11-drivers/xf86-input-keyboard )
 	input_devices_libinput?    (
 								 >=x11-base/xorg-server-${PV}[udev]
 								 >=x11-drivers/xf86-input-libinput-0.27.1
 							   )
-	input_devices_mouse?       ( >=x11-drivers/xf86-input-mouse-1.9.3 )
 	input_devices_vmmouse?     ( x11-drivers/xf86-input-vmmouse )
 	input_devices_void?        ( x11-drivers/xf86-input-void )
 	input_devices_synaptics?   ( x11-drivers/xf86-input-synaptics )

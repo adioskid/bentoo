@@ -74,8 +74,8 @@ kernel-build_src_configure() {
 		ARCH=$(tc-arch-kernel)
 	)
 
-	[[ -f .config ]] || die "Ebuild error: please copy default config into .config"
 	restore_config .config
+	[[ -f .config ]] || die "Ebuild error: please copy default config into .config"
 
 	mkdir -p "${WORKDIR}"/modprep || die
 	mv .config "${WORKDIR}"/modprep/ || die
@@ -99,9 +99,14 @@ kernel-build_src_compile() {
 # from kernel-install.eclass with the correct paths.
 kernel-build_src_test() {
 	debug-print-function ${FUNCNAME} "${@}"
+	local targets=( modules_install )
+	# on arm or arm64 you also need dtb
+	if use arm || use arm64; then
+		targets+=( dtbs_install )
+	fi
 
 	emake O="${WORKDIR}"/build "${MAKEARGS[@]}" \
-		INSTALL_MOD_PATH="${T}" modules_install
+		INSTALL_MOD_PATH="${T}" INSTALL_PATH="${ED}/boot"  "${targets[@]}"
 
 	kernel-install_test "${PV}" \
 		"${WORKDIR}/build/$(kernel-install_get_image_path)" \
@@ -117,8 +122,14 @@ kernel-build_src_install() {
 
 	# do not use 'make install' as it behaves differently based
 	# on what kind of installkernel is installed
+	local targets=( modules_install )
+	# on arm or arm64 you also need dtb
+	if use arm || use arm64; then
+		targets+=( dtbs_install )
+	fi
+
 	emake O="${WORKDIR}"/build "${MAKEARGS[@]}" \
-		INSTALL_MOD_PATH="${ED}" modules_install
+		INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
 
 	# note: we're using mv rather than doins to save space and time
 	# install main and arch-specific headers first, and scripts
