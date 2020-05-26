@@ -10,8 +10,8 @@ HOMEPAGE="https://redis.io"
 SRC_URI="http://download.redis.io/releases/${P}.tar.gz"
 
 LICENSE="BSD"
-KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 x86 ~amd64-linux ~x86-linux ~x86-macos ~x86-solaris"
-IUSE="+jemalloc tcmalloc luajit test"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~x86 ~amd64-linux ~x86-linux ~x86-macos ~x86-solaris"
+IUSE="+jemalloc luajit tcmalloc test"
 RESTRICT="!test? ( test )"
 SLOT="0"
 
@@ -19,37 +19,43 @@ SLOT="0"
 # This should link correctly with both unslotted & slotted Lua, without
 # changes.
 COMMON_DEPEND="
+	jemalloc? ( >=dev-libs/jemalloc-5.1:= )
 	luajit? ( dev-lang/luajit:2 )
 	!luajit? ( || ( dev-lang/lua:5.1 =dev-lang/lua-5.1*:0 ) )
 	tcmalloc? ( dev-util/google-perftools )
-	jemalloc? ( >=dev-libs/jemalloc-5.1:= )"
+"
 
 RDEPEND="
 	${COMMON_DEPEND}
 	acct-group/redis
-	acct-user/redis"
+	acct-user/redis
+"
 
 BDEPEND="
 	${COMMON_DEPEND}
-	virtual/pkgconfig"
+	virtual/pkgconfig
+"
 
 # Tcl is only needed in the CHOST test env
 DEPEND="
 	${COMMON_DEPEND}
 	test? ( dev-lang/tcl:0= )"
 
-REQUIRED_USE="?? ( tcmalloc jemalloc )"
+REQUIRED_USE="?? ( jemalloc tcmalloc )"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-3.2.3-config.patch
 	"${FILESDIR}"/${PN}-5.0-shared.patch
-	"${FILESDIR}"/${PN}-5.0-sharedlua.patch
+	"${FILESDIR}"/${PN}-6.0.3-sharedlua.patch
 	"${FILESDIR}"/${PN}-5.0.8-ppc-atomic.patch
 	"${FILESDIR}"/${PN}-sentinel-5.0-config.patch
 )
 
 src_prepare() {
 	default
+
+	# unstable on jemalloc
+	> tests/unit/memefficiency.tcl || die
 
 	# Copy lua modules into build dir
 	cp "${S}"/deps/lua/src/{fpconv,lua_bit,lua_cjson,lua_cmsgpack,lua_struct,strbuf}.c "${S}"/src || die
@@ -102,28 +108,22 @@ src_prepare() {
 }
 
 src_configure() {
-	econf \
-		$(use_with luajit)
-
-	# Linenoise can't be built with -std=c99, see https://bugs.gentoo.org/451164
-	# also, don't define ANSI/c99 for lua twice
-	sed -i -e "s:-std=c99::g" deps/linenoise/Makefile deps/Makefile || die
+	econf $(use_with luajit)
 }
 
 src_compile() {
-	tc-export CC AR RANLIB
-
 	local myconf=""
 
-	if use tcmalloc; then
-		myconf="${myconf} USE_TCMALLOC=yes"
-	elif use jemalloc; then
-		myconf="${myconf} JEMALLOC_SHARED=yes"
+	if use jemalloc; then
+		myconf+="MALLOC=jemalloc"
+	elif use tcmalloc; then
+		myconf+="MALLOC=tcmalloc"
 	else
-		myconf="${myconf} MALLOC=yes"
+		myconf+="MALLOC=libc"
 	fi
 
-	emake ${myconf} V=1 CC="${CC}" AR="${AR} rcu" RANLIB="${RANLIB}"
+	tc-export CC
+	emake V=1 ${myconf} CC="${CC}"
 }
 
 src_install() {
