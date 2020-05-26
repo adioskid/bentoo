@@ -88,20 +88,32 @@ src_prepare() {
 			ewarn "Continuing anyway as requested."
 		fi
 	fi
+
+	tc-export AR CC LD OBJCOPY RANLIB
+}
+
+_emake() {
+	emake \
+		AR="${AR}" \
+		CC="${CC}" \
+		LD="${LD}" \
+		OBJCOPY="${OBJCOPY}" \
+		RANLIB="${RANLIB}" \
+		"$@"
 }
 
 src_compile() {
 	# build system abuses the LDFLAGS variable to pass arguments to ld
 	unset LDFLAGS
 	if [[ ! -z ${loaderarch} ]]; then
-		emake CC="$(tc-getCC)" LD="$(tc-getLD)" ${loaderarch}
+		_emake ${loaderarch}
 	fi
-	emake CC="$(tc-getCC)" LD="$(tc-getLD)" ${loaderarch} installer
+	_emake ${loaderarch} installer
 }
 
 src_install() {
 	# parallel install fails sometimes
 	einfo "loaderarch=${loaderarch}"
-	emake -j1 CC="$(tc-getCC)" LD="$(tc-getLD)" INSTALLROOT="${D}" MANDIR=/usr/share/man bios ${loaderarch} install
+	_emake -j1 INSTALLROOT="${D}" MANDIR=/usr/share/man bios ${loaderarch} install
 	dodoc README NEWS doc/*.txt
 }
