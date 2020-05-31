@@ -25,10 +25,6 @@ src_prepare() {
 }
 
 src_install() {
-	default
 	insinto /usr/include/EGL
-	install_pkgconfig eglexternalplatform.pc
-
-	doins eglexternalplatform.pc
-	#newins "${DISTDIR}"/include/eglexternalplatform.h eglexternalplatformversion.h
+	newins "${DISTDIR}"/include/eglexternalplatform.h eglexternalplatformversion.h
 }
