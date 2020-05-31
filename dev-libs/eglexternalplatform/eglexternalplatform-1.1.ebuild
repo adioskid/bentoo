@@ -24,5 +24,5 @@ src_prepare() {
 
 src_install() {
 	insinto /usr/include/EGL
-	newins "${DISTDIR}"/interface/eglexternalplatform.h eglexternalplatformversion.h
+	doins ${S}/interface/eglexternalplatform.h eglexternalplatformversion.h
 }
