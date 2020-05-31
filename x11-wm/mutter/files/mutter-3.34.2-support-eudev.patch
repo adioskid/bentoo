@@ -1,0 +1,11 @@
+--- a/meson.build	2019-02-06 18:26:02.000000000 -0600
++++ b/meson.build	2019-02-09 23:17:54.808351343 -0600
+@@ -31,7 +31,7 @@
+ atk_req = '>= 2.5.3'
+ 
+ # optional version requirements
+-udev_req = '>= 228'
++udev_req = '>= 220'
+ gudev_req = '>= 232'
+ 
+ # wayland version requirements

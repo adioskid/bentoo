@@ -1,0 +1,522 @@
+diff --git a/src/compositor/meta-background-image.c b/src/compositor/meta-background-image.c
+index 14d3baf574ec087af6d02ffccb29c156510e623d..e447f687f73218b499da9df2bc12c90c93fb439f 100644
+--- a/src/compositor/meta-background-image.c
++++ b/src/compositor/meta-background-image.c
+@@ -40,6 +40,15 @@ enum
+ 
+ static guint signals[LAST_SIGNAL] = { 0 };
+ 
++#define STATS_TILE_SIZE 16
++
++typedef struct {
++  guint32 luminance_sum_squares;
++  guint32 acutance_sum_squares;
++  guint16 luminance_sum;
++  guint16 acutance_sum;
++} BackgroundStatsTile;
++
+ /**
+  * MetaBackgroundImageCache:
+  *
+@@ -67,6 +76,9 @@ struct _MetaBackgroundImage
+   gboolean in_cache;
+   gboolean loaded;
+   CoglTexture *texture;
++
++  BackgroundStatsTile *stats;
++  uint n_stats_tiles;
+ };
+ 
+ G_DEFINE_TYPE (MetaBackgroundImageCache, meta_background_image_cache, G_TYPE_OBJECT);
+@@ -120,6 +132,11 @@ meta_background_image_cache_get_default (void)
+   return cache;
+ }
+ 
++/* The maximum size of the image-part we cache in kilobytes starting from the upper left corner.
++ * We use it to calculate luminance and acutance values for requested areas of the image.
++ */
++#define MAX_CACHED_SIZE 1000
++
+ static void
+ load_file (GTask               *task,
+            MetaBackgroundImage *image,
+@@ -129,6 +146,10 @@ load_file (GTask               *task,
+   GError *error = NULL;
+   GdkPixbuf *pixbuf;
+   GFileInputStream *stream;
++  uint image_width, image_height, n_channels, rowstride;
++  guchar *pixels;
++  guint tiles_rowstride, n_tiles;
++  g_autofree guchar *luminance_rows = NULL;
+ 
+   stream = g_file_read (image->file, NULL, &error);
+   if (stream == NULL)
+@@ -146,6 +167,85 @@ load_file (GTask               *task,
+       return;
+     }
+ 
++  image_width = gdk_pixbuf_get_width (pixbuf);
++  image_height = gdk_pixbuf_get_height (pixbuf);
++  n_channels = gdk_pixbuf_get_n_channels (pixbuf);
++  rowstride = gdk_pixbuf_get_rowstride (pixbuf);
++  pixels = gdk_pixbuf_get_pixels (pixbuf);
++
++  /* We now calculate the values needed for statistics in tiles of the size
++   * STATS_TILE_SIZE.
++   */
++
++  tiles_rowstride = (image_width + STATS_TILE_SIZE - 1) / STATS_TILE_SIZE;
++  n_tiles = tiles_rowstride * (image_height + STATS_TILE_SIZE - 1) / STATS_TILE_SIZE;
++
++  if (n_tiles * sizeof (BackgroundStatsTile) > MAX_CACHED_SIZE * 1000)
++    n_tiles = (MAX_CACHED_SIZE * 1000) / sizeof (BackgroundStatsTile);
++
++  image->stats = g_new0 (BackgroundStatsTile, n_tiles);
++  image->n_stats_tiles = n_tiles;
++
++  /* Cached luminance of current and last row */
++  luminance_rows = g_malloc (image_width * 2);
++
++  for (uint y = 0; y < image_height; y++)
++    for (uint x = 0; x < image_width; x++)
++      {
++        BackgroundStatsTile *tile, *tile_left, *tile_above;
++        uint i = y * rowstride + x * n_channels;
++        uint i_tile = x / STATS_TILE_SIZE + y / STATS_TILE_SIZE * tiles_rowstride;
++
++        if (i_tile > n_tiles)
++          break;
++
++        uint8_t r = pixels[i];
++        uint8_t g = pixels[i + 1];
++        uint8_t b = pixels[i + 2];
++
++        /* Calculate and cache luminance */
++        uint8_t luminance = (0.299 * r + 0.587 * g + 0.114 * b);
++        luminance_rows[x + (y % 2) * image_width] = luminance;
++
++        tile = &image->stats[i_tile];
++        tile_left = &image->stats[(x - 1) / STATS_TILE_SIZE + y / STATS_TILE_SIZE * tiles_rowstride];
++        tile_above = &image->stats[x / STATS_TILE_SIZE + (y - 1) / STATS_TILE_SIZE * tiles_rowstride];
++
++        tile->luminance_sum += luminance;
++        tile->luminance_sum_squares += (guint32) luminance * luminance;
++
++        /* Calculate actuance towards the left and top pixel */
++        if (x > 0 && x < image_width - 1 &&
++            y > 0 && y < image_height - 1)
++          {
++            uint8_t acutance_left = ABS (luminance - luminance_rows[x - 1 + (y % 2) * image_width]);
++            uint8_t acutance_top = ABS (luminance - luminance_rows[x + ((y - 1) % 2) * image_width]);
++
++            tile->acutance_sum += acutance_left / 4 + acutance_top / 4;
++
++            tile->acutance_sum_squares += ((guint32) acutance_left * acutance_left) / 4;
++            tile->acutance_sum_squares += ((guint32) acutance_top * acutance_top) / 4;
++          }
++
++        /* Update acutance of the tile left of the current pixel */
++        if (y > 0 && y < image_height - 1 && x > 1)
++          {
++            uint8_t acutance_right = ABS (luminance_rows[x - 1 + (y % 2) * image_width] - luminance);
++
++            tile_left->acutance_sum += acutance_right / 4;
++            tile_left->acutance_sum_squares += ((guint32) acutance_right * acutance_right) / 4;
++          }
++
++        /* Update acutance of the tile above the current pixel */
++        if (x > 0 && x < image_width - 1 && y > 1)
++          {
++            uint8_t acutance_bottom = ABS (luminance_rows[x + ((y - 1) % 2) * image_width] - luminance);
++
++            tile_above->acutance_sum += acutance_bottom / 4;
++            tile_above->acutance_sum_squares += ((guint32) acutance_bottom * acutance_bottom) / 4;
++          }
++     }
++
+   g_task_return_pointer (task, pixbuf, (GDestroyNotify) g_object_unref);
+ }
+ 
+@@ -302,6 +402,7 @@ meta_background_image_finalize (GObject *object)
+     cogl_object_unref (image->texture);
+   if (image->file)
+     g_object_unref (image->file);
++  g_clear_pointer (&image->stats, g_free);
+ 
+   G_OBJECT_CLASS (meta_background_image_parent_class)->finalize (object);
+ }
+@@ -368,3 +469,99 @@ meta_background_image_get_texture (MetaBackgroundImage *image)
+ 
+   return image->texture;
+ }
++
++/**
++ * meta_background_image_get_color_info:
++ * @image: A #MetaBackgroundImage
++ * @image_area: The area of the image to analyze as #cairo_rectangle_int_t
++ * @mean_luminance: (out): The mean luminance as #float
++ * @luminance_variance: (out): Variance of the luminance as #float
++ * @mean_acutance: (out): The mean acutance as #float
++ * @acutance_variance: (out): Variance of the acutance as #float
++ *
++ * Gets color information about a specified area of a background image.
++ * Calculates the mean luminance, variance of the luminance, the mean
++ * acutance and the variance of the acutance of the area.
++ * This only works if the requested area is inside the cached part of the
++ * image, the size of this part is limited by MAX_CACHED_SIZE.
++ *
++ * Return value: %TRUE if the calculation was successful, %FALSE if the area
++ *  is not completely cached or if the given input was invalid.
++ **/
++gboolean
++meta_background_image_get_color_info (MetaBackgroundImage   *image,
++                                      cairo_rectangle_int_t *image_area,
++                                      float                 *mean_luminance,
++                                      float                 *luminance_variance,
++                                      float                 *mean_acutance,
++                                      float                 *acutance_variance)
++{
++  uint texture_width, texture_height;
++  guint tiles_rowstride;
++  cairo_rectangle_int_t tile_area;
++  guint64 acutance_sum = 0, luminance_sum = 0, luminance_sum_squares = 0, acutance_sum_squares = 0;
++  guint x = 0, y = 0, values_count = 0, acutance_values_count = 0;
++  guint result_width, result_height;
++
++  g_return_val_if_fail (META_IS_BACKGROUND_IMAGE (image), FALSE);
++
++  texture_width = cogl_texture_get_width (image->texture);
++  texture_height = cogl_texture_get_height (image->texture);
++
++  if (image_area->width == 0 ||
++      image_area->x + image_area->width > texture_width ||
++      image_area->x < 0)
++    return FALSE;
++
++  if (image_area->height == 0 ||
++      image_area->y + image_area->height > texture_height ||
++      image_area->y < 0)
++    return FALSE;
++
++  tiles_rowstride = (texture_width + STATS_TILE_SIZE - 1) / STATS_TILE_SIZE;
++
++  tile_area.x = image_area->x / STATS_TILE_SIZE;
++  tile_area.y = image_area->y / STATS_TILE_SIZE;
++  tile_area.width = (image_area->width + STATS_TILE_SIZE - 1) / STATS_TILE_SIZE;
++  tile_area.height = (image_area->height + STATS_TILE_SIZE - 1) / STATS_TILE_SIZE;
++
++  if (tile_area.x + tile_area.width + (tile_area.y + tile_area.height) * tiles_rowstride > image->n_stats_tiles)
++    return FALSE;
++
++  for (y = tile_area.y; y < tile_area.y + tile_area.height; y++)
++    for (x = tile_area.x; x < tile_area.x + tile_area.width; x++)
++      {
++        BackgroundStatsTile *tile = &image->stats[x + y * tiles_rowstride];
++        guint tile_width = MIN (texture_width - x * STATS_TILE_SIZE, STATS_TILE_SIZE);
++        guint tile_height = MIN (texture_height - y * STATS_TILE_SIZE, STATS_TILE_SIZE);
++
++        luminance_sum += tile->luminance_sum;
++        luminance_sum_squares += tile->luminance_sum_squares;
++        acutance_sum += tile->acutance_sum;
++        acutance_sum_squares += tile->acutance_sum_squares;
++        values_count += tile_width * tile_height;
++      }
++
++  acutance_values_count = values_count;
++  result_width = tile_area.width * STATS_TILE_SIZE;
++  result_height = tile_area.height * STATS_TILE_SIZE;
++
++  if (image_area->x == 0)
++    acutance_values_count -= result_height;
++
++  if (image_area->x + image_area->width == texture_width)
++    acutance_values_count -= result_height;
++
++  if (image_area->y == 0)
++    acutance_values_count -= result_width;
++
++  if (image_area->y + image_area->height == texture_height)
++    acutance_values_count -= result_width;
++
++  *mean_luminance = (double) luminance_sum / values_count;
++  *luminance_variance = ((double) luminance_sum_squares / values_count) - (*mean_luminance * *mean_luminance);
++  *mean_acutance = (double) acutance_sum / acutance_values_count;
++  *acutance_variance = ((double) acutance_sum_squares / acutance_values_count) - (*mean_acutance * *mean_acutance);
++
++  return TRUE;
++}
+diff --git a/src/compositor/meta-background.c b/src/compositor/meta-background.c
+index 6dd4242d2487b1c909ce6d28270a34f98971ad8d..14839ba1d087e73f1fa7d6d8447f927bf6d29e44 100644
+--- a/src/compositor/meta-background.c
++++ b/src/compositor/meta-background.c
+@@ -477,6 +477,173 @@ get_texture_area (MetaBackground          *self,
+     }
+ }
+ 
++static gboolean
++get_image_area_by_rect (MetaBackground        *self,
++                        CoglTexture           *texture,
++                        cairo_rectangle_int_t *monitor_area,
++                        float                  monitor_scale,
++                        cairo_rectangle_int_t *rect,
++                        cairo_rectangle_int_t *image_area)
++{
++  int screen_width, screen_height;
++  float texture_width, texture_height, texture_x_scale, texture_y_scale;
++  cairo_rectangle_int_t visible_area, texture_area;
++
++  if (monitor_area->x + rect->x + rect->width > monitor_area->x + monitor_area->width ||
++      monitor_area->y + rect->y + rect->height > monitor_area->y + monitor_area->height)
++    return FALSE;
++
++  meta_display_get_size (self->display, &screen_width, &screen_height);
++
++  texture_width = cogl_texture_get_width (texture);
++  texture_height = cogl_texture_get_height (texture);
++
++  switch (self->style)
++    {
++    case G_DESKTOP_BACKGROUND_STYLE_STRETCHED:
++      {
++        texture_x_scale = texture_width / monitor_area->width;
++        texture_y_scale = texture_height / monitor_area->height;
++
++        visible_area.x = (float) rect->x * texture_x_scale;
++        visible_area.y = (float) rect->y * texture_y_scale;
++        visible_area.width = (float) rect->width * texture_x_scale;
++        visible_area.height = (float) rect->height * texture_y_scale;
++        break;
++      }
++
++    case G_DESKTOP_BACKGROUND_STYLE_WALLPAPER:
++      visible_area.x = monitor_area->x + rect->x - (int) ((screen_width - texture_width) / 2.0);
++      visible_area.y = monitor_area->y + rect->y - (int) ((screen_height - texture_height) / 2.0);
++      visible_area.width = rect->width;
++      visible_area.height = rect->height;
++      break;
++
++    case G_DESKTOP_BACKGROUND_STYLE_CENTERED:
++      visible_area.x = rect->x - (int) ((monitor_area->width - texture_width) / 2.0);
++      visible_area.y = rect->y - (int) ((monitor_area->height - texture_height) / 2.0);
++      visible_area.width = rect->width;
++      visible_area.height = rect->height;
++      break;
++
++    case G_DESKTOP_BACKGROUND_STYLE_SCALED:
++    case G_DESKTOP_BACKGROUND_STYLE_ZOOM:
++      {
++        get_texture_area (self, monitor_area, monitor_scale, texture, &texture_area);
++
++        texture_x_scale = texture_width / texture_area.width;
++        texture_y_scale = texture_height / texture_area.height;
++
++        visible_area.x = (float) (rect->x - texture_area.x) * texture_x_scale;
++        visible_area.y = (float) (rect->y - texture_area.y) * texture_y_scale;
++        visible_area.width = (float) rect->width * texture_x_scale;
++        visible_area.height = (float) rect->height * texture_y_scale;
++        break;
++      }
++
++    case G_DESKTOP_BACKGROUND_STYLE_SPANNED:
++      {
++        texture_x_scale = texture_width / (screen_width * monitor_scale);
++        texture_y_scale = texture_height / (screen_height * monitor_scale);
++
++        visible_area.x = (float) (monitor_area->x + rect->x) * texture_x_scale;
++        visible_area.y = (float) (monitor_area->y + rect->y) * texture_y_scale;
++        visible_area.width = (float) rect->width * texture_x_scale;
++        visible_area.height = (float) rect->height * texture_y_scale;
++        break;
++      }
++
++    default:
++      return FALSE;
++    }
++
++  *image_area = visible_area;
++  return !texture_has_alpha (texture);
++}
++
++/**
++ * meta_background_get_color_info:
++ * @self: A #MetaBackground
++ * @monitor_index: Index of the monitor to use as #int
++ * @area_x: X-Axis starting point of the area as #uint
++ * @area_y: Y-Axis starting point of the area as #uint
++ * @area_width: Width of the area as #uint
++ * @area_height: Height of the area as #uint
++ * @mean_luminance: (out): The mean luminance as #float
++ * @luminance_variance: (out): Variance of the luminance as #float
++ * @mean_acutance: (out): The mean acutance as #float
++ * @acutance_variance: (out): Variance of the acutance as #float
++ *
++ * Gets color information for a given monitor-area and the background image
++ * that is shown in this area.
++ * Calculates the mean luminance, variance of the luminance, the mean acutance
++ * and the variance of the acutance of the requested area. The returned values
++ * may not be perfectly acurate because the pixel data is stored in tiles and
++ * the image area the calculations are done for might be slightly bigger than
++ * the reqested area.
++ *
++ * Return value: %TRUE if the calculation was successful, %FALSE if the area
++ *  is not inside the monitor or is not fully covered by a background image, if
++ *  the image has an alpha channel or is not fully visible, or if the required
++ *  color information is not completely present in the cache.
++ **/
++gboolean
++meta_background_get_color_info (MetaBackground *self,
++                                int             monitor_index,
++                                uint            area_x,
++                                uint            area_y,
++                                uint            area_width,
++                                uint            area_height,
++                                float          *mean_luminance,
++                                float          *luminance_variance,
++                                float          *mean_acutance,
++                                float          *acutance_variance)
++{
++  CoglTexture *texture;
++  MetaRectangle geometry;
++  cairo_rectangle_int_t monitor_area, rect, image_area;
++  float monitor_scale;
++
++  g_return_val_if_fail (META_IS_BACKGROUND (self), FALSE);
++  g_return_val_if_fail (monitor_index >= 0 && monitor_index < self->n_monitors, FALSE);
++
++  texture = self->background_image1 ? meta_background_image_get_texture (self->background_image1) : NULL;
++  if (texture == NULL)
++    return FALSE;
++
++  meta_display_get_monitor_geometry (self->display, monitor_index, &geometry);
++  monitor_scale = meta_display_get_monitor_scale (self->display, monitor_index);
++
++  monitor_area.x = geometry.x;
++  monitor_area.y = geometry.y;
++  monitor_area.width = geometry.width;
++  monitor_area.height = geometry.height;
++
++  rect.x = area_x;
++  rect.y = area_y;
++  rect.width = area_width;
++  rect.height = area_height;
++
++  if (self->style != G_DESKTOP_BACKGROUND_STYLE_WALLPAPER)
++    {
++      monitor_area.x *= monitor_scale;
++      monitor_area.y *= monitor_scale;
++      monitor_area.width *= monitor_scale;
++      monitor_area.height *= monitor_scale;
++
++      rect.x *= monitor_scale;
++      rect.y *= monitor_scale;
++      rect.width *= monitor_scale;
++      rect.height *= monitor_scale;
++    }
++
++  if (!get_image_area_by_rect (self, texture, &monitor_area, monitor_scale, &rect, &image_area))
++    return FALSE;
++
++  return meta_background_image_get_color_info (self->background_image1, &image_area,
++                                               mean_luminance, luminance_variance, mean_acutance, acutance_variance);
++}
++
+ static gboolean
+ draw_texture (MetaBackground        *self,
+               CoglFramebuffer       *framebuffer,
+diff --git a/src/meta/meta-background-image.h b/src/meta/meta-background-image.h
+index 137a6ff8e66d1e8a952f9ac74e64c7aa08ef4b81..c7f21b36c0e95fbbf5216bf146b2aff6c1117ccb 100644
+--- a/src/meta/meta-background-image.h
++++ b/src/meta/meta-background-image.h
+@@ -59,11 +59,19 @@ META_EXPORT
+ MetaBackgroundImageCache *meta_background_image_cache_get_default (void);
+ 
+ META_EXPORT
+-MetaBackgroundImage *meta_background_image_cache_load  (MetaBackgroundImageCache *cache,
+-                                                        GFile                    *file);
++MetaBackgroundImage *meta_background_image_cache_load     (MetaBackgroundImageCache *cache,
++                                                           GFile                    *file);
+ 
+ META_EXPORT
+-void                 meta_background_image_cache_purge (MetaBackgroundImageCache *cache,
+-                                                        GFile                    *file);
++void                 meta_background_image_cache_purge    (MetaBackgroundImageCache *cache,
++                                                           GFile                    *file);
++
++META_EXPORT
++gboolean             meta_background_image_get_color_info (MetaBackgroundImage   *image,
++                                                           cairo_rectangle_int_t *image_area,
++                                                           float                 *mean_luminance,
++                                                           float                 *luminance_variance,
++                                                           float                 *mean_acutance,
++                                                           float                 *acutance_variance);
+ 
+ #endif /* __META_BACKGROUND_IMAGE_H__ */
+diff --git a/src/meta/meta-background.h b/src/meta/meta-background.h
+index 1c255995c3b42f5f06ed66267e254836f36c6e4c..73cfe7e6724a7d6f4bd95712b2230cda4504c3e5 100644
+--- a/src/meta/meta-background.h
++++ b/src/meta/meta-background.h
+@@ -50,25 +50,37 @@ META_EXPORT
+ MetaBackground *meta_background_new (MetaDisplay *display);
+ 
+ META_EXPORT
+-void meta_background_set_color    (MetaBackground            *self,
+-                                   ClutterColor              *color);
++void meta_background_set_color          (MetaBackground            *self,
++                                         ClutterColor              *color);
+ 
+ META_EXPORT
+-void meta_background_set_gradient (MetaBackground            *self,
+-                                   GDesktopBackgroundShading  shading_direction,
+-                                   ClutterColor              *color,
+-                                   ClutterColor              *second_color);
++void meta_background_set_gradient       (MetaBackground            *self,
++                                         GDesktopBackgroundShading  shading_direction,
++                                         ClutterColor              *color,
++                                         ClutterColor              *second_color);
+ 
+ META_EXPORT
+-void meta_background_set_file     (MetaBackground            *self,
+-                                   GFile                     *file,
+-                                   GDesktopBackgroundStyle    style);
++void meta_background_set_file           (MetaBackground            *self,
++                                         GFile                     *file,
++                                         GDesktopBackgroundStyle    style);
+ 
+ META_EXPORT
+-void meta_background_set_blend    (MetaBackground            *self,
+-                                   GFile                     *file1,
+-                                   GFile                     *file2,
+-                                   double                     blend_factor,
+-                                   GDesktopBackgroundStyle    style);
++void meta_background_set_blend          (MetaBackground            *self,
++                                         GFile                     *file1,
++                                         GFile                     *file2,
++                                         double                     blend_factor,
++                                         GDesktopBackgroundStyle    style);
++
++META_EXPORT
++gboolean meta_background_get_color_info (MetaBackground            *self,
++                                         int                        monitor_index,
++                                         uint                       area_x,
++                                         uint                       area_y,
++                                         uint                       area_width,
++                                         uint                       area_height,
++                                         float                     *mean_luminance,
++                                         float                     *luminance_variance,
++                                         float                     *mean_acutance,
++                                         float                     *acutance_variance);
+ 
+ #endif /* META_BACKGROUND_H */
+diff --git a/src/compositor/meta-background.c b/src/compositor/meta-background.c
+index 14839ba1d087e73f1fa7d6d8447f927bf6d29e44..709886bacaf5a3705abc8aad9364d3c826600029 100644
+--- a/src/compositor/meta-background.c
++++ b/src/compositor/meta-background.c
+@@ -1007,7 +1007,7 @@ meta_background_get_texture (MetaBackground         *self,
+                                      (1 - self->blend_factor),
+                                      (1 - self->blend_factor),
+                                      (1 - self->blend_factor),
+-                                     (1 - self->blend_factor));;
++                                     (1 - self->blend_factor));
+           cogl_pipeline_set_layer_texture (pipeline, 0, texture1);
+           cogl_pipeline_set_layer_wrap_mode (pipeline, 0, get_wrap_mode (self->style));
+ 
