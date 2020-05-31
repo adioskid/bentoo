@@ -25,5 +25,5 @@ src_prepare() {
 src_install() {
 	insinto /usr/include/EGL
 	doins ${S}/interface/*
-	mv "/${PN}.pc" "${ED}/usr/$(get_libdir)/pkgconfig/${PN}.pc"
+	mv "${S}/${PN}.pc" "${ED}/usr/$(get_libdir)/pkgconfig/${PN}.pc"
 }
