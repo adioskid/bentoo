@@ -16,7 +16,7 @@ IUSE=""
 
 DEPEND=""
 RDEPEND="${DEPEND}"
-BDEPEND=""
+BDEPEND="virtual/pkgconfig"
 
 src_prepare() {
 	default
@@ -25,4 +25,5 @@ src_prepare() {
 src_install() {
 	insinto /usr/include/EGL
 	doins ${S}/interface/*
+	mv "${ED}/${PN}.pc" "${ED}/usr/$(get_libdir)/pkgconfig/${PN}.pc"
 }
