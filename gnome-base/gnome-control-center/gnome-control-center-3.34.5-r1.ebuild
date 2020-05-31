@@ -119,8 +119,8 @@ src_configure() {
 		$(meson_use ibus)
 		$(meson_use v4l cheese)
 		$(meson_use wayland)
+		# bashcompletions installed to $datadir/bash-completion/completions by v3.28.2, which is the same as $(get_bashcompdir)
 	)
-
 	meson_src_configure
 }
 
