@@ -12,6 +12,7 @@ SRC_URI="https://github.com/NVIDIA/eglexternalplatform/archive/1.1.tar.gz"
 
 LICENSE="MIT"
 SLOT="0"
+KEYWORDS="*"
 IUSE=""
 
 DEPEND=""
@@ -27,8 +28,6 @@ src_install() {
 	default
 	insinto /usr/include/EGL
 	install_pkgconfig eglexternalplatform.pc
-
-	asdfas.sh
 
 	doins eglexternalplatform.pc
 	#newins "${DISTDIR}"/include/eglexternalplatform.h eglexternalplatformversion.h
