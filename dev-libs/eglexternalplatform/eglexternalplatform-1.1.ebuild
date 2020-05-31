@@ -8,7 +8,7 @@ inherit eutils
 
 HOMEPAGE="https://github.com/NVIDIA/eglexternalplatform"
 DESCRIPTION="The EGL External Platform interface"
-SRC_URI="https://github.com/NVIDIA/eglexternalplatform/archive/1.1.tar.gz"
+SRC_URI="https://github.com/NVIDIA/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="MIT"
 SLOT="0"
@@ -21,10 +21,9 @@ BDEPEND=""
 
 src_prepare() {
 	default
-	eautoreconf
 }
 
 src_install() {
 	insinto /usr/include/EGL
-	newins "${DISTDIR}"/include/eglexternalplatform.h eglexternalplatformversion.h
+	doins "${DISTDIR}"/interface/eglexternalplatform.h eglexternalplatformversion.h
 }
