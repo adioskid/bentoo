@@ -10,17 +10,16 @@ if [[ ${PV} == *9999 ]]; then
 	EGIT_REPO_URI="https://github.com/audacious-media-player/audacious-plugins.git"
 else
 	SRC_URI="https://distfiles.audacious-media-player.org/${MY_P}.tar.bz2"
-	KEYWORDS="~amd64 ~x86"
+	KEYWORDS="amd64 x86"
 fi
 DESCRIPTION="Lightweight and versatile audio player"
 HOMEPAGE="https://audacious-media-player.org/"
 
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="aac +alsa ampache bs2b cdda cue ffmpeg flac fluidsynth gme http jack
-	lame libav libnotify libsamplerate lirc mms modplug mp3 nls opengl
-	pulseaudio qtmedia scrobbler sdl sid sndfile soxr speedpitch streamtuner
-	vorbis wavpack"
+IUSE="aac +alsa ampache bs2b cdda cue ffmpeg flac fluidsynth gme http jack lame
+	libnotify libsamplerate lirc mms modplug mp3 nls opengl pulseaudio qtmedia
+	scrobbler sdl sid sndfile soxr speedpitch streamtuner vorbis wavpack"
 REQUIRED_USE="
 	|| ( alsa jack pulseaudio qtmedia sdl )
 	ampache? ( http ) streamtuner? ( http )"
@@ -159,7 +158,7 @@ src_configure() {
 		$(use_enable streamtuner)
 		$(use_enable vorbis)
 		$(use_enable wavpack)
-		$(use_with ffmpeg ffmpeg $(usex libav libav ffmpeg))
+		$(use_with ffmpeg ffmpeg ffmpeg)
 	)
 
 	econf "${myeconfargs[@]}"
