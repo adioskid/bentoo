@@ -10,8 +10,8 @@ inherit linux-info xorg-3 flag-o-matic
 if [[ ${PV} == 9999* ]]; then
 	SRC_URI=""
 else
-	KEYWORDS="amd64 x86"
-	COMMIT_ID="652d93cbbdc159c0883f1b626ea48e28bac63ae3"
+	KEYWORDS="~amd64 ~x86"
+	COMMIT_ID="5ca3ac1a90af177eb111a965e9b4dd8a27cc58fc"
 	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
 	S="${WORKDIR}/${PN}-${COMMIT_ID}"
 fi

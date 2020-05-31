@@ -75,12 +75,6 @@ src_configure() {
 		--disable-strong-security
 	)
 
-	# https://github.com/vaeth/eix/issues/35
-	append-cxxflags -std=c++14
-
-	# work around https://github.com/vaeth/eix/issues/64, bug#687988
-	local -x mv_fCXXFLAGS_cache='-mindirect-branch=thunk'
-
 	econf "${myconf[@]}"
 }
 
