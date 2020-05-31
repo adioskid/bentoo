@@ -17,7 +17,7 @@ IUSE=""
 
 DEPEND="
 	dev-libs/wayland
-	dev-libs/libglvnd
+	media-libs/libglvnd
 	"
 
 RDEPEND="${DEPEND}"
