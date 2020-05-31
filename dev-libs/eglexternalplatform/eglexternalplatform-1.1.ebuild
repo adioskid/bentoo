@@ -5,7 +5,6 @@ EAPI=7
 
 inherit eutils
 
-
 HOMEPAGE="https://github.com/NVIDIA/eglexternalplatform"
 DESCRIPTION="The EGL External Platform interface"
 SRC_URI="https://github.com/NVIDIA/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
@@ -25,5 +24,5 @@ src_prepare() {
 
 src_install() {
 	insinto /usr/include/EGL
-	doins "${DISTDIR}"/interface/eglexternalplatform.h eglexternalplatformversion.h
+	newins "${DISTDIR}"/interface/eglexternalplatform.h eglexternalplatformversion.h
 }
