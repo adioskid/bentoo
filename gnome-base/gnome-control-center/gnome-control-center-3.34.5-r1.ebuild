@@ -126,5 +126,4 @@ src_configure() {
 
 src_install() {
 	addwrite /usr/share/icons
-	meson_src_install completiondir="$(get_bashcompdir)"
 }
