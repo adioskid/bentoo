@@ -15,7 +15,7 @@ DESCRIPTION="Flexible, composited Window Manager for windowing systems on Linux"
 
 LICENSE="GPL-2+"
 SLOT="5"
-KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 IUSE="caps gles2-only multimedia"
 
 COMMON_DEPEND="
@@ -97,6 +97,7 @@ PATCHES=(
 	# in Plasma/5.18
 	"${FILESDIR}/${P}-dont-exec-QDialog.patch" # KDE-bug 421053
 	"${FILESDIR}/${P}-wayland-lockscreen-greeter.patch" # KDE-bug 420802
+	"${FILESDIR}/${P}-mesa-21.patch" # KDE-bug 422131
 )
 
 src_prepare() {
