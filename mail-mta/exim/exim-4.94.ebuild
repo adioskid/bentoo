@@ -29,14 +29,14 @@ SDIR=$([[ ${PV} == *_rc* ]]   && echo /test
 COMM_URI="https://downloads.exim.org/exim4${SDIR}"
 
 DESCRIPTION="A highly configurable, drop-in replacement for sendmail"
-SRC_URI="${COMM_URI}/${P//rc/RC}.tar.xz
+SRC_URI="${COMM_URI}/${P//_rc/-RC}.tar.xz
 	mirror://gentoo/system_filter.exim.gz
-	doc? ( ${COMM_URI}/${PN}-pdf-${PV//rc/RC}.tar.xz )"
+	doc? ( ${COMM_URI}/${PN}-pdf-${PV//_rc/-RC}.tar.xz )"
 HOMEPAGE="https://www.exim.org/"
 
 SLOT="0"
 LICENSE="GPL-2"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ppc ppc64 sparc x86 ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86 ~x86-solaris"
 
 COMMON_DEPEND=">=sys-apps/sed-4.0.5
 	( >=sys-libs/db-3.2:= <sys-libs/db-6:= )
@@ -104,7 +104,7 @@ RDEPEND="${COMMON_DEPEND}
 	selinux? ( sec-policy/selinux-exim )
 	"
 
-S=${WORKDIR}/${P//rc/RC}
+S=${WORKDIR}/${P//_rc/-RC}
 
 src_prepare() {
 	# Legacy patches which need a respin for -p1
@@ -113,13 +113,10 @@ src_prepare() {
 	eapply     "${FILESDIR}"/exim-4.93-as-needed-ldflags.patch # 352265, 391279
 	eapply -p0 "${FILESDIR}"/exim-4.76-crosscompile.patch # 266591
 	eapply     "${FILESDIR}"/exim-4.69-r1.27021.patch
-	eapply     "${FILESDIR}"/exim-4.93-localscan_dlopen.patch
-	eapply -p2 "${FILESDIR}"/exim-4.93-radius.patch # 720364
-	eapply     "${FILESDIR}"/exim-4.93-CVE-2020-12783.patch # 722484
-	eapply     "${FILESDIR}"/exim-4.93-fno-common.patch # 723430
+	eapply     "${FILESDIR}"/exim-4.94-localscan_dlopen.patch
 
 	if use maildir ; then
-		eapply "${FILESDIR}"/exim-4.20-maildir.patch
+		eapply "${FILESDIR}"/exim-4.94-maildir.patch
 	else
 		eapply -p0 "${FILESDIR}"/exim-4.80-spool-mail-group.patch # 438606
 	fi

@@ -10,12 +10,12 @@ CROSS_VER=1.3.2
 PATCH_BASE="perl-5.30.0-patches-${PATCH_VER}"
 PATCH_DEV=dilfridge
 
-DIST_AUTHOR=SHAY
+DIST_AUTHOR=XSAWYERX
 
 # Greatest first, don't include yourself
 # Devel point-releases are not ABI-intercompatible, but stable point releases are
 # BIN_OLDVERSEN is contains only C-ABI-intercompatible versions
-PERL_BIN_OLDVERSEN="5.30.0 5.30.1"
+PERL_BIN_OLDVERSEN="5.30.0 5.30.1 5.30.2"
 
 if [[ "${PV##*.}" == "9999" ]]; then
 	DIST_VERSION=5.30.0
@@ -83,7 +83,7 @@ dual_scripts() {
 	src_remove_dual      perl-core/ExtUtils-ParseXS   3.400.0       xsubpp
 	src_remove_dual      perl-core/IO-Compress        2.84.0        zipdetails
 	src_remove_dual      perl-core/JSON-PP            4.20.0        json_pp
-	src_remove_dual      perl-core/Module-CoreList    5.202.003.140 corelist
+	src_remove_dual      perl-core/Module-CoreList    5.202.6.13.0_rc corelist
 	src_remove_dual      perl-core/Pod-Parser         1.630.0       pod2usage podchecker podselect
 	src_remove_dual      perl-core/Pod-Perldoc        3.280.100     perldoc
 	src_remove_dual      perl-core/Test-Harness       3.420.0       prove
