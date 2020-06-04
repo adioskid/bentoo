@@ -17,7 +17,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 ~arm64 ~x86"
+KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts kerberos pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="component-build? ( !suid )"
@@ -179,6 +179,7 @@ PATCHES=(
 	"${FILESDIR}/chromium-83-gcc-permissive.patch"
 	"${FILESDIR}/chromium-83-gcc-iterator.patch"
 	"${FILESDIR}/chromium-83-gcc-serviceworker.patch"
+	"${FILESDIR}/chromium-83-gcc-compatibility.patch"
 	"${FILESDIR}/chromium-83-gcc-10.patch"
 	"${FILESDIR}/chromium-83-icu67.patch"
 	"${FILESDIR}/chromium-81-re2-0.2020.05.01.patch"
