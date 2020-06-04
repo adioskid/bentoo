@@ -9,8 +9,8 @@ DESCRIPTION="Official desktop client for Telegram (binary package)"
 HOMEPAGE="https://desktop.telegram.org"
 SRC_URI="
 	https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz
-	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.tar.xz )
-	x86? ( https://updates.tdesktop.com/tlinux32/tsetup32.${PV}.tar.xz )
+	amd64? ( https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/tsetup.${PV}.beta.tar.xz )
+	x86? ( https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/tsetup32.${PV}.beta.tar.xz )
 "
 
 LICENSE="GPL-3-with-openssl-exception"
