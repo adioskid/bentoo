@@ -1,29 +1,32 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="6"
-GNOME2_LA_PUNT="yes"
-PYTHON_COMPAT=( python3_7 )
+EAPI=7
+GNOME3_LA_PUNT="yes"
+PYTHON_COMPAT=( python3_{6,7,8} )
 
-inherit eutils gnome2 python-any-r1 systemd udev virtualx meson
+inherit eutils gnome3 python-any-r1 udev virtualx meson
 
 DESCRIPTION="Gnome Settings Daemon"
 HOMEPAGE="https://git.gnome.org/browse/gnome-settings-daemon"
 
 LICENSE="GPL-2+"
 SLOT="0"
-IUSE="+cups debug elogind +networkmanager smartcard systemd test +udev wayland"
+IUSE="+cups debug elogind +networkmanager smartcard +udev wayland"
 KEYWORDS="*"
 
 REQUIRED_USE="
-	?? ( elogind systemd )
+	elogind
 	smartcard? ( udev )
 	wayland? ( udev )
 "
 
+BASE_PV="${PV%.*}"
+
 COMMON_DEPEND="
+	>=dev-libs/libgweather-3.36:=
 	>=dev-libs/glib-2.62.2:2[dbus]
 	>=x11-libs/gtk+-3.24.12:3[X,wayland?]
-	>=gnome-base/gsettings-desktop-schemas-3.33.0
+	>=gnome-base/gsettings-desktop-schemas-${BASE_PV}
 	>=gnome-base/librsvg-2.36.2:2
 	media-fonts/cantarell
 	media-libs/alsa-lib
@@ -41,12 +44,9 @@ COMMON_DEPEND="
 	x11-libs/libXfixes
 	x11-libs/libXtst
 	x11-misc/xkeyboard-config
-
 	>=app-misc/geoclue-2.3.1:2.0
-	>=dev-libs/libgweather-3.9.5:2=
 	>=sci-geosciences/geocode-glib-3.10
 	>=sys-auth/polkit-0.113-r5
-
 	>=media-libs/lcms-2.2:2
 	>=x11-misc/colord-1.0.2:=
 	cups? ( >=net-print/cups-1.4[dbus] )
@@ -57,50 +57,37 @@ COMMON_DEPEND="
 	networkmanager? ( >=net-misc/networkmanager-1.0 )
 	smartcard? ( >=dev-libs/nss-3.11.2 )
 	udev? ( virtual/libgudev:= )
-	wayland? ( dev-libs/wayland )
-"
+	wayland? ( dev-libs/wayland )"
 
-# Themes needed by g-s-d, gnome-shell, gtk+:3 apps to work properly
-# <gnome-color-manager-3.1.1 has file collisions with g-s-d-3.1.x
-# <gnome-power-manager-3.1.3 has file collisions with g-s-d-3.1.x
-# systemd needed for power and session management, bug #464944
 RDEPEND="${COMMON_DEPEND}
 	gnome-base/dconf
-	!<gnome-base/gnome-control-center-2.22
-	!<gnome-extra/gnome-color-manager-3.1.1
-	!<gnome-extra/gnome-power-manager-3.1.3
-	!<gnome-base/gnome-session-3.27.90
-
-	elogind? ( sys-auth/elogind )
-	systemd? ( >=sys-apps/systemd-186:0= )
+	>=gnome-base/gnome-control-center-${PV}
+	>=gnome-extra/gnome-color-manager-${BASE_PV}
+	>=gnome-extra/gnome-power-manager-3.32
+	>=gnome-base/gnome-session-${BASE_PV}
+	sys-auth/elogind
 "
 
-# xproto-7.0.15 needed for power plugin
-# FIXME: tests require dbus-mock
 DEPEND="${COMMON_DEPEND}
-	cups? ( sys-apps/sed )
-	test? (
-		${PYTHON_DEPS}
-		$(python_gen_any_dep 'dev-python/pygobject:3[${PYTHON_USEDEP}]')
-		gnome-base/gnome-session )
+	!wayland? ( x11-base/xorg-proto )
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxml2:2
 	dev-libs/libxslt
 	sys-devel/gettext
 	>=dev-util/intltool-0.40
 	virtual/pkgconfig
-	x11-base/xorg-proto
 "
 
+# Tell gsd to not set DPMS timeouts to '0' (disable) on startup, so DPMS keeps working by default:
+# Turn off auto-sleeping when AC power is active, and set battery auto-sleep timeout to 15 minutes:
+
 PATCHES=(
-#	# Tell gsd to not set DPMS timeouts to '0' (disable) on startup, so DPMS keeps working by default:
 	"${FILESDIR}/${PN}-3.34-elementary-dpms-enable.patch"
-	# Turn off auto-sleeping when AC power is active, and set battery auto-sleep timeout to 15 minutes:
-	"${FILESDIR}/${PN}-3.34-disable-ac-autosleep.patch" 
+	"${FILESDIR}/${PN}-3.34-disable-ac-autosleep.patch"
 )
 
 src_prepare() {
-	gnome2_src_prepare
+	gnome3_src_prepare
 }
 
 src_configure() {
@@ -110,7 +97,7 @@ src_configure() {
 		$(meson_use networkmanager network_manager)
 		$(meson_use smartcard)
 		$(meson_use wayland)
-		$(meson_use systemd)
+		-Dsystemd=false
 	)
 
 	meson_src_configure
