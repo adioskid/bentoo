@@ -21,7 +21,7 @@ else
 	KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 fi
 
-RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).0"
+RUST_STAGE0_VERSION="1.$(($(ver_cut 2) - 1)).1"
 
 DESCRIPTION="Systems programming language from Mozilla"
 HOMEPAGE="https://www.rust-lang.org/"
@@ -113,10 +113,7 @@ RESTRICT="test"
 QA_SONAME="usr/lib.*/librustc_macros.*.so"
 
 PATCHES=(
-	"${FILESDIR}"/1.40.0-add-soname.patch
 	"${FILESDIR}"/0012-Ignore-broken-and-non-applicable-tests.patch
-	"${FILESDIR}"/1.43.0-llvm10.patch
-	"${FILESDIR}"/1.42.0-libressl.patch
 )
 
 S="${WORKDIR}/${MY_P}-src"

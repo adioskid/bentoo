@@ -1,8 +1,9 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="6"
+EAPI=7
+GNOME3_LA_PUNT="yes"
 
-inherit bash-completion-r1 gnome.org meson
+inherit bash-completion-r1 gnome3 meson flag-o-matic
 
 DESCRIPTION="GNOME's main interface to configure various aspects of the desktop"
 HOMEPAGE="https://git.gnome.org/browse/gnome-control-center/"
@@ -41,6 +42,7 @@ COMMON_DEPEND="
 	>=media-sound/pulseaudio-2[glib]
 	>=sys-auth/polkit-0.97
 	>=sys-power/upower-0.99:=
+	>=sys-fs/udisks-2.8.4:2
 
 	virtual/libgudev
 	x11-apps/xmodmap
@@ -91,8 +93,6 @@ RDEPEND="${COMMON_DEPEND}
 	!<gnome-extra/gnome-media-2.32.0-r300
 	!<net-wireless/gnome-bluetooth-3.3.2
 
-	net-print/cups-pk-helper
-
 	elogind? ( sys-auth/elogind )
 	systemd? ( >=sys-apps/systemd-186:0= )
 	!systemd? ( app-admin/openrc-settingsd )
@@ -108,22 +108,20 @@ DEPEND="${COMMON_DEPEND}
 	>=dev-util/intltool-0.40.1
 	>=sys-devel/gettext-0.17
 	virtual/pkgconfig
-
-	gnome-base/gnome-common
 "
+
 
 src_configure() {
 	local emesonargs=(
-		-Doption=disable-update-mimedb
-		-Doption=disable-static
 		$(meson_use ibus)
 		$(meson_use v4l cheese)
 		$(meson_use wayland)
-		# bashcompletions installed to $datadir/bash-completion/completions by v3.28.2, which is the same as $(get_bashcompdir)
 	)
+
 	meson_src_configure
 }
 
 src_install() {
 	addwrite /usr/share/icons
+	meson_src_install completiondir="$(get_bashcompdir)"
 }
