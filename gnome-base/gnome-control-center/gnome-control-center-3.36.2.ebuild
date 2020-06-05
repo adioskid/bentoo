@@ -116,6 +116,7 @@ src_configure() {
 		$(meson_use ibus)
 		$(meson_use v4l cheese)
 		$(meson_use wayland)
+		# bashcompletions installed to $datadir/bash-completion/completions by v3.28.2, which is the same as $(get_bashcompdir)
 	)
 
 	meson_src_configure
@@ -123,5 +124,4 @@ src_configure() {
 
 src_install() {
 	addwrite /usr/share/icons
-	meson_src_install completiondir="$(get_bashcompdir)"
 }
