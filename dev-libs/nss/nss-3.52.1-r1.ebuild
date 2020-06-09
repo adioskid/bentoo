@@ -15,7 +15,7 @@ SRC_URI="https://archive.mozilla.org/pub/security/nss/releases/${RTM_NAME}/src/$
 
 LICENSE="|| ( MPL-2.0 GPL-2 LGPL-2.1 )"
 SLOT="0"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 IUSE="cacert utils"
 # pkg-config called by nss-config -> virtual/pkgconfig in RDEPEND
 RDEPEND="
@@ -168,6 +168,8 @@ multilib_src_compile() {
 	export FREEBL_LOWHASH=1
 	export NSS_SEED_ONLY_DEV_URANDOM=1
 	export ASFLAGS=""
+	export USE_SYSTEM_ZLIB=1
+	export ZLIB_LIBS=-lz
 
 	local d
 
