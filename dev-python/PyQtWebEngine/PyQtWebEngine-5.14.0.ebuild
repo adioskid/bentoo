@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{6,7,8} )
+PYTHON_COMPAT=( python2_7 python3_{6..9} )
 inherit python-r1 qmake-utils
 
 DESCRIPTION="Python bindings for QtWebEngine"
@@ -18,7 +18,7 @@ fi
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 x86"
+KEYWORDS="amd64 ~arm arm64 x86"
 IUSE="debug"
 
 REQUIRED_USE="
