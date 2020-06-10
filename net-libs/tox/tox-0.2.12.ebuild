@@ -7,7 +7,7 @@ inherit cmake systemd
 
 MY_P="c-toxcore-${PV}"
 DESCRIPTION="Encrypted P2P, messaging, and audio/video calling platform"
-HOMEPAGE="https://tox.chat"
+HOMEPAGE="https://tox.chat https://github.com/TokTok/c-toxcore"
 SRC_URI="https://github.com/TokTok/c-toxcore/archive/v${PV}.tar.gz -> ${MY_P}.tar.gz"
 
 LICENSE="GPL-3+"
@@ -23,7 +23,7 @@ BDEPEND="virtual/pkgconfig"
 DEPEND="
 	>dev-libs/libsodium-0.6.1:=[asm,urandom,-minimal]
 	av? (
-		media-libs/libvpx
+		media-libs/libvpx:=
 		media-libs/opus
 	)
 	daemon? ( dev-libs/libconfig )"
@@ -39,7 +39,7 @@ S="${WORKDIR}/${MY_P}"
 src_prepare() {
 	cmake_src_prepare
 	#remove faulty tests
-	for testname in bootstrap lan_discovery save_compatibility; do
+	for testname in lan_discovery save_compatibility; do
 		sed -i -e "/^auto_test(${testname})$/d" CMakeLists.txt || die
 	done
 }
@@ -95,21 +95,12 @@ src_install() {
 pkg_postinst() {
 	if use dht-node; then
 		ewarn "The QA notice regarding libmisc_tools.so is known by the upstream"
-		ewarn "developers and is on their TODO list."
+		ewarn "developers and is on their TODO list. For more information,"
+		ewarn "please see 'https://github.com/toktok/c-toxcore/issues/1144'"
 		ewarn ""
 		ewarn "There is currently an unresolved issue with tox DHT Bootstrap node"
 		ewarn "that causes the program to be built with a null library reference."
 		ewarn "This causes an infinite loop for certain revdep-rebuild commands."
 		ewarn "If you aren't running a node, please consider disabling the dht-node use flag."
-	fi
-	if use daemon; then
-		if [[ -f ${EROOT}/var/lib/tox-dht-bootstrap/key ]]; then
-			ewarn "Backwards compatability with the bootstrap daemon might have been"
-			ewarn "broken a while ago. To resolve this issue, REMOVE the following files:"
-			ewarn "    ${EROOT}/var/lib/tox-dht-bootstrap/key"
-			ewarn "    ${EROOT}/etc/tox-bootstrapd.conf"
-			ewarn "    ${EROOT}/run/tox-dht-bootstrap/tox-dht-bootstrap.pid"
-			ewarn "Then just re-emerge net-libs/tox"
-		fi
 	fi
 }
