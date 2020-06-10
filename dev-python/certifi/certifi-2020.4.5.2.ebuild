@@ -19,9 +19,6 @@ IUSE=""
 RDEPEND="app-misc/ca-certificates"
 DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
 
-# Do not drop this patch -- this will affect system's security
-PATCHES=( "${FILESDIR}"/${PN}-2020.4.5.1-use-system-cacerts.patch )
-
 python_prepare_all() {
 	distutils-r1_python_prepare_all
 
