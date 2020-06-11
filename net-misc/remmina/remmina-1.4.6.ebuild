@@ -14,7 +14,7 @@ SRC_URI="https://gitlab.com/Remmina/Remmina/-/archive/v${PV}/${MY_P}.tar.gz"
 LICENSE="GPL-2+-with-openssl-exception"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="appindicator crypt cups examples gnome-keyring kwallet libressl nls spice ssh rdp telepathy vnc webkit zeroconf"
+IUSE="appindicator crypt cups examples gnome-keyring kwallet libressl nls spice ssh rdp telemetry telepathy vnc webkit zeroconf"
 
 DEPEND="
 	dev-libs/glib:2
@@ -80,6 +80,7 @@ src_configure() {
 		-DWITH_LIBVNCSERVER=$(usex vnc)
 		-DWITH_WWW=$(usex webkit)
 		-DWITH_AVAHI=$(usex zeroconf)
+		-DWITH_NEWS=$(usex telemetry)
 		-DWITH_ICON_CACHE=OFF
 		-DWITH_UPDATE_DESKTOP_DB=OFF
 	)
