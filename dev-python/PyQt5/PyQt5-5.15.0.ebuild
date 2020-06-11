@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{6,7,8,9} )
+PYTHON_COMPAT=( python2_7 python3_{6..9} )
 inherit multibuild python-r1 qmake-utils
 
 DESCRIPTION="Python bindings for the Qt framework"
@@ -18,9 +18,9 @@ fi
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ~ppc ~ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 
-# TODO: QtNfc, QtRemoteObjects
+# TODO: QtNfc, QtQuick3D, QtRemoteObjects
 IUSE="bluetooth dbus debug declarative designer examples gles2-only gui help location
 	multimedia network networkauth opengl positioning printsupport sensors serialport
 	sql +ssl svg testlib webchannel webkit websockets widgets x11extras xmlpatterns"
@@ -59,7 +59,7 @@ RDEPEND="
 	$(python_gen_cond_dep '
 		dev-python/enum34[${PYTHON_USEDEP}]
 	' -2)
-	>=dev-python/PyQt5-sip-4.19.20:=[${PYTHON_USEDEP}]
+	>=dev-python/PyQt5-sip-4.19.23:=[${PYTHON_USEDEP}]
 	>=dev-qt/qtcore-${QT_PV}
 	>=dev-qt/qtxml-${QT_PV}
 	bluetooth? ( >=dev-qt/qtbluetooth-${QT_PV} )
@@ -91,7 +91,7 @@ RDEPEND="
 	xmlpatterns? ( >=dev-qt/qtxmlpatterns-${QT_PV} )
 "
 DEPEND="${RDEPEND}
-	>=dev-python/sip-4.19.20[${PYTHON_USEDEP}]
+	>=dev-python/sip-4.19.23[${PYTHON_USEDEP}]
 	dbus? ( virtual/pkgconfig )
 "
 
