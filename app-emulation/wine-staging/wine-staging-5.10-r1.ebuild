@@ -23,8 +23,8 @@ else
 	KEYWORDS="-* ~amd64 ~x86"
 fi
 S="${WORKDIR}/${MY_P}"
-
-STAGING_P="wine-staging-${PV}"
+STAGING_V="044cb930662d61f401a5d1bdd7b8e75d59cea5ea"
+STAGING_P="wine-staging-${STAGING_V}"
 STAGING_DIR="${WORKDIR}/${STAGING_P}"
 GWP_V="20200523"
 PATCHDIR="${WORKDIR}/gentoo-wine-patches"
@@ -39,7 +39,7 @@ if [[ ${PV} == "9999" ]] ; then
 	STAGING_EGIT_REPO_URI="https://github.com/wine-staging/wine-staging.git"
 else
 	SRC_URI="${SRC_URI}
-	staging? ( https://github.com/wine-staging/wine-staging/archive/v${PV}.tar.gz -> ${STAGING_P}.tar.gz )"
+	staging? ( https://github.com/wine-staging/wine-staging/archive/${STAGING_V}.tar.gz -> wine-staging-5.10-r1.tar.gz )"
 fi
 
 LICENSE="LGPL-2.1"
@@ -287,7 +287,7 @@ wine_env_vcs_vars() {
 
 pkg_pretend() {
 	wine_build_environment_check || die
-
+	[ "${PV}" == "5.10" ] || die
 	# Verify OSS support
 	if use oss && ! use kernel_FreeBSD; then
 		if ! has_version ">=media-sound/oss-4"; then
