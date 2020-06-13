@@ -30,8 +30,9 @@ RESTRICT="!test? ( test )"
 PATCHES=(
 	"${FILESDIR}"/${PN}-0.175-disable-biarch-test-PR24158.patch
 	"${FILESDIR}"/${PN}-0.177-disable-large.patch
-	"${FILESDIR}"/${PN}-0.179-PaX-support.patch
+	"${FILESDIR}"/${PN}-0.180-PaX-support.patch
 	"${FILESDIR}"/${PN}-0.179-CC-in-tests.patch
+	"${FILESDIR}"/${PN}-0.180-readelf.patch
 )
 
 src_prepare() {

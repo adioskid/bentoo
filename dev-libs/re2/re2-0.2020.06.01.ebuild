@@ -18,12 +18,12 @@ LICENSE="BSD"
 # https://abi-laboratory.pro/tracker/timeline/re2/
 SONAME="7"
 SLOT="0/${SONAME}"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
 IUSE="icu"
 
-RDEPEND="icu? ( dev-libs/icu:0=[${MULTILIB_USEDEP}] )"
-DEPEND="${RDEPEND}"
 BDEPEND="icu? ( virtual/pkgconfig )"
+DEPEND="icu? ( dev-libs/icu:0=[${MULTILIB_USEDEP}] )"
+RDEPEND="${DEPEND}"
 
 S="${WORKDIR}/re2-${RE2_VER}"
 
@@ -31,9 +31,6 @@ DOCS=( AUTHORS CONTRIBUTORS README doc/syntax.txt )
 HTML_DOCS=( doc/syntax.html )
 
 src_prepare() {
-	local PATCHES=(
-		"${FILESDIR}"/0.2020.05.01-test-memory-budget.patch
-	)
 	default
 	grep -q "^SONAME=${SONAME}\$" Makefile || die "SONAME mismatch"
 	if use icu; then
@@ -43,13 +40,13 @@ src_prepare() {
 }
 
 src_configure() {
-	tc-export AR CXX NM
+	tc-export AR CXX
 }
 
 multilib_src_compile() {
-	emake SONAME="${SONAME}"
+	emake SONAME="${SONAME}" shared
 }
 
 multilib_src_install() {
-	emake SONAME="${SONAME}" DESTDIR="${D}" prefix="${EPREFIX}/usr" libdir="\$(exec_prefix)/$(get_libdir)" install
+	emake SONAME="${SONAME}" DESTDIR="${D}" prefix="${EPREFIX}/usr" libdir="\$(exec_prefix)/$(get_libdir)" shared-install
 }
