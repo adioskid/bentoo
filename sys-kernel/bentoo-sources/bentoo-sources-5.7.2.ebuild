@@ -20,7 +20,7 @@ AUFS_TARBALL="aufs-${AUFS_VERSION}.tar.gz"
 
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 HOMEPAGE="https://dev.gentoo.org/~mpagano/genpatches"
-IUSE="+aufs experimental"
+IUSE="aufs experimental"
 
 DESCRIPTION="Full sources including the Gentoo patchset for the ${KV_MAJOR}.${KV_MINOR} kernel tree and aufs5 support"
 
