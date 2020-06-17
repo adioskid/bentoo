@@ -26,6 +26,8 @@ DESCRIPTION="Full sources including the Gentoo patchset for the ${KV_MAJOR}.${KV
 
 STANDALONE="${WORKDIR}/aufs5-standalone-${COMMIT}"
 
+S="${WORKDIR}/"
+
 SRC_URI="
 	${KERNEL_URI}
 	${ARCH_URI}
@@ -51,6 +53,7 @@ src_unpack() {
 		einfo "Using aufs5 version: ${AUFS_VERSION}"
 		kernel-2_src_unpack
 	fi
+	default
 }
 
 src_prepare() {
@@ -60,6 +63,7 @@ src_prepare() {
 		cp -f "${STANDALONE}"/include/uapi/linux/aufs_type.h include/uapi/linux/aufs_type.h || die
 		cp -rf "${STANDALONE}"/{Documentation,fs} . || die
 	fi
+	default
 }
 
 src_install() {
@@ -69,6 +73,7 @@ src_install() {
 		docompress -x /usr/share/doc/${PF}/{aufs5-loopback,vfs-ino,tmpfs-idr}.patch
 		readme.gentoo_create_doc
 	fi
+	default
 }
 
 pkg_postinst() {
