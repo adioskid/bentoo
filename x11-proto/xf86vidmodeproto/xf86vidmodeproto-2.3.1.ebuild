@@ -10,7 +10,7 @@ KEYWORDS="*"
 SLOT="0/stub"
 
 RDEPEND="|| (
-	>=x11-base/xorg-proto-2018.4_p20180627-r2
+	>=x11-base/xorg-proto-2020.1
 )"
 DEPEND="${RDEPEND}"
 

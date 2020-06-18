@@ -54,12 +54,13 @@ RDEPEND="
 "
 
 DOCS=( AUTHORS CHANGELOG.md README.md THANKS.md )
+PATCHES=( "${FILESDIR}"/${P}-with-examples.patch )
 
 S="${WORKDIR}/${MY_P}"
 
 src_prepare() {
+	xdg_environment_reset
 	cmake_src_prepare
-	xdg_src_prepare
 }
 
 src_configure() {
