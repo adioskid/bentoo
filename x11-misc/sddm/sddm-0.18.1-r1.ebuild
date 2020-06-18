@@ -34,7 +34,7 @@ RDEPEND="
 	x11-libs/libxcb[xkb]
 	consolekit? ( >=sys-auth/consolekit-0.9.4 )
 	elogind? ( sys-auth/elogind )
-	pam? ( <=sys-libs/pam-1.3.1_p20200128-r1 )
+	pam? ( sys-libs/pam )
 	systemd? ( sys-apps/systemd:= )
 	!systemd? ( sys-power/upower )
 "
