@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christophe Fergeau <cfergeau@redhat.com>
+Date: Wed, 8 Feb 2017 17:07:39 +0100
+Subject: [PATCH] Xspice: Remove extra space before assignment
+
+---
+ scripts/Xspice | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/Xspice b/scripts/Xspice
+index 30d10fa..41fd80c 100755
+--- a/scripts/Xspice
++++ b/scripts/Xspice
+@@ -211,7 +211,7 @@ signal.signal(signal.SIGTERM, cleanup)
+ atexit.register(cleanup)
+ 
+ if args.auto:
+-    temp_dir  = tempfile.mkdtemp(prefix="Xspice-")
++    temp_dir = tempfile.mkdtemp(prefix="Xspice-")
+     cleanup_dirs.append(temp_dir)
+ 
+     args.config = temp_dir + "/xorg.conf"
+@@ -275,7 +275,7 @@ if args.vdagent_enabled:
+             os.unlink(f)
+ 
+     if not temp_dir:
+-        temp_dir  = tempfile.mkdtemp(prefix="Xspice-")
++        temp_dir = tempfile.mkdtemp(prefix="Xspice-")
+         cleanup_dirs.append(temp_dir)
+ 
+     # Auto generate temporary files for vdagent

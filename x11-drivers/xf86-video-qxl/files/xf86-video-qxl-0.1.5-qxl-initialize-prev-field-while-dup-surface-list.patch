@@ -1,0 +1,53 @@
+From cf2254c13497049a8dbc73a3b031f4cd43403ab1 Mon Sep 17 00:00:00 2001
+From: Victor Toso <me@victortoso.com>
+Date: Tue, 23 Oct 2018 13:48:58 +0200
+Subject: [PATCH] qxl: Initialize prev field while dup surface list
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Otherwise we will can hit a segfault qxl_surface_kill()
+
+ │717     void
+ │718     qxl_surface_kill (qxl_surface_t *surface)
+ │719     {
+ │720         struct evacuated_surface_t *ev = surface->evacuated;
+ │721
+ │722         if (ev)
+ │723         {
+ │724             /* server side surface is already destroyed (via reset), don't
+ │725              * resend a destroy. Just mark surface as not to be recreated */
+ │726             ev->pixmap = NULL;│
+ │727             if (ev->image)│
+ │728                 pixman_image_unref (ev->image);
+ │729             if (ev->next)
+ │730                 ev->next->prev = ev->prev;
+ │731             if (ev->prev)
+>│732                ev->prev->next = ev->next;
+ │733             free(ev);
+ │734             surface->evacuated = NULL;
+ │735             return;
+ │736         }
+
+Resolves: https://bugzilla.redhat.com/show_bug.cgi?id=1641793
+
+Signed-off-by: Victor Toso <victortoso@redhat.com>
+---
+ src/qxl_surface_ums.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/qxl_surface_ums.c b/src/qxl_surface_ums.c
+index 2c16ede..19cbd36 100644
+--- a/src/qxl_surface_ums.c
++++ b/src/qxl_surface_ums.c
+@@ -792,6 +792,7 @@ qxl_surface_cache_evacuate_all (surface_cache_t *cache)
+ 
+ 	unlink_surface (s);
+ 	
++	evacuated->prev = NULL;
+ 	evacuated->next = evacuated_surfaces;
+         if (evacuated_surfaces)
+             evacuated_surfaces->prev = evacuated;
+-- 
+2.24.1
+

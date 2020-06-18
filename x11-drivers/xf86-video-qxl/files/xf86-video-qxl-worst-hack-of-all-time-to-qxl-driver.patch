@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dave Airlie <airlied@redhat.com>
+Date: Tue, 26 Nov 2013 10:45:26 +1000
+Subject: [PATCH] worst hack of all time to qxl driver
+
+---
+ src/qxl_surface.c | 30 ++++++++++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/src/qxl_surface.c b/src/qxl_surface.c
+index 6a7e275..bb59f9e 100644
+--- a/src/qxl_surface.c
++++ b/src/qxl_surface.c
+@@ -770,8 +770,9 @@ qxl_surface_composite (qxl_surface_t *dest,
+       qxl->bo_funcs->bo_decref(qxl, derefs[i]);
+ }
+ 
+-Bool
+-qxl_surface_put_image (qxl_surface_t *dest,
++
++static Bool
++qxl_surface_put_image_for_reals (qxl_surface_t *dest,
+ 		       int x, int y, int width, int height,
+ 		       const char *src, int src_pitch)
+ {
+@@ -814,6 +815,31 @@ qxl_surface_put_image (qxl_surface_t *dest,
+     return TRUE;
+ }
+ 
++#define HACK_THE_PLANET 1
++Bool
++qxl_surface_put_image (qxl_surface_t *dest,
++		       int x, int y, int width, int height,
++		       const char *src, int src_pitch)
++{
++#ifdef HACK_THE_PLANET
++    Bool use_hack = FALSE;
++
++    /* worst heuristic ever - should really block the gnome-shell issue for now */
++    if (width == pixman_image_get_width(dest->host_image) && height < pixman_image_get_height(dest->host_image))
++        use_hack = TRUE;
++
++    if (use_hack) {
++        int gross = rand() % height;
++        int h2 = height - gross;
++        if (gross > 0)
++            qxl_surface_put_image_for_reals(dest, x, y, width, gross, src, src_pitch);
++        qxl_surface_put_image_for_reals(dest, x, y + gross, width, h2, src + (gross * src_pitch), src_pitch);
++        return TRUE;
++    } else
++#endif
++    return qxl_surface_put_image_for_reals(dest, x, y, width, height, src, src_pitch);
++}
++
+ void
+ qxl_get_formats (int bpp, SpiceSurfaceFmt *format, pixman_format_code_t *pformat)
+ {

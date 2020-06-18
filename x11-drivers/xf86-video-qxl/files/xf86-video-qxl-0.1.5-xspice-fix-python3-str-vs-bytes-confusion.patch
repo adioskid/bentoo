@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christophe Fergeau <cfergeau@redhat.com>
+Date: Wed, 8 Feb 2017 17:07:56 +0100
+Subject: [PATCH] Xspice: Fix Python3 str() vs bytes() confusion
+
+With python3, without universal_newlines=True, Popen().stdout.read()
+will return a byte array, while find(str) expects to operate on a
+string.
+I've checked that this still works with python2 as well.
+---
+ scripts/Xspice | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/Xspice b/scripts/Xspice
+index 41fd80c..927dcb1 100755
+--- a/scripts/Xspice
++++ b/scripts/Xspice
+@@ -135,7 +135,7 @@ def agents_new_enough(args):
+             return False
+ 
+     for f in [args.vdagent_exec, args.vdagentd_exec]:
+-        if Popen(args=[f, '-h'], stdout=PIPE).stdout.read().find('-S') == -1:
++        if Popen(args=[f, '-h'], stdout=PIPE, universal_newlines=True).stdout.read().find('-S') == -1:
+             return False
+     return True
+ 
