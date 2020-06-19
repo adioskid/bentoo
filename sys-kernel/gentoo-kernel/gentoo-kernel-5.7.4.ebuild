@@ -6,13 +6,13 @@ EAPI=7
 inherit kernel-build
 
 MY_P=linux-${PV%.*}
-GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 4 ))
+GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 1 ))
 # https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
-AMD64_CONFIG_VER=5.6.8-arch1
-AMD64_CONFIG_HASH=7dcb86e3e6f24c6d5462c5c8d25c3fa09e7e9f55
+AMD64_CONFIG_VER=5.7.1-arch1
+AMD64_CONFIG_HASH=663b08666b269eeeeaafbafaee07fd03389ac8d7
 # https://git.archlinux32.org/packages/log/core/linux/config.i686
-I686_CONFIG_VER=5.6.8-arch1
-I686_CONFIG_HASH=bc42cce2cca0d42b5cfeb8c6bcbf9f39430791f2
+I686_CONFIG_VER=5.7.2-arch1
+I686_CONFIG_HASH=4f18a8a48e28656a98803890a0f6567b93fd5a77
 
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"
@@ -31,6 +31,7 @@ S=${WORKDIR}/${MY_P}
 
 LICENSE="GPL-2"
 KEYWORDS="~amd64 ~arm ~arm64 ~x86"
+IUSE="debug"
 REQUIRED_USE="
 	arm? ( savedconfig )
 	arm64? ( savedconfig )"
@@ -38,6 +39,8 @@ REQUIRED_USE="
 RDEPEND="
 	!sys-kernel/vanilla-kernel:${SLOT}
 	!sys-kernel/vanilla-kernel-bin:${SLOT}"
+BDEPEND="
+	debug? ( dev-util/dwarves )"
 
 src_prepare() {
 	local PATCHES=(
@@ -74,6 +77,9 @@ src_prepare() {
 		-e '/CONFIG_MODULE_COMPRESS/d'
 		# disable gcc plugins to unbreak distcc
 		-e '/CONFIG_GCC_PLUGIN_STRUCTLEAK/d'
+	)
+	use debug || config_tweaks+=(
+		-e '/CONFIG_DEBUG_INFO/d'
 	)
 	sed -i "${config_tweaks[@]}" .config || die
 }
