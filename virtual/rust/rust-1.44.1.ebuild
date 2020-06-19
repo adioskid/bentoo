@@ -12,4 +12,4 @@ SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 
 BDEPEND=""
-RDEPEND="|| ( =dev-lang/rust-${PV}*[${MULTILIB_USEDEP}] =dev-lang/rust-bin-${PV}*[${MULTILIB_USEDEP}] )"
+RDEPEND="|| ( ~dev-lang/rust-${PV}[${MULTILIB_USEDEP}] ~dev-lang/rust-bin-${PV}[${MULTILIB_USEDEP}] )"
