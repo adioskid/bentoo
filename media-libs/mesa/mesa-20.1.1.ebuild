@@ -449,7 +449,7 @@ src_configure() {
 
 	# SVGA drivers (needed for vmware)
 	if use video_cards_gallium-vmware ; then
-		gallium_enable gallium-svga
+		gallium_enable svga
 	fi
 
 
