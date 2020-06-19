@@ -33,7 +33,10 @@ for card in ${ALL_DRI_DRIVERS% swrast*}; do
 	ALL_DRI_CARDS+=" video_cards_${card}"
 done
 
-ALL_GALLIUM_DRIVERS="pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d etnaviv imx tegra i915 iris svga virgl swr swrast"
+ALL_SWR_ARCHES="avx avx2 knl skx"
+IUSE_SWR_CPUFLAGS="cpu_flags_x86_avx cpu_flags_x86_avx2 cpu_flags_x86_avx512er cpu_flags_x86_avx512bw"
+
+ALL_GALLIUM_DRIVERS="iris pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d etnaviv imx tegra i915 svga virgl swr swrast"
 for card in ${ALL_GALLIUM_DRIVERS% swrast*}; do
 	case "$card" in
 		etnaviv) card="vivante" ;;
@@ -42,9 +45,6 @@ for card in ${ALL_GALLIUM_DRIVERS% swrast*}; do
 	esac
 	ALL_GALLIUM_CARDS+=" video_cards_gallium-${card}"
 done
-
-ALL_SWR_ARCHES="avx avx2 knl skx"
-IUSE_SWR_CPUFLAGS="cpu_flags_x86_avx cpu_flags_x86_avx2 cpu_flags_x86_avx512er cpu_flags_x86_avx512bw"
 
 IUSE_VIDEO_CARDS="${ALL_DRI_CARDS} ${ALL_GALLIUM_CARDS}"
 
@@ -83,7 +83,6 @@ IUSE="${IUSE_VIDEO_CARDS}
 	video_cards_virgl
 	video_cards_gallium-i915
 	video_cards_gallium-iris
-
 "
 
 REQUIRED_USE_APIS="
@@ -94,7 +93,7 @@ REQUIRED_USE_APIS="
 "
 
 REQUIRED_USE="
-	d3d9?	( video_cards_gallium-iris video_cards_gallium-r300 video_cards_gallium-r600 video_cards_gallium-radeonsi video_cards_gallium-vmware )
+	d3d9?	( video_cards_gallium-swrast )
 	opencl? (
 		llvm
 		|| ( ${ALL_GALLIUM_CARDS} )
@@ -115,8 +114,8 @@ REQUIRED_USE="
 	video_cards_vulkan-intel? ( video_cards_intel )
 	video_cards_i915? ( video_cards_intel )
 	video_cards_i965? ( video_cards_intel )
-	video_cards_gallium-i915? ( video_cards_intel )
 	video_cards_gallium-iris? ( video_cards_intel )
+	video_cards_gallium-i915? ( video_cards_intel )
 	video_cards_r100? ( video_cards_radeon )
 	video_cards_r200? ( video_cards_radeon )
 	video_cards_gallium-r300? ( video_cards_radeon )
@@ -211,7 +210,6 @@ RDEPEND="
 	video_cards_nouveau? ( x11-libs/libdrm[video_cards_nouveau] )
 	video_cards_gallium-i915? ( x11-libs/libdrm[video_cards_intel] )
 	video_cards_i915? ( x11-libs/libdrm[video_cards_intel] )
-	video_cards_gallium-iris? ( x11-libs/libdrm[video_cards_intel] )
 "
 RDEPEND="${RDEPEND}"
 
@@ -360,7 +358,6 @@ src_prepare() {
 	if [ -d "${FILESDIR}" ] && [ "$(cd "$FILESDIR" && echo "${P}"-*.patch)" != "${P}"'-*.patch' ] ; then
 		eapply "${FILESDIR}/${P}"-*.patch
 	fi
-	[[ ${PV} == 9999 ]] && eautoreconf
 
 	eapply_user
 
@@ -394,6 +391,9 @@ src_configure() {
 	if use video_cards_gallium-i915 ; then
 		gallium_enable video_cards_gallium-i915 i915
 	fi
+	if use video_cards_gallium-iris ; then
+		gallium_enable video_cards_gallium-iris iris
+	fi
 	if use video_cards_i915 ; then
 		dri_enable i915
 	fi
@@ -408,9 +408,6 @@ src_configure() {
 		tool_enable intel
 	fi
 
-	if use video_cards_gallium-iris ; then
-		gallium_enable video_cards_gallium-iris iris
-	fi
 
 	# Nouveau (nvidia) cards
 	if use video_cards_nouveau; then
@@ -452,7 +449,7 @@ src_configure() {
 
 	# SVGA drivers (needed for vmware)
 	if use video_cards_gallium-vmware ; then
-		gallium_enable svga
+		gallium_enable gallium-svga
 	fi
 
 
@@ -537,7 +534,7 @@ src_configure() {
 		-Dgbm=$(usex gbm auto false)
 		-Dglx=$(usex glx $glx_opt disabled)
 		-Degl=$(usex egl auto false)
-		-Dglvnd=$(usex glvnd $glvnd_opt false)
+		-Dglvnd=$(usex glvnd ${glvnd_opt} false)
 		-Dasm=$(if [[ "${ABI}" == "x86*" ]] ; then echo "false" ; else echo "true"; fi)
 		-Dglx-read-only-text=$(if [[ "${ABI}" == "x86" ]] && use pax_kernel ; then echo "true" ; else echo "false"; fi)
 		-Dllvm=$(usex llvm true false)
@@ -552,6 +549,7 @@ src_configure() {
 		-Dtools=${TOOLS}
 		-Dxlib-lease=auto
 	)
+	use video_cards_gallium-iris && emesonargs+=( -Dprefer-iris=true )
 
 #	if use llvm ; then
 #		export LLVM_CONFIG="$(llvm-config --prefix)/bin/${CHOST}-llvm-config"
@@ -590,12 +588,16 @@ src_compile() {
 }
 
 src_install() {
-	meson_src_install
+	meson_src_install DESTDIR="${D}"
 
-}
-
-src_install_all() {
+	if use glvnd ; then 
+		find "${ED}/usr/$(get_libdir)/" -name 'libGLESv[12]*.so*' -delete
+		mv "${ED}/usr/$(get_libdir)/pkgconfig/gl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-gl.pc"
+		mv "${ED}/usr/$(get_libdir)/pkgconfig/egl.pc" "${ED}/usr/$(get_libdir)/pkgconfig/mesa-egl.pc"
+	fi
+	find "${ED}" -name '*.la' -delete
 	einstalldocs
+
 }
 
 src_test() {
