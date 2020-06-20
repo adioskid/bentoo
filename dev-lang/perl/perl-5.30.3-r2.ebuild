@@ -1,9 +1,9 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
-inherit eutils alternatives flag-o-matic toolchain-funcs multilib multiprocessing
+inherit alternatives flag-o-matic toolchain-funcs multilib multiprocessing
 
 PATCH_VER=1
 CROSS_VER=1.3.4
@@ -51,7 +51,10 @@ LICENSE="|| ( Artistic GPL-1+ )"
 SLOT="0/${SUBSLOT}"
 
 if [[ "${PV##*.}" != "9999" ]] && [[ "${PV/rc//}" == "${PV}" ]] ; then
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+# SOMEWHAT EXPERIMENTAL CODE, DO NOT USE WITHOUT AN ADULT PRESENT, CHECK CHANGELOG
+# FOR DETAILS
+KEYWORDS=""
+# KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 fi
 
 IUSE="berkdb debug doc gdbm ithreads"
@@ -63,6 +66,8 @@ RDEPEND="
 	sys-libs/zlib
 "
 DEPEND="${RDEPEND}"
+BDEPEND="${RDEPEND}"
+
 PDEPEND="
 	>=app-admin/perl-cleaner-2.5
 	>=virtual/perl-File-Temp-0.230.400-r2
@@ -157,12 +162,25 @@ pkg_setup() {
 	VENDOR_BASE="/usr/$(get_libdir)/perl5/vendor_perl"
 
 	LIBPERL="libperl$(get_libname ${MY_PV} )"
-	PRIV_LIB="${PRIV_BASE}/${MY_PV}"
-	ARCH_LIB="${PRIV_BASE}/${MY_PV}/${myarch}${mythreading}"
-	SITE_LIB="${SITE_BASE}/${MY_PV}"
-	SITE_ARCH="${SITE_BASE}/${MY_PV}/${myarch}${mythreading}"
-	VENDOR_LIB="${VENDOR_BASE}/${MY_PV}"
-	VENDOR_ARCH="${VENDOR_BASE}/${MY_PV}/${myarch}${mythreading}"
+
+	# This ENV var tells perl to build with a directory like "5.30"
+	# regardless of its patch version. This is for experts only
+	# at this point.
+	if [[ -z "${PERL_SINGLE_SLOT}" ]]; then
+		PRIV_LIB="${PRIV_BASE}/${MY_PV}"
+		ARCH_LIB="${PRIV_BASE}/${MY_PV}/${myarch}${mythreading}"
+		SITE_LIB="${SITE_BASE}/${MY_PV}"
+		SITE_ARCH="${SITE_BASE}/${MY_PV}/${myarch}${mythreading}"
+		VENDOR_LIB="${VENDOR_BASE}/${MY_PV}"
+		VENDOR_ARCH="${VENDOR_BASE}/${MY_PV}/${myarch}${mythreading}"
+	else
+		PRIV_LIB="${PRIV_BASE}/${SUBSLOT}"
+		ARCH_LIB="${PRIV_BASE}/${SUBSLOT}/${myarch}${mythreading}"
+		SITE_LIB="${SITE_BASE}/${SUBSLOT}"
+		SITE_ARCH="${SITE_BASE}/${SUBSLOT}/${myarch}${mythreading}"
+		VENDOR_LIB="${VENDOR_BASE}/${SUBSLOT}"
+		VENDOR_ARCH="${VENDOR_BASE}/${SUBSLOT}/${myarch}${mythreading}"
+	fi
 
 	dual_scripts
 }
@@ -297,10 +315,9 @@ src_prepare_dynamic() {
 
 src_prepare() {
 	local patch
-	EPATCH_OPTS+=" -p1"
 
 	if use hppa ; then
-		epatch "${FILESDIR}/${PN}-5.26.2-hppa.patch" # bug 634162
+		eapply "${FILESDIR}/${PN}-5.26.2-hppa.patch" # bug 634162
 	fi
 
 	if [[ ${CHOST} == *-solaris* ]] ; then
@@ -309,11 +326,13 @@ src_prepare() {
 		sed -i '/gentoo\/no-nsl-cl\.patch/d' "${WORKDIR}/patches/series" || die
 	fi
 
-	einfo "Applying patches from ${PATCH_BASE} ..."
+	einfo "[ Applying patches from ${PATCH_BASE} ]"
 	while read patch ; do
-		EPATCH_SINGLE_MSG="  ${patch} ..."
-		epatch "${WORKDIR}"/patches/${patch}
+		eapply "${WORKDIR}"/patches/${patch}
 	done < "${WORKDIR}"/patches/series
+	einfo "[ Done with ${PATCH_BASE} ]"
+
+	eapply "${FILESDIR}/${PN}-5.30.3-gentoo-libdirs.patch"
 
 	src_prepare_update_patchlevel_h
 
@@ -322,7 +341,7 @@ src_prepare() {
 	tc-is-static-only || src_prepare_dynamic
 
 	if use gdbm; then
-		sed -i "s:INC => .*:INC => \"-I${EROOT}usr/include/gdbm\":g" \
+		sed -i "s:INC => .*:INC => \"-I${EROOT}/usr/include/gdbm\":g" \
 			ext/NDBM_File/Makefile.PL || die
 	fi
 
@@ -347,6 +366,90 @@ src_prepare() {
 myconf() {
 	# the myconf array is declared in src_configure
 	myconf=( "${myconf[@]}" "$@" )
+}
+
+# Outputs a list of versions which have been seen in any of the
+# primary perl @INC prefix paths, such as:
+#  /usr/lib64/perl5/<NUMBER>
+#  /usr/local/lib64/perl5/<NUMBER>
+#  /usr/lib64/perl5/vendor_perl/<NUMBER>
+#
+# All values of NUMBER must be like "5.x.y", unless PERL_SUPPORT_SINGLE_SLOT
+# is enabled, where it will also allow numbers like "5.x"
+#
+# PERL_SUPPORT_SINGLE_SLOT should only be used to transition *away* from PERL_SINGLE_SLOT
+# if you used that.
+find_candidate_inc_versions() {
+	local regex='.*/5[.][0-9]+[.][0-9]+$';
+	if [[ ! -z "${PERL_SUPPORT_SINGLE_SLOT}" || ! -z "${PERL_SINGLE_SLOT}" ]]; then
+		regex='.*/5[.][0-9]+\([.][0-9]+\|\)$'
+	fi
+	local dirs=(
+		"${EROOT}${PRIV_BASE}"
+		"${EROOT}${SITE_BASE}"
+		"${EROOT}${VENDOR_BASE}"
+	)
+	for dir in "${dirs[@]}"; do
+		if [[ ! -e "${dir}" ]]; then
+			continue
+		fi
+		# Without access to readdir() on these dirs, find will not be able
+		# to reveal any @INC directories inside them, and will subsequently prune
+		# them from the built perl's @INC support, breaking our compatiblity options
+		# entirely.
+		if [[ ! -r "${dir}" || ! -x "${dir}" ]]; then
+			eerror "Bad permissions on ${dir}, this will probably break things"
+			eerror "Ensure ${dir} is +rx for at least uid=$EUID"
+			eerror "Recommended permission is +rx for all"
+			eerror "> chmod o+rx ${dir}"
+		fi
+	done
+	einfo "Scanning for old @INC dirs matching '$regex' in: ${dirs[*]}"
+	find "${dirs[@]}" -maxdepth 1 -mindepth 1 -type d -regex "${regex}" -printf "%f "  2>/dev/null
+}
+# Sort versions passed versiony-ly, remove self-version if present
+# dedup. Takes each version as an argument
+sanitize_inc_versions() {
+	local vexclude="${DIST_VERSION%-RC}"
+	if [[ ! -z "${PERL_SINGLE_SLOT}" ]]; then
+		vexclude="${SUBSLOT}"
+	fi
+	einfo "Normalizing/Sorting candidate list: $*"
+	einfo " to remove '${vexclude}'"
+	# Note, general numeric sort has to be used
+	# for the last component, or unique will convert
+	#  5.30.0 + 5.30 into just 5.30
+	printf "%s\n" "$@" |\
+		grep -vxF "${vexclude}" |\
+		sort -u -nr -t'.' -k1,1rn -k2,2rn -k3,3rg
+}
+
+versions_to_inclist() {
+	local oldv="${PERL_BIN_OLDVERSEN}"
+	if [[ ! -z "${PERL_SINGLE_SLOT}" ]]; then
+		oldv="${DIST_VERSION%-RC} ${PERL_BIN_OLDVERSEN}"
+	fi
+	for v;	do
+			has "${v}" ${oldv} && echo -n "${v}/${myarch}${mythreading}/ ";
+			echo -n "${v}/ ";
+	done
+}
+versions_to_gentoolibdirs() {
+	local oldv="${PERL_BIN_OLDVERSEN}"
+	local root
+	local v
+	if [[ ! -z "${PERL_SINGLE_SLOT}" ]]; then
+		oldv="${DIST_VERSION%-RC} ${PERL_BIN_OLDVERSEN}"
+	fi
+	for v;	do
+		for root in "${PRIV_BASE}" "${VENDOR_BASE}" "${SITE_BASE}"; do
+			local fullpath="${EROOT}${root}/${v}"
+			if [[ -e "${fullpath}" ]]; then
+				has "${v}" ${oldv} && printf "%s:" "${fullpath}/${myarch}${mythreading}";
+				printf "%s:" "${fullpath}"
+			fi
+		done
+	done
 }
 
 src_configure() {
@@ -416,36 +519,26 @@ src_configure() {
 	# Autodiscover all old version directories, some of them will even be newer
 	# if you downgrade
 	if [[ -z ${PERL_OLDVERSEN} ]]; then
-		PERL_OLDVERSEN="$(
-			find "${EROOT%/}${PRIV_BASE}" "${EROOT%/}${SITE_BASE}" "${EROOT%/}${VENDOR_BASE}" \
-				   -maxdepth 1 -mindepth 1 -type d -regex '.*/5[.][0-9]+[.][0-9]+$' \
-				   -printf "%f "  2>/dev/null )"
+		PERL_OLDVERSEN="$( find_candidate_inc_versions )"
 	fi
+
 	# Fixup versions, removing self match, fixing order and dupes
-	PERL_OLDVERSEN="$(
-		echo "${PERL_OLDVERSEN}"           |\
-			tr " " "\n" 				   |\
-			grep -vF "${DIST_VERSION%-RC}" |\
-			sort -u -nr -t'.' -k1,1 -k2,2 -k3,3
-	)"
+	PERL_OLDVERSEN="$( sanitize_inc_versions ${PERL_OLDVERSEN} )"
 
 	# Experts who want a "Pure" install can set PERL_OLDVERSEN to an empty string
 	if [[ -n "${PERL_OLDVERSEN// }" ]]; then
-		local inclist="$(
-				for v in ${PERL_OLDVERSEN};	do
-					has "${v}" ${PERL_BIN_OLDVERSEN} && echo -n "${v}/${myarch}${mythreading} ";
-					echo -n "${v} ";
-				done )"
+		local inclist="$( versions_to_inclist ${PERL_OLDVERSEN} )"
 		einfo "This version of perl may partially support modules previously"
 		einfo "installed in any of the following paths:"
 		for incpath in ${inclist}; do
-			[[ -e "${EROOT%/}${VENDOR_BASE}/${incpath}" ]] && einfo " ${EROOT%/}${VENDOR_BASE}/${incpath}"
-			[[ -e "${EROOT%/}${PRIV_BASE}/${incpath}"   ]] && einfo " ${EROO%/T}${PRIV_BASE}/${incpath}"
-			[[ -e "${EROOT%/}${SITE_BASE}/${incpath}"   ]] && einfo " ${EROOT%/}${SITE_BASE}/${incpath}"
+			[[ -e "${EROOT}${VENDOR_BASE}/${incpath}" ]] && einfo " ${EROOT}${VENDOR_BASE}/${incpath}"
+			[[ -e "${EROOT}${PRIV_BASE}/${incpath}"   ]] && einfo " ${EROOT}${PRIV_BASE}/${incpath}"
+			[[ -e "${EROOT}${SITE_BASE}/${incpath}"   ]] && einfo " ${EROOT}${SITE_BASE}/${incpath}"
 		done
 		einfo "This is a temporary measure and you should aim to cleanup these paths"
 		einfo "via world updates and perl-cleaner"
-		myconf -Dinc_version_list="${inclist}"
+		# myconf -Dinc_version_list="${inclist}"
+		myconf -Dgentoolibdirs="$( versions_to_gentoolibdirs ${PERL_OLDVERSEN} )"
 	fi
 
 	[[ ${ELIBC} == "FreeBSD" ]] && myconf "-Dlibc=/usr/$(get_libdir)/libc.a"

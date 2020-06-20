@@ -59,7 +59,7 @@ LICENSE="
 	samba? ( GPL-3 )
 "
 if [ "${PV#9999}" = "${PV}" ] ; then
-	KEYWORDS="~amd64 ~mips ~ppc64 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
+	KEYWORDS="*"
 fi
 
 # Options to use as use_enable in the foo[:bar] form.
@@ -472,6 +472,7 @@ multilib_src_configure() {
 		--cc="$(tc-getCC)" \
 		--cxx="$(tc-getCXX)" \
 		--ar="$(tc-getAR)" \
+		--nm="$(tc-getNM)" \
 		--ranlib="$(tc-getRANLIB)" \
 		--optflags="${CFLAGS}" \
 		$(use_enable static-libs static) \

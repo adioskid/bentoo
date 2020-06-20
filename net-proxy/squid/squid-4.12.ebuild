@@ -22,7 +22,7 @@ fi
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm ~hppa ~ia64 ~mips ppc ppc64 ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
 IUSE="caps gnutls ipv6 pam ldap samba sasl kerberos nis radius ssl snmp selinux logrotate test \
 	ecap esi ssl-crtd \
 	mysql postgres sqlite \
@@ -78,7 +78,6 @@ pkg_pretend() {
 
 src_prepare() {
 	eapply "${FILESDIR}/${PN}-4.3-gentoo.patch"
-	eapply "${FILESDIR}/${PN}-4.11-missing-debug-extra.patch"
 	sed -i -e 's:/usr/local/squid/etc:/etc/squid:' \
 		INSTALL QUICKSTART \
 		scripts/fileno-to-pathname.pl \
