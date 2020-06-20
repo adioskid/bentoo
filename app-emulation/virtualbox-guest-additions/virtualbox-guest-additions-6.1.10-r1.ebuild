@@ -1,19 +1,29 @@
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-inherit linux-mod systemd user toolchain-funcs
+inherit linux-mod systemd toolchain-funcs
 
+MY_PV="${PV/beta/BETA}"
+MY_PV="${MY_PV/rc/RC}"
+MY_P="VirtualBox-${MY_PV}"
 DESCRIPTION="VirtualBox kernel modules and user-space tools for Gentoo guests"
 HOMEPAGE="https://www.virtualbox.org/"
-SRC_URI="https://download.virtualbox.org/virtualbox/6.1.10/VirtualBox-6.1.10.tar.bz2"
+SRC_URI="https://download.virtualbox.org/virtualbox/${MY_PV}/${MY_P}.tar.bz2
+	https://dev.gentoo.org/~polynomial-c/virtualbox/patchsets/virtualbox-6.1.10-patches-01.tar.xz"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="*"
+[[ "${PV}" == *_beta* ]] || [[ "${PV}" == *_rc* ]] || \
+KEYWORDS="~amd64 ~x86"
 IUSE="X"
 
+# automount Error: VBoxServiceAutoMountWorker: Group "vboxsf" does not exist
 RDEPEND="
+	acct-group/vboxguest
+	acct-group/vboxsf
+	acct-user/vboxguest
 	X? ( x11-apps/xrandr
 		x11-apps/xrefresh
 		x11-libs/libXmu
@@ -41,7 +51,7 @@ PDEPEND="
 BUILD_TARGETS="all"
 BUILD_TARGET_ARCH="${ARCH}"
 
-S="${WORKDIR}/VirtualBox-6.1.10"
+S="${WORKDIR}/${MY_P}"
 VBOX_MOD_SRC_DIR="${S}/out/linux.${ARCH}/release/bin/additions/src"
 
 pkg_setup() {
@@ -77,7 +87,7 @@ src_prepare() {
 	# Remove pointless GCC version check
 	sed -e '/^check_gcc$/d' -i configure || die
 
-	eapply "${FILESDIR}/patches"
+	eapply "${WORKDIR}/patches"
 
 	eapply_user
 }
@@ -104,8 +114,11 @@ src_configure() {
 }
 
 src_compile() {
-	MAKE="kmk" \
-	emake TOOL_YASM_AS=yasm \
+	MAKE="kmk" emake \
+	VBOX_BUILD_PUBLISHER=_Gentoo \
+	TOOL_GXX3_CC="$(tc-getCC)" TOOL_GXX3_CXX="$(tc-getCXX)" \
+	TOOL_GXX3_LD="$(tc-getCXX)" VBOX_GCC_OPT="${CXXFLAGS}" \
+	TOOL_YASM_AS=yasm \
 	VBOX_ONLY_ADDITIONS=1 \
 	KBUILD_VERBOSE=2
 
@@ -150,10 +163,10 @@ src_install() {
 	local udev_rules_dir="/lib/udev/rules.d"
 	dodir ${udev_rules_dir}
 	echo 'KERNEL=="vboxguest", OWNER="vboxguest", GROUP="vboxguest", MODE="0660"' \
-		>> "${ED%/}/${udev_rules_dir}/60-virtualbox-guest-additions.rules" \
+		>> "${ED}/${udev_rules_dir}/60-virtualbox-guest-additions.rules" \
 		|| die
 	echo 'KERNEL=="vboxuser", OWNER="vboxguest", GROUP="vboxguest", MODE="0660"' \
-		>> "${ED%/}/${udev_rules_dir}/60-virtualbox-guest-additions.rules" \
+		>> "${ED}/${udev_rules_dir}/60-virtualbox-guest-additions.rules" \
 		|| die
 
 	# VBoxClient autostart file
@@ -161,17 +174,10 @@ src_install() {
 	doins "${FILESDIR}"/vboxclient.desktop
 
 	# sample xorg.conf
-	insinto /usr/share/doc/${PF}
-	doins "${FILESDIR}"/xorg.conf.vbox
+	dodoc "${FILESDIR}"/xorg.conf.vbox
+	docompress -x "${ED}"/usr/share/doc/${PF}/xorg.conf.vbox
 
 	systemd_dounit "${FILESDIR}/${PN}.service"
-}
-
-pkg_preinst() {
-	enewgroup vboxguest
-	enewuser vboxguest -1 /bin/sh /dev/null vboxguest
-	# automount Error: VBoxServiceAutoMountWorker: Group "vboxsf" does not exist
-	enewgroup vboxsf
 }
 
 pkg_postinst() {
