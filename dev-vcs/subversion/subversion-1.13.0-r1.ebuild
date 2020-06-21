@@ -3,13 +3,13 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python3_{7,8} )
+PYTHON_COMPAT=( python2_7 )
 USE_RUBY="ruby26 ruby25 ruby24"
 DISTUTILS_OPTIONAL=1
 WANT_AUTOMAKE="none"
 GENTOO_DEPEND_ON_PERL="no"
 
-inherit autotools bash-completion-r1 db-use depend.apache distutils-r1 flag-o-matic java-pkg-opt-2 libtool perl-module ruby-single toolchain-funcs xdg-utils
+inherit autotools bash-completion-r1 db-use depend.apache distutils-r1 flag-o-matic java-pkg-opt-2 libtool ltprune multilib perl-module ruby-single toolchain-funcs xdg-utils
 
 MY_P="${P/_/-}"
 DESCRIPTION="Advanced version control system"
@@ -21,8 +21,8 @@ S="${WORKDIR}/${MY_P}"
 LICENSE="Subversion GPL-2"
 SLOT="0"
 [[ "${PV}" = *_rc* ]] || \
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux"
-IUSE="apache2 berkdb ctypes-python debug doc extras gnome-keyring java kwallet nls perl python ruby sasl test"
+KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ppc ppc64 sparc x86 ~amd64-linux ~x86-linux"
+IUSE="apache2 berkdb ctypes-python debug doc +dso extras gnome-keyring +http java kwallet nls perl python ruby sasl test vim-syntax"
 RESTRICT="!test? ( test )"
 
 COMMON_DEPEND="
@@ -33,7 +33,6 @@ COMMON_DEPEND="
 	>=dev-libs/apr-util-1.3:1
 	dev-libs/expat
 	dev-libs/libutf8proc:=
-	>=net-libs/serf-1.3.4
 	sys-apps/file
 	sys-libs/zlib
 	berkdb? ( >=sys-libs/db-4.0.14:= )
@@ -43,6 +42,7 @@ COMMON_DEPEND="
 		app-crypt/libsecret
 		sys-apps/dbus
 	)
+	http? ( >=net-libs/serf-1.3.4 )
 	kwallet? (
 		dev-qt/qtcore:5
 		dev-qt/qtdbus:5
@@ -55,29 +55,19 @@ COMMON_DEPEND="
 	perl? ( dev-lang/perl:= )
 	python? ( ${PYTHON_DEPS} )
 	ruby? ( ${RUBY_DEPS} )
-	sasl? ( dev-libs/cyrus-sasl )
-"
+	sasl? ( dev-libs/cyrus-sasl )"
 RDEPEND="${COMMON_DEPEND}
-	apache2? (
-		acct-group/apache
-		acct-user/apache
-		www-servers/apache[apache2_modules_dav]
-	)
-	!apache2? (
-		acct-group/svnusers
-		acct-user/svn
-	)
+	apache2? ( www-servers/apache[apache2_modules_dav] )
 	java? ( >=virtual/jre-1.8 )
 	nls? ( virtual/libintl )
-	perl? ( dev-perl/URI )
-"
+	perl? ( dev-perl/URI )"
 # Note: ctypesgen doesn't need PYTHON_USEDEP, it's used once
 DEPEND="${COMMON_DEPEND}
-	virtual/pkgconfig
 	!!<sys-apps/sandbox-1.6
 	ctypes-python? ( dev-python/ctypesgen )
 	doc? ( app-doc/doxygen )
 	gnome-keyring? ( virtual/pkgconfig )
+	http? ( virtual/pkgconfig )
 	java? ( >=virtual/jdk-1.8 )
 	kwallet? (
 		kde-frameworks/kdelibs4support:5
@@ -87,14 +77,15 @@ DEPEND="${COMMON_DEPEND}
 	perl? ( dev-lang/swig )
 	python? ( dev-lang/swig )
 	ruby? ( dev-lang/swig )
-	test? ( ${PYTHON_DEPS} )
-"
+	test? ( ${PYTHON_DEPS} )"
 
 REQUIRED_USE="
 	ctypes-python? ( ${PYTHON_REQUIRED_USE} )
 	python? ( ${PYTHON_REQUIRED_USE} )
-	test? ( ${PYTHON_REQUIRED_USE} )
-"
+	test? (
+		${PYTHON_REQUIRED_USE}
+		!dso
+	)"
 
 want_apache
 
@@ -128,6 +119,13 @@ pkg_setup() {
 	depend.apache_pkg_setup
 
 	java-pkg-opt-2_pkg_setup
+
+	if ! use http ; then
+		ewarn "WebDAV support is disabled. You need WebDAV to"
+		ewarn "access repositories through the HTTP protocol."
+		ewarn "Consider enabling \"http\" USE flag"
+		echo -ne "\a"
+	fi
 
 	# https://issues.apache.org/jira/browse/SVN-4813#comment-16813739
 	append-cppflags -P
@@ -194,14 +192,14 @@ src_configure() {
 		$(use_with apache2 apxs "${EPREFIX}"/usr/bin/apxs)
 		$(use_with berkdb berkeley-db "db.h:${EPREFIX}/usr/include/db${SVN_BDB_VERSION}::db-${SVN_BDB_VERSION}")
 		$(use_with ctypes-python ctypesgen "${EPREFIX}/usr")
-		--disable-runtime-module-search
+		$(use_enable dso runtime-module-search)
 		$(use_with gnome-keyring)
 		$(use_enable java javahl)
 		$(use_with java jdk "${JAVA_HOME}")
 		$(use_with kwallet)
 		$(use_enable nls)
 		$(use_with sasl)
-		--with-serf
+		$(use_with http serf)
 		--with-apr="${EPREFIX}/usr/bin/apr-1-config"
 		--with-apr-util="${EPREFIX}/usr/bin/apu-1-config"
 		--disable-experimental-libtool
@@ -470,7 +468,7 @@ src_install() {
 		fi
 	fi
 
-	find "${D}" -name '*.la' -type f -delete || die
+	prune_libtool_files --all
 
 	cd "${ED%/}"/usr/share/locale
 	for i in * ; do
@@ -532,6 +530,10 @@ pkg_config() {
 		fi
 		chmod -Rf go-rwx "${SVN_REPOS_LOC}/conf"
 		chmod -Rf o-rwx "${SVN_REPOS_LOC}/repos"
-		chown -Rf ${SVNSERVE_USER}:${SVNSERVE_GROUP} "${SVN_REPOS_LOC}/repos"
+		echo "Please create \"${SVNSERVE_GROUP}\" group if it does not exist yet."
+		echo "Afterwards please create \"${SVNSERVE_USER}\" user with homedir \"${SVN_REPOS_LOC}\""
+		echo "and as part of the \"${SVNSERVE_GROUP}\" group if it does not exist yet."
+		echo "Finally, execute \"chown -Rf ${SVNSERVE_USER}:${SVNSERVE_GROUP} ${SVN_REPOS_LOC}/repos\""
+		echo "to finish the configuration."
 	fi
 }
