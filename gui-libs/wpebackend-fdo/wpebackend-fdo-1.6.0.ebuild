@@ -13,7 +13,7 @@ LICENSE="BSD-2"
 SLOT="1.0"
 IUSE=""
 
-KEYWORDS="amd64 arm64 ~ia64 ~ppc64 ~sparc x86"
+KEYWORDS="*"
 
 RDEPEND="
 	media-libs/mesa[egl]
@@ -25,10 +25,6 @@ DEPEND="${RDEPEND}"
 BDEPEND="
 	virtual/pkgconfig
 "
-
-PATCHES=(
-	"${FILESDIR}"/${PV}-eglmesaext-include.patch
-)
 
 src_configure() {
 	local mycmakeargs=(
