@@ -49,7 +49,6 @@ RDEPEND="
 	${COMMON_DEPEND}
 	app-text/ghostscript-gpl
 	!minimal? (
-		$(python_gen_cond_dep 'dev-python/pygobject:2[${PYTHON_MULTI_USEDEP}]' 'python2*')
 		$(python_gen_cond_dep 'dev-python/pygobject:3[${PYTHON_MULTI_USEDEP}]' 'python3*')
 		kernel_linux? ( virtual/udev )
 		$(python_gen_cond_dep '
@@ -195,12 +194,12 @@ src_configure() {
 		else
 			minimal_build="${minimal_build} --disable-hpcups-only-build"
 		fi
-		minimal_build="--disable-fax-build"
+		minimal_build="${minimal_build} --disable-fax-build"
 	else
 		if use fax ; then
-			minimal_build="--enable-fax-build"
+			minimal_build="${minimal_build} --enable-fax-build"
 		else
-			minimal_build="--disable-fax-build"
+			minimal_build="${minimal_build} --disable-fax-build"
 		fi
 	fi
 
