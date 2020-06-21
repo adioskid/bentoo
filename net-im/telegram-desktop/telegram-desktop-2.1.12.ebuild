@@ -39,6 +39,7 @@ RDEPEND="
 	media-video/ffmpeg:=[alsa?,opus,pulseaudio?]
 	sys-libs/zlib[minizip]
 	virtual/libiconv
+	x11-libs/gtk+:3
 	dbus? (
 		dev-qt/qtdbus:5
 		dev-libs/libdbusmenu-qt[qt5(+)]
