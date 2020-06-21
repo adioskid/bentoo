@@ -30,6 +30,6 @@ src_unpack() {
 
 src_install() {
     linux-mod_src_install
-    dodoc README
+    dodoc readme
 }
 
