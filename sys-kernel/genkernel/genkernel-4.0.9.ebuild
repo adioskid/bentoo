@@ -16,7 +16,7 @@ VERSION_BUSYBOX="1.31.1"
 VERSION_COREUTILS="8.32"
 VERSION_CRYPTSETUP="2.3.3"
 VERSION_DMRAID="1.0.0.rc16-3"
-VERSION_DROPBEAR="2019.78"
+VERSION_DROPBEAR="2020.79"
 VERSION_EXPAT="2.2.9"
 VERSION_E2FSPROGS="1.45.6"
 VERSION_FUSE="2.9.9"
@@ -78,7 +78,7 @@ if [[ ${PV} == 9999* ]] ; then
 else
 	SRC_URI="https://dev.gentoo.org/~whissi/dist/genkernel/${P}.tar.xz
 		${COMMON_URI}"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 fi
 
 DESCRIPTION="Gentoo automatic kernel building scripts"

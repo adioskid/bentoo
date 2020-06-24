@@ -4,7 +4,7 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{6,7,8} )
-inherit cmake-utils llvm llvm.org multiprocessing python-any-r1
+inherit cmake-utils llvm llvm.org python-any-r1
 
 DESCRIPTION="OCaml bindings for LLVM"
 HOMEPAGE="https://llvm.org/"
@@ -12,7 +12,7 @@ LLVM_COMPONENTS=( llvm )
 llvm.org_set_globals
 
 # Keep in sync with sys-devel/llvm
-ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC AVR )
+ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC AVR VE )
 ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
 	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore
 	"${ALL_LLVM_EXPERIMENTAL_TARGETS[@]}" )
@@ -21,7 +21,7 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA"
 SLOT="0/${PV}"
-KEYWORDS="~amd64 ~arm ~x86"
+KEYWORDS=""
 IUSE="debug test ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )"
 RESTRICT="!test? ( test )"
@@ -38,19 +38,9 @@ BDEPEND="
 	test? ( dev-ml/ounit )
 	${PYTHON_DEPS}"
 
-# least intrusive of all
-CMAKE_BUILD_TYPE=RelWithDebInfo
-
 pkg_setup() {
 	LLVM_MAX_SLOT=${PV%%.*} llvm_pkg_setup
 	python-any-r1_pkg_setup
-}
-
-src_prepare() {
-	# Python is needed to run tests using lit
-	python_setup
-
-	cmake-utils_src_prepare
 }
 
 src_configure() {
@@ -86,7 +76,7 @@ src_configure() {
 	)
 
 	use test && mycmakeargs+=(
-		-DLLVM_LIT_ARGS="-vv;-j;${LIT_JOBS:-$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")}"
+		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 	)
 
 	# LLVM_ENABLE_ASSERTIONS=NO does not guarantee this for us, #614844
