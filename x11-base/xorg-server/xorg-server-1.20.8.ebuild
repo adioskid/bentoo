@@ -14,7 +14,7 @@ if [[ ${PV} != 9999* ]]; then
 fi
 
 IUSE_SERVERS="dmx kdrive wayland xephyr xnest xorg xvfb"
-IUSE="${IUSE_SERVERS} debug elogind +glamor glvnd ipv6 libressl minimal selinux +suid systemd +udev unwind xcsecurity"
+IUSE="${IUSE_SERVERS} debug elogind +glamor glvnd ipv6 libressl minimal selinux +suid +udev unwind xcsecurity"
 
 CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 	!libressl? ( dev-libs/openssl:0= )
@@ -80,10 +80,6 @@ CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 		>=dev-libs/wayland-protocols-1.18
 	)
 	>=x11-apps/xinit-1.3.3-r1
-	systemd? (
-		sys-apps/dbus
-		sys-apps/systemd
-	)
 	elogind? (
 		sys-apps/dbus
 		sys-auth/elogind
@@ -120,7 +116,7 @@ REQUIRED_USE="!minimal? (
 		|| ( ${IUSE_SERVERS} )
 	)
 	elogind? ( udev )
-	?? ( elogind systemd )
+	?? ( elogind )
 	minimal? ( !wayland )
 	xephyr? ( kdrive )"
 
@@ -168,10 +164,6 @@ pkg_setup() {
 		$(use_enable udev config-udev)
 		$(use_with doc doxygen)
 		$(use_with doc xmlto)
-		$(usex !elogind $(use_enable systemd systemd-logind) '--enable-systemd-logind')
-		$(use_with systemd systemd-daemon)
-		$(usex suid $(use_enable systemd suid-wrapper) '--disable-suid-wrapper')
-		$(usex suid $(use_enable !systemd install-setuid) '--disable-install-setuid')
 		--enable-libdrm
 		--sysconfdir="${EPREFIX}"/etc/X11
 		--localstatedir="${EPREFIX}"/var
@@ -184,6 +176,20 @@ pkg_setup() {
 		--with-os-vendor=Gentoo
 		--with-sha1=libcrypto
 	)
+
+	if use use elogind; then
+		XORG_CONFIGURE_OPTIONS+=( 
+			"--enable-systemd-logind"
+			"--disable-install-setuid"
+			"$(use_enable suid suid-wrapper)"
+		)
+	else
+		XORG_CONFIGURE_OPTIONS+=( 
+			"--disable-systemd-logind"
+			"--disable-suid-wrapper"
+			"$(use_enable suid install-setuid)"
+		)
+	fi
 }
 
 src_configure() {
