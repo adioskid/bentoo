@@ -12,7 +12,7 @@ HOMEPAGE="http://flatpak.org/"
 LICENSE="LGPL-2.1"
 SLOT="0"
 KEYWORDS="~amd64"
-IUSE="doc gnome gtk introspection kde policykit seccomp"
+IUSE="doc gnome gtk introspection kde policykit seccomp systemd zstd"
 
 # FIXME: Automagic dep on app-arch/zstd
 RDEPEND="
@@ -33,6 +33,9 @@ RDEPEND="
 	>=sys-fs/fuse-2.9.2:0
 	policykit? ( >=sys-auth/polkit-0.98 )
 	seccomp? ( sys-libs/libseccomp )
+	systemd? ( sys-apps/systemd )
+	app-arch/zstd
+
 "
 DEPEND="${RDEPEND}
 	>=sys-devel/automake-1.13.4
@@ -77,6 +80,7 @@ src_configure() {
 		$(use_enable introspection) \
 		$(use_enable policykit system-helper) \
 		$(use_enable seccomp) \
-		$(use_disable systemd)
+		$(use_disable systemd) \
+		$(use_enable zstd)
 
 }
