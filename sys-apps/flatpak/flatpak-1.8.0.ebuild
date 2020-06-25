@@ -12,9 +12,8 @@ HOMEPAGE="http://flatpak.org/"
 LICENSE="LGPL-2.1"
 SLOT="0"
 KEYWORDS="~amd64"
-IUSE="doc gnome gtk introspection kde policykit seccomp systemd zstd"
-
-# FIXME: Automagic dep on app-arch/zstd
+IUSE="doc gnome gtk introspection kde policykit seccomp zstd"
+ 
 RDEPEND="
 	acct-group/flatpak
 	acct-user/flatpak
@@ -33,8 +32,8 @@ RDEPEND="
 	>=sys-fs/fuse-2.9.2:0
 	policykit? ( >=sys-auth/polkit-0.98 )
 	seccomp? ( sys-libs/libseccomp )
-	systemd? ( sys-apps/systemd )
-	app-arch/zstd
+	zstd? ( app-arch/zstd )
+	dev-python/pyparsing
 
 "
 DEPEND="${RDEPEND}
@@ -75,12 +74,11 @@ src_configure() {
 		--localstatedir="${EPREFIX}"/var \
 		--without-system-bubblewrap \
 		--without-system-dbus-proxy \
+		--without-systemd \
 		$(use_enable doc documentation) \
 		$(use_enable doc gtk-doc) \
 		$(use_enable introspection) \
 		$(use_enable policykit system-helper) \
 		$(use_enable seccomp) \
-		$(use_disable systemd) \
 		$(use_enable zstd)
-
 }
