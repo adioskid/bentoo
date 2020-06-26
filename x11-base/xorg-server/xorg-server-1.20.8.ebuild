@@ -177,7 +177,7 @@ pkg_setup() {
 		--with-sha1=libcrypto
 	)
 
-	if use use elogind; then
+	if use elogind; then
 		XORG_CONFIGURE_OPTIONS+=( 
 			"--enable-systemd-logind"
 			"--disable-install-setuid"
