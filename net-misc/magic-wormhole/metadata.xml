@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+    <maintainer type="person">
+        <email>gkroon@maelstrom.ninja</email>
+        <name>Guido Kroon</name>
+        <description>Please fork and send pull requests to contribute</description>
+    </maintainer>
+    <use>
+        <flag name="maelstrom-mailbox">Use the Maelstrom servers for mailbox by default</flag>
+        <flag name="maelstrom-transit">Use the Maelstrom servers for transit by default</flag>
+    </use>
+    <upstream>
+        <remote-id type="github">warner/magic-wormhole</remote-id>
+    </upstream>
+</pkgmetadata>

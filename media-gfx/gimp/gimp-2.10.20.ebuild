@@ -233,11 +233,8 @@ pkg_postinst() {
 		insinto /home/$USER/.local || die
 		doins "${DISTDIR}"/PhotoGIMP-1.0/.local || die
 
-		insinto /home/$USER/.config/GIMP/2.10 || die
-		doins "${DISTDIR}"/PhotoGIMP-1.0/.var/app/org.gimp.GIMP/config/GIMP/2.10 || die
-
-		insinto /home/$USER/.config/gtk-2.0 || die
-		doins "${DISTDIR}"/PhotoGIMP-1.0/.var/app/org.gimp.GIMP/config/gtk-2.0 || die
+		insinto /home/$USER/.config/ || die
+		doins "${DISTDIR}"/PhotoGIMP-1.0/.var/app/org.gimp.GIMP/config/* || die
 
 	fi
 }
