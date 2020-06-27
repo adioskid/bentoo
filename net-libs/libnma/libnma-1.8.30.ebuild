@@ -37,10 +37,6 @@ BDEPEND="
 	)
 "
 
-PATCHES=(
-	"${FILESDIR}"/${PV}-nma-ws-leak-fix.patch
-)
-
 src_prepare() {
 	use vala && vala_src_prepare
 	xdg_src_prepare
