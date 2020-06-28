@@ -12,13 +12,13 @@ MY_PV=$(ver_rs 2 '-')
 
 DESCRIPTION="Proprietary OpenCL implementation for AMD GPUs"
 HOMEPAGE="https://www.amd.com/en/support/kb/release-notes/rn-amdgpu-unified-navi-linux"
-SRC_URI="${SUPER_PN}-${MY_PV}-ubuntu-18.04.tar.xz"
+SRC_URI="https://binhost.bentoo.info/distfiles/amdgpu-pro-20.20-1089974-ubuntu-20.04.tar.xz"
 
 LICENSE="AMD-GPU-PRO-EULA"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
 
-RESTRICT="bindist mirror fetch strip"
+RESTRICT="bindist mirror strip"
 
 BDEPEND="dev-util/patchelf"
 COMMON=">=virtual/opencl-3"
@@ -28,11 +28,11 @@ RDEPEND="${COMMON}
 
 QA_PREBUILT="/opt/amdgpu/lib*/*"
 
-S="${WORKDIR}/${SUPER_PN}-${MY_PV}-ubuntu-18.04"
+S="${WORKDIR}/${SUPER_PN}-${MY_PV}-ubuntu-20.20"
 
 pkg_nofetch() {
 	local pkgver=$(ver_cut 1-2)
-	einfo "Please download Radeon Software for Linux version ${pkgver} for Ubuntu 18.04 from"
+	einfo "Please download Radeon Software for Linux version ${pkgver} for Ubuntu 20.20 from"
 	einfo "    ${HOMEPAGE}"
 	einfo "The archive should then be placed into your distfiles directory."
 }
