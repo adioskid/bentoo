@@ -10,8 +10,8 @@ SLOT="0"
 KEYWORDS="amd64"
 
 GITHUB_REPO="steam-launcher"
-GITHUB_USER="funtoo"
-GITHUB_TAG="1ca1c45ca9392f962ecb37875acf1131737e3e87"
+GITHUB_USER="adioskid"
+GITHUB_TAG="47f8c2c011cd1a57ff91ffd4f0ae2619f22cf2a1"
 SRC_URI="https://www.github.com/${GITHUB_USER}/${GITHUB_REPO}/tarball/${GITHUB_TAG} -> ${PN}-${GITHUB_TAG}.tar.gz"
 
 RDEPEND="
@@ -23,10 +23,6 @@ src_unpack() {
 	unpack ${A}
 	mv "${WORKDIR}/${GITHUB_USER}-${GITHUB_REPO}"-??????? "${S}" || die
 }
-
-PATCHES=(
-	"${FILESDIR}/dockerfile-nvidia_update.patch"
-)
 
 src_install() {
 	dobin steam-nvidia-launcher
