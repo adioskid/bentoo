@@ -65,6 +65,8 @@ src_configure() {
 		--without-libjson
 		--without-zlib
 		--without-lmdb
+		--without-maxminddb
+		--disable-geoip
 		--with-openssl="${EPREFIX}"/usr
 		$(use_with idn libidn2)
 		$(use_with xml libxml2)
