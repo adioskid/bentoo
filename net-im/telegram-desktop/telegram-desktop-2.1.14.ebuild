@@ -16,7 +16,7 @@ SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc64"
-IUSE="+alsa +dbus enchant +hunspell libressl pulseaudio +spell wayland +X"
+IUSE="+alsa +dbus enchant +gtk +hunspell libressl pulseaudio +spell wayland +X"
 
 RDEPEND="
 	!net-im/telegram-desktop-bin
@@ -26,25 +26,30 @@ RDEPEND="
 	libressl? ( dev-libs/libressl:0= )
 	dev-libs/xxhash
 	dev-qt/qtcore:5
-	dev-qt/qtgui:5[jpeg,png,wayland?,X(-)?]
+	dev-qt/qtgui:5[dbus?,jpeg,png,wayland?,X(-)?]
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
 	dev-qt/qtsvg:5
 	dev-qt/qtwidgets:5[png,X(-)?]
 	media-fonts/open-sans
 	media-libs/fontconfig:=
-	>=media-libs/libtgvoip-2.4.4_p20200525[alsa?,pulseaudio?]
+	~media-libs/libtgvoip-2.4.4_p20200627[alsa?,pulseaudio?]
 	media-libs/openal[alsa?,pulseaudio?]
 	media-libs/opus:=
 	media-video/ffmpeg:=[alsa?,opus,pulseaudio?]
 	sys-libs/zlib[minizip]
 	virtual/libiconv
-	x11-libs/gtk+:3
 	dbus? (
 		dev-qt/qtdbus:5
 		dev-libs/libdbusmenu-qt[qt5(+)]
 	)
 	enchant? ( app-text/enchant:= )
+	gtk? (
+		dev-libs/glib:2
+		x11-libs/gdk-pixbuf:2[jpeg,X?]
+		x11-libs/gtk+:3[X?,wayland?]
+		x11-libs/libX11
+	)
 	hunspell? ( >=app-text/hunspell-1.7:= )
 	pulseaudio? ( media-sound/pulseaudio )
 "
@@ -71,6 +76,8 @@ REQUIRED_USE="
 
 S="${WORKDIR}/${MY_P}"
 
+PATCHES=( "${FILESDIR}/${PV}-no-gtk.patch" )
+
 pkg_pretend() {
 	if has ccache ${FEATURES}; then
 		ewarn
@@ -93,6 +100,7 @@ src_configure() {
 	# TODO: unbundle header-only libs, ofc telegram uses git versions...
 	# it fals with tl-expected-1.0.0, so we use bundled for now to avoid git rev snapshots
 	# EXPECTED VARIANT
+	# gtk is really needed for image copy-paste due to https://bugreports.qt.io/browse/QTBUG-56595
 	local mycmakeargs=(
 		-DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 		-DDESKTOP_APP_USE_GLIBC_WRAPS=OFF
@@ -100,6 +108,7 @@ src_configure() {
 		-DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF
 		-DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF
 		-DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF
+		-DTDESKTOP_DISABLE_GTK_INTEGRATION="$(usex gtk OFF ON)"
 		-DTDESKTOP_LAUNCHER_BASENAME="${PN}"
 		-DDESKTOP_APP_DISABLE_DBUS_INTEGRATION="$(usex dbus OFF ON)"
 		-DDESKTOP_APP_DISABLE_SPELLCHECK="$(usex spell OFF ON)" # enables hunspell (recommended)
@@ -136,6 +145,7 @@ pkg_postinst() {
 	xdg_desktop_database_update
 	xdg_icon_cache_update
 	xdg_mimeinfo_database_update
+	use gtk || einfo "enable \'gtk\' useflag if you have image copy-paste problems"
 }
 
 pkg_postrm() {
