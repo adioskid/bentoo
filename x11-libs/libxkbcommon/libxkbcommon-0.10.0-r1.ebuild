@@ -8,7 +8,7 @@ if [[ ${PV} = *9999* ]]; then
 	EGIT_REPO_URI="https://github.com/xkbcommon/${PN}"
 else
 	SRC_URI="https://xkbcommon.org/download/${P}.tar.xz"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 ~s390 sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 fi
 
 inherit meson multilib-minimal ${GIT_ECLASS}
@@ -16,7 +16,7 @@ inherit meson multilib-minimal ${GIT_ECLASS}
 DESCRIPTION="keymap handling library for toolkits and window systems"
 HOMEPAGE="https://xkbcommon.org/ https://github.com/xkbcommon/libxkbcommon/"
 LICENSE="MIT"
-IUSE="X doc test"
+IUSE="X doc static-libs test"
 RESTRICT="!test? ( test )"
 SLOT="0"
 
@@ -34,6 +34,7 @@ src_unpack() {
 
 multilib_src_configure() {
 	local emesonargs=(
+		-Ddefault_library="$(usex static-libs both shared)"
 		-Dxkb-config-root="${EPREFIX}/usr/share/X11/xkb"
 		-Denable-wayland=false # Demo applications
 		$(meson_use X enable-x11)

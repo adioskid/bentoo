@@ -13,8 +13,9 @@ if [[ ${PV} == *9999 ]]; then
 	esac
 else
 	MY_P=${P/_/-}
+	S="${WORKDIR}/${MY_P}"
 	SRC_URI="https://pub.freerdp.com/releases/${MY_P}.tar.gz"
-	KEYWORDS="~alpha amd64 arm ~arm64 ~ppc ~ppc64 x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 DESCRIPTION="Free implementation of the Remote Desktop Protocol"
@@ -87,6 +88,14 @@ BDEPEND="
 		app-text/xmlto
 	) )
 "
+
+src_prepare() {
+	local PATCHES=(
+		"${FILESDIR}/2.1.2-mask-cached_brush.patch"
+	)
+	cmake_src_prepare
+	echo "${PV}" > .source_version || die
+}
 
 src_configure() {
 	local mycmakeargs=(
