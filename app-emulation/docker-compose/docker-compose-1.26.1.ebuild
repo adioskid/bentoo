@@ -21,7 +21,7 @@ RESTRICT="!test? ( test )"
 RDEPEND="dev-python/setuptools[${PYTHON_USEDEP}]
 	>=dev-python/cached-property-1.2.0[${PYTHON_USEDEP}]
 	>=dev-python/distro-1.5.0[${PYTHON_USEDEP}]
-	>=dev-python/docker-py-3.7.0[${PYTHON_USEDEP}]
+	>=dev-python/docker-py-4.2.2[${PYTHON_USEDEP}]
 	>=dev-python/dockerpty-0.4.1[${PYTHON_USEDEP}]
 	>=dev-python/docopt-0.6.1[${PYTHON_USEDEP}]
 	>=dev-python/python-dotenv-0.13.0[${PYTHON_USEDEP}]
@@ -45,7 +45,7 @@ S="${WORKDIR}/compose-${PV}"
 PATCHES=(
 	# Bug #679968 -- https://bugs.gentoo.org/679968
 	# Bug #681002 -- https://bugs.gentoo.org/681002
-	"${FILESDIR}"/${PN}-1.26.0-setup-py.patch
+	"${FILESDIR}"/${PN}-1.26.1-setup-py.patch
 )
 
 DOCS=( CHANGELOG.md README.md )
