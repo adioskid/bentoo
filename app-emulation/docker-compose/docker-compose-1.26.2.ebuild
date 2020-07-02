@@ -45,7 +45,7 @@ S="${WORKDIR}/compose-${PV}"
 PATCHES=(
 	# Bug #679968 -- https://bugs.gentoo.org/679968
 	# Bug #681002 -- https://bugs.gentoo.org/681002
-	"${FILESDIR}"/${PN}-1.26.1-setup-py.patch
+	"${FILESDIR}"/${PN}-1.26.2-setup-py.patch
 )
 
 DOCS=( CHANGELOG.md README.md )

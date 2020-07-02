@@ -49,7 +49,7 @@ CDEPEND="
 	>=net-libs/gnutls-3.4.7[${MULTILIB_USEDEP}]
 	net-libs/libnsl:=[${MULTILIB_USEDEP}]
 	sys-libs/e2fsprogs-libs[${MULTILIB_USEDEP}]
-	>=sys-libs/ldb-2.1.3[ldap(+)?,python?,${PYTHON_SINGLE_USEDEP},${MULTILIB_USEDEP}]
+	>=sys-libs/ldb-2.1.4[ldap(+)?,python?,${PYTHON_SINGLE_USEDEP},${MULTILIB_USEDEP}]
 	<sys-libs/ldb-2.2.0[ldap(+)?,python?,${PYTHON_SINGLE_USEDEP},${MULTILIB_USEDEP}]
 	sys-libs/libcap[${MULTILIB_USEDEP}]
 	sys-libs/liburing[${MULTILIB_USEDEP}]
@@ -135,7 +135,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-4.4.0-pam.patch"
 	"${FILESDIR}/${PN}-4.9.2-timespec.patch"
 	"${FILESDIR}/${PN}-4.13-winexe_option.patch"
-	"${FILESDIR}/${PN}-4.13-vfs_snapper_configure_option.patch" 
+	"${FILESDIR}/${PN}-4.13-vfs_snapper_configure_option.patch"
 )
 
 #CONFDIR="${FILESDIR}/$(get_version_component_range 1-2)"
