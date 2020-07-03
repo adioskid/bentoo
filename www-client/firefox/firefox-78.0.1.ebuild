@@ -10,11 +10,12 @@ PYTHON_COMPAT=( python3_{7,8,9} )
 PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 # This list can be updated with scripts/get_langs.sh from the mozilla overlay
-MOZ_LANGS=(ach af an ar ast az be bg bn br bs ca cak cs cy da de dsb el en en-CA
-en-GB en-US eo es-AR es-CL es-ES es-MX et eu fa ff fi fr fy-NL ga-IE gd gl gn gu-IN
-he hi-IN hr hsb hu hy-AM ia id is it ja ka kab kk km kn ko lij lt lv mk mr ms my
-nb-NO nl nn-NO oc pa-IN pl pt-BR pt-PT rm ro ru si sk sl son sq sr sv-SE ta te
-th tr uk ur uz vi xh zh-CN zh-TW )
+MOZ_LANGS=( ach af an ar ast az be bg bn br bs ca cak cs cy da de dsb
+el en en-CA en-GB en-US eo es-AR es-CL es-ES es-MX et eu fa ff fi fr
+fy-NL ga-IE gd gl gn gu-IN he hi-IN hr hsb hu hy-AM ia id is it ja ka
+kab kk km kn ko lij lt lv mk mr ms my nb-NO nl nn-NO oc pa-IN pl pt-BR
+pt-PT rm ro ru si sk sl son sq sr sv-SE ta te th tr uk ur uz vi xh
+zh-CN zh-TW )
 
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_alpha/a}" # Handle alpha for SRC_URI
@@ -27,10 +28,10 @@ if [[ ${MOZ_ESR} == 1 ]] ; then
 fi
 
 # Patch version
-PATCH="${PN}-77.0-patches-01_pre7"
+PATCH="${PN}-78.0-patches-01"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/releases"
-MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.xz"
+MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/${PN}-${MOZ_PV}.source.tar.xz"
 
 if [[ "${PV}" == *_rc* ]]; then
 	MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/candidates/${MOZ_PV}-candidates/build${PV##*_rc}"
@@ -41,9 +42,8 @@ fi
 LLVM_MAX_SLOT=10
 
 inherit check-reqs eapi7-ver flag-o-matic toolchain-funcs eutils \
-		gnome2-utils llvm mozcoreconf-v6 multiprocessing \
-		pax-utils xdg-utils autotools mozlinguas-v2 virtualx \
-		eapi7-ver
+		gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
+		autotools mozlinguas-v2 multiprocessing virtualx
 
 DESCRIPTION="Firefox Web Browser"
 HOMEPAGE="https://www.mozilla.com/firefox"
@@ -53,10 +53,10 @@ KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="bindist clang cpu_flags_x86_avx2 debug eme-free geckodriver
-	+gmp-autoupdate hardened hwaccel jack lto cpu_flags_arm_neon pgo
-	pulseaudio +screenshot selinux startup-notification +system-av1
-	+system-harfbuzz +system-icu +system-jpeg +system-libevent +system-libvpx
-	+system-webp test wayland wifi"
+	+gmp-autoupdate hardened hwaccel jack lto cpu_flags_arm_neon
+	+openh264 pgo pulseaudio +screenshot selinux +system-av1
+	+system-harfbuzz +system-icu +system-jpeg +system-libevent
+	+system-libvpx +system-webp test wayland wifi"
 
 REQUIRED_USE="pgo? ( lto )"
 
@@ -69,7 +69,7 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.52.1
+	>=dev-libs/nss-3.53.1
 	>=dev-libs/nspr-4.25
 	dev-libs/atk
 	dev-libs/expat
@@ -86,7 +86,6 @@ CDEPEND="
 	virtual/freedesktop-icon-theme
 	sys-apps/dbus
 	dev-libs/dbus-glib
-	startup-notification? ( >=x11-libs/startup-notification-0.8 )
 	>=x11-libs/pixman-0.19.2
 	>=dev-libs/glib-2.26:2
 	>=sys-libs/zlib-1.2.3
@@ -104,7 +103,7 @@ CDEPEND="
 		>=media-libs/libaom-1.0.0:=
 	)
 	system-harfbuzz? ( >=media-libs/harfbuzz-2.6.4:0= >=media-gfx/graphite2-1.3.13 )
-	system-icu? ( >=dev-libs/icu-64.1:= )
+	system-icu? ( >=dev-libs/icu-67.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
 	system-libvpx? ( >=media-libs/libvpx-1.8.2:0=[postproc] )
@@ -119,6 +118,7 @@ CDEPEND="
 
 RDEPEND="${CDEPEND}
 	jack? ( virtual/jack )
+	openh264? ( media-libs/openh264:* )
 	pulseaudio? (
 		|| (
 			media-sound/pulseaudio
@@ -134,6 +134,8 @@ DEPEND="${CDEPEND}
 	>=net-libs/nodejs-10.19.0
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
+	>=virtual/rust-1.41.0
+	virtual/pkgconfig
 	|| (
 		(
 			sys-devel/clang:10
@@ -178,7 +180,6 @@ DEPEND="${CDEPEND}
 			>=media-sound/apulse-0.1.12-r4[sdk]
 		)
 	)
-	>=virtual/rust-1.41.0
 	wayland? ( >=x11-libs/gtk+-3.11:3[wayland] )
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	x86? ( >=dev-lang/yasm-1.1 virtual/opengl )
@@ -188,8 +189,6 @@ DEPEND="${CDEPEND}
 	)"
 
 S="${WORKDIR}/firefox-${PV%_*}"
-
-QA_PRESTRIPPED="usr/lib*/${PN}/firefox"
 
 BUILD_OBJ_DIR="${S}/ff"
 
@@ -227,21 +226,13 @@ pkg_pretend() {
 		if ! has usersandbox $FEATURES ; then
 			die "You must enable usersandbox as X server can not run as root!"
 		fi
-
-		if ! use clang ; then
-			# Force user decision so they don't find out firefox was build
-			# without pgo after spending some hours
-			eerror "USE=pgo when using GCC is currently known to be broken."
-			eerror "Either switch to USE=clang or temporarily set USE=-pgo."
-			die "USE=pgo without USE=clang is currently known to be broken."
-		fi
 	fi
 
 	# Ensure we have enough disk space to compile
 	if use pgo || use lto || use debug || use test ; then
-		CHECKREQS_DISK_BUILD="8G"
+		CHECKREQS_DISK_BUILD="10G"
 	else
-		CHECKREQS_DISK_BUILD="4G"
+		CHECKREQS_DISK_BUILD="5G"
 	fi
 
 	check-reqs_pkg_pretend
@@ -252,9 +243,9 @@ pkg_setup() {
 
 	# Ensure we have enough disk space to compile
 	if use pgo || use lto || use debug || use test ; then
-		CHECKREQS_DISK_BUILD="8G"
+		CHECKREQS_DISK_BUILD="10G"
 	else
-		CHECKREQS_DISK_BUILD="4G"
+		CHECKREQS_DISK_BUILD="5G"
 	fi
 
 	check-reqs_pkg_setup
@@ -280,12 +271,6 @@ pkg_setup() {
 	addpredict /proc/self/oom_score_adj
 
 	llvm_pkg_setup
-
-	if has ccache ${FEATURES} ; then
-		if use clang && use pgo ; then
-			die "Using FEATURES=ccache with USE=clang and USE=pgo is currently known to be broken (bug #718632)."
-		fi
-	fi
 }
 
 src_unpack() {
@@ -401,8 +386,7 @@ src_configure() {
 	mozconfig_init
 	# common config components
 	mozconfig_annotate 'system_libs' \
-		--with-system-zlib \
-		--with-system-bz2
+		--with-system-zlib
 
 	# Must pass release in order to properly select linker
 	mozconfig_annotate 'Enable by Gentoo' --enable-release
@@ -522,8 +506,8 @@ src_configure() {
 		mozconfig_annotate 'enabled by Gentoo' --enable-debug-symbols
 	fi
 	# These are enabled by default in all mozilla applications
-	mozconfig_annotate '' --with-system-nspr --with-nspr-prefix="${SYSROOT}${EPREFIX}"/usr
-	mozconfig_annotate '' --with-system-nss --with-nss-prefix="${SYSROOT}${EPREFIX}"/usr
+	mozconfig_annotate '' --with-system-nspr
+	mozconfig_annotate '' --with-system-nss
 	mozconfig_annotate '' --x-includes="${SYSROOT}${EPREFIX}"/usr/include \
 		--x-libraries="${SYSROOT}${EPREFIX}"/usr/$(get_libdir)
 	mozconfig_annotate '' --prefix="${EPREFIX}"/usr
@@ -531,7 +515,6 @@ src_configure() {
 	mozconfig_annotate '' --disable-crashreporter
 	mozconfig_annotate 'Gentoo default' --with-system-png
 	mozconfig_annotate '' --enable-system-ffi
-	mozconfig_annotate '' --disable-gconf
 	mozconfig_annotate '' --with-intl-api
 	mozconfig_annotate '' --enable-system-pixman
 	# Instead of the standard --build= and --host=, mozilla uses --host instead
@@ -557,7 +540,6 @@ src_configure() {
 		mozconfig_annotate '' --enable-default-toolkit=cairo-gtk3
 	fi
 
-	mozconfig_use_enable startup-notification
 	mozconfig_use_with system-av1
 	mozconfig_use_with system-harfbuzz
 	mozconfig_use_with system-harfbuzz system-graphite2
@@ -627,7 +609,6 @@ src_compile() {
 		gnome2_environment_reset
 
 		addpredict /root
-		addpredict /etc/gconf
 	fi
 
 	GDK_BACKEND=x11 \
@@ -685,12 +666,14 @@ src_install() {
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
-	local plugin
-	use gmp-autoupdate || use eme-free || for plugin in "${GMP_PLUGIN_LIST[@]}" ; do
-		echo "pref(\"media.${plugin}.autoupdate\", false);" >> \
-			"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
-			|| die
-	done
+	if ! use gmp-autoupdate ; then
+		local plugin
+		for plugin in "${GMP_PLUGIN_LIST[@]}" ; do
+			echo "pref(\"media.${plugin}.autoupdate\", false);" >> \
+				"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
+				|| die
+		done
+	fi
 
 	cd "${S}"
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX}/bin/bash}" MOZ_NOSPAM=1 \
@@ -744,12 +727,6 @@ PROFILE_EOF
 	# Install a 48x48 icon into /usr/share/pixmaps for legacy DEs
 	newicon "${icon_path}/default48.png" "${icon}.png"
 
-	# Add StartupNotify=true bug 237317
-	local startup_notify="false"
-	if use startup-notification ; then
-		startup_notify="true"
-	fi
-
 	local display_protocols="auto X11" use_wayland="false"
 	if use wayland ; then
 		display_protocols+=" Wayland"
@@ -783,12 +760,11 @@ PROFILE_EOF
 				;;
 		esac
 
-		newmenu "${FILESDIR}/icon/${PN}-r1.desktop" "${desktop_filename}"
+		newmenu "${FILESDIR}/icon/${PN}-r2.desktop" "${desktop_filename}"
 		sed -i \
 			-e "s:@NAME@:${app_name}:" \
 			-e "s:@EXEC@:${exec_command}:" \
 			-e "s:@ICON@:${icon}:" \
-			-e "s:@STARTUP_NOTIFY@:${startup_notify}:" \
 			"${ED%/}/usr/share/applications/${desktop_filename}" || die
 	done
 
@@ -843,11 +819,13 @@ pkg_postinst() {
 	xdg_desktop_database_update
 	xdg_icon_cache_update
 
-	if ! use gmp-autoupdate && ! use eme-free ; then
+	if ! use gmp-autoupdate ; then
 		elog "USE='-gmp-autoupdate' has disabled the following plugins from updating or"
 		elog "installing into new profiles:"
 		local plugin
-		for plugin in "${GMP_PLUGIN_LIST[@]}"; do elog "\t ${plugin}" ; done
+		for plugin in "${GMP_PLUGIN_LIST[@]}" ; do
+			elog "\t ${plugin}"
+		done
 		elog
 	fi
 
