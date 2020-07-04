@@ -10,8 +10,8 @@ if [[ ${PV} == 9999 ]] ; then
 	EGIT_REPO_URI="https://github.com/dracutdevs/dracut"
 else
 	[[ "${PV}" = *_rc* ]] || \
-	KEYWORDS="~alpha amd64 arm ~arm64 ia64 ~mips ppc ppc64 ~sparc x86"
-	SRC_URI="https://github.com/dracutdevs/dracut/archive/${PV}.tar.gz -> ${P}.tar.gz"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86"
+	SRC_URI="https://www.kernel.org/pub/linux/utils/boot/${PN}/${P}.tar.xz"
 fi
 
 DESCRIPTION="Generic initramfs generation tool"
@@ -31,7 +31,7 @@ RDEPEND="
 	>=sys-apps/kmod-23[tools]
 	|| (
 		>=sys-apps/sysvinit-2.87-r3
-		sys-apps/openrc[sysv-utils,selinux?]
+		sys-apps/openrc[sysv-utils(-),selinux?]
 		sys-apps/systemd[sysv-utils]
 	)
 	>=sys-apps/util-linux-2.21
@@ -58,27 +58,17 @@ BDEPEND="
 	virtual/pkgconfig
 "
 
-DOCS=( AUTHORS HACKING NEWS README README.generic README.kernel README.modules
+DOCS=( AUTHORS HACKING NEWS README.md README.generic README.kernel README.modules
 	README.testsuite TODO )
 
 QA_MULTILIB_PATHS="usr/lib/dracut/.*"
 
 PATCHES=(
-	"${FILESDIR}"/048-dracut-install-simplify-ldd-parsing-logic.patch
-	"${FILESDIR}"/049-40network-Don-t-include-40network-by-default.patch
-	"${FILESDIR}"/049-remove-bashism-in-various-boot-scripts.patch
-	"${FILESDIR}"/049-network-manager-call-the-online-hook-for-connected-d.patch
-	"${FILESDIR}"/049-install-dracut-install.c-install-module-dependencies.patch
-	"${FILESDIR}"/049-install-string_hash_func-should-not-be-fed-with-NULL.patch
-	"${FILESDIR}"/049-dracut.sh-Fix-udevdir-detection.patch
-	"${FILESDIR}"/049-rngd-new-module-running-early-during-boot-to-help-ge.patch
-	"${FILESDIR}"/049-fs-lib-drop-a-bashism.patch
-	"${FILESDIR}"/049-network-manager-remove-useless-use-of-basename.patch
-	"${FILESDIR}"/049-move-setting-the-systemdutildir-variable-before-it-s.patch
-	"${FILESDIR}"/049-dracut-install-Support-the-compressed-firmware-files.patch
-	"${FILESDIR}"/049-crypt-create-locking-directory-run-cryptsetup.patch
-	"${FILESDIR}"/049-network-manager-fix-getting-of-ifname-from-the-sysfs.patch
-	"${FILESDIR}"/049-configure-find-cflags-and-libs-for-fts-on-musl.patch
+	"${FILESDIR}"/050-Makefile-merge-main-version-and-git-version-earlier.patch
+	"${FILESDIR}"/050-dracut.sh-don-t-call-fsfreeze-on-subvol-of-root-file.patch
+	"${FILESDIR}"/050-Makefile-fix-VERSION-again.patch
+	"${FILESDIR}"/050-busybox-module-fix.patch
+	"${FILESDIR}"/050-gentoo-ldconfig-paths.patch
 )
 
 src_configure() {
@@ -94,7 +84,7 @@ src_configure() {
 	echo ./configure "${myconf[@]}"
 	./configure "${myconf[@]}" || die
 
-	if [[ ${PV} != 9999 ]] ; then
+	if [[ ${PV} != 9999 && ! -f dracut-version.sh ]] ; then
 		# Source tarball from github doesn't include this file
 		echo "DRACUT_VERSION=${PV}" > dracut-version.sh || die
 	fi

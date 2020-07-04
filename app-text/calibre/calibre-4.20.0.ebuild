@@ -10,8 +10,7 @@ inherit bash-completion-r1 desktop toolchain-funcs python-single-r1 xdg-utils
 
 DESCRIPTION="Ebook management application"
 HOMEPAGE="https://calibre-ebook.com/"
-SRC_URI="https://download.calibre-ebook.com/${PV}/${P}.tar.xz
-	https://github.com/kovidgoyal/calibre/commit/db7007a25faefb0cc90e64dda1c0793393b9512d.patch -> calibre-4.17.0-qt-5.15-fontconfig-bug-725020.patch"
+SRC_URI="https://download.calibre-ebook.com/${PV}/${P}.tar.xz"
 
 LICENSE="
 	GPL-3+
@@ -63,7 +62,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 		>=dev-python/lxml-3.8.0[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/markdown-3.0.1[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/mechanize-0.3.5[${PYTHON_MULTI_USEDEP}]
-		>=dev-python/msgpack-0.5.6[${PYTHON_MULTI_USEDEP}]
+		>=dev-python/msgpack-0.6.2[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/netifaces-0.10.5[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/pillow-3.2.0[${PYTHON_MULTI_USEDEP}]
 		>=dev-python/psutil-4.3.0[${PYTHON_MULTI_USEDEP}]
@@ -123,8 +122,7 @@ src_prepare() {
 	# disable_plugins: walking sec-hole, wait for upstream to use GHNS interface
 	eapply \
 		"${FILESDIR}/${PN}-2.9.0-no_updates_dialog.patch" \
-		"${FILESDIR}/${PN}-disable_plugins.patch" \
-		"${DISTDIR}/calibre-4.17.0-qt-5.15-fontconfig-bug-725020.patch"
+		"${FILESDIR}/${PN}-disable_plugins.patch"
 
 	eapply_user
 

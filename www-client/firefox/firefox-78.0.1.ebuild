@@ -102,7 +102,10 @@ CDEPEND="
 		>=media-libs/dav1d-0.3.0:=
 		>=media-libs/libaom-1.0.0:=
 	)
-	system-harfbuzz? ( >=media-libs/harfbuzz-2.6.4:0= >=media-gfx/graphite2-1.3.13 )
+	system-harfbuzz? (
+		>=media-libs/harfbuzz-2.6.4:0=
+		>=media-gfx/graphite2-1.3.13
+	)
 	system-icu? ( >=dev-libs/icu-67.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
@@ -118,7 +121,7 @@ CDEPEND="
 
 RDEPEND="${CDEPEND}
 	jack? ( virtual/jack )
-	openh264? ( media-libs/openh264:* )
+	openh264? ( media-libs/openh264:*[plugin] )
 	pulseaudio? (
 		|| (
 			media-sound/pulseaudio
@@ -134,8 +137,8 @@ DEPEND="${CDEPEND}
 	>=net-libs/nodejs-10.19.0
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
-	>=virtual/rust-1.41.0
 	virtual/pkgconfig
+	>=virtual/rust-1.41.0
 	|| (
 		(
 			sys-devel/clang:10
@@ -581,10 +584,22 @@ src_configure() {
 	# when they would normally be larger than 2GiB.
 	append-ldflags "-Wl,--compress-debug-sections=zlib"
 
-	if use clang && ! use arm64; then
+	if use clang ; then
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1482204
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1483822
-		mozconfig_annotate 'elf-hack is broken when using Clang' --disable-elf-hack
+		# toolkit/moz.configure Elfhack section: target.cpu in ('arm', 'x86', 'x86_64')
+		local disable_elf_hack=
+		if use amd64 ; then
+			disable_elf_hack=yes
+		elif use x86 ; then
+			disable_elf_hack=yes
+		elif use arm ; then
+			disable_elf_hack=yes
+		fi
+
+		if [[ -n ${disable_elf_hack} ]] ; then
+			mozconfig_annotate 'elf-hack is broken when using Clang' --disable-elf-hack
+		fi
 	fi
 
 	echo "mk_add_options MOZ_OBJDIR=${BUILD_OBJ_DIR}" >> "${S}"/.mozconfig

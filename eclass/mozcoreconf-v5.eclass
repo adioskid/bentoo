@@ -1,7 +1,7 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 #
-# @ECLASS: mozcoreconf-v6.eclass
+# @ECLASS: mozcoreconf-v5.eclass
 # @MAINTAINER:
 # Mozilla team <mozilla@gentoo.org>
 # @BLURB: core options and configuration functions for mozilla
@@ -16,12 +16,14 @@
 
 if [[ ! ${_MOZCORECONF} ]]; then
 
+PYTHON_COMPAT=( python2_7 )
+PYTHON_REQ_USE='ncurses,sqlite,ssl,threads'
+
 inherit multilib toolchain-funcs flag-o-matic python-any-r1 versionator
 
 IUSE="${IUSE} custom-cflags custom-optimization"
 
 DEPEND="virtual/pkgconfig
-	dev-lang/python:2.7[ncurses,sqlite,ssl,threads(+)]
 	${PYTHON_DEPS}"
 
 # @FUNCTION: mozconfig_annotate
@@ -85,7 +87,7 @@ moz_pkgsetup() {
 	# Ensure we use correct toolchain
 	export HOST_CC="$(tc-getBUILD_CC)"
 	export HOST_CXX="$(tc-getBUILD_CXX)"
-	tc-export CC CXX LD PKG_CONFIG AR RANLIB
+	tc-export CC CXX LD PKG_CONFIG
 
 	# Ensure that we have a sane build enviroment
 	export MOZILLA_CLIENT=1
@@ -103,12 +105,13 @@ moz_pkgsetup() {
 	# false positives when toplevel configure passes downwards.
 	export QA_CONFIGURE_OPTIONS=".*"
 
-	python-any-r1_pkg_setup
-	# workaround to set python3 into PYTHON3 until mozilla doesn't need py2
-	if [[ "${PYTHON_COMPAT[@]}" != "${PYTHON_COMPAT[@]#python3*}" ]]; then
-		export PYTHON3=${PYTHON}
-		python_export python2_7 PYTHON EPYTHON
+	if [[ $(gcc-major-version) -eq 3 ]]; then
+		ewarn "Unsupported compiler detected, DO NOT file bugs for"
+		ewarn "outdated compilers. Bugs opened with gcc-3 will be closed"
+		ewarn "invalid."
 	fi
+
+	python-any-r1_pkg_setup
 }
 
 # @FUNCTION: mozconfig_init
@@ -121,7 +124,6 @@ mozconfig_init() {
 	declare FF=$([[ ${PN} == firefox ]] && echo true || echo false)
 	declare SM=$([[ ${PN} == seamonkey ]] && echo true || echo false)
 	declare TB=$([[ ${PN} == thunderbird ]] && echo true || echo false)
-	declare TRB=$([[ ${PN} == torbrowser ]] && echo true || echo false)
 
 	####################################
 	#
@@ -137,19 +139,14 @@ mozconfig_init() {
 		*firefox)
 			cp browser/config/mozconfig .mozconfig \
 				|| die "cp browser/config/mozconfig failed" ;;
-		*torbrowser)
-			cp browser/config/mozconfig .mozconfig \
-				|| die "cp browser/config/mozconfig failed" ;;
 		seamonkey)
 			# Must create the initial mozconfig to enable application
 			: >.mozconfig || die "initial mozconfig creation failed"
-			# NOTE--this is not compatible with mozilla prior to v60
-			mozconfig_annotate "" --enable-application=comm/suite ;;
+			mozconfig_annotate "" --enable-application=suite ;;
 		*thunderbird)
 			# Must create the initial mozconfig to enable application
 			: >.mozconfig || die "initial mozconfig creation failed"
-			# NOTE--this is not compatible with mozilla prior to v60
-			mozconfig_annotate "" --enable-application=comm/mail ;;
+			mozconfig_annotate "" --enable-application=mail ;;
 	esac
 
 	####################################
@@ -159,14 +156,12 @@ mozconfig_init() {
 	####################################
 
 	# Set optimization level
-	if [[ $(gcc-major-version) -eq 7 ]]; then
+	if [[ $(gcc-major-version) -ge 7 ]]; then
 		mozconfig_annotate "Workaround known breakage" --enable-optimize=-O2
 	elif [[ ${ARCH} == hppa ]]; then
 		mozconfig_annotate "more than -O0 causes a segfault on hppa" --enable-optimize=-O0
 	elif [[ ${ARCH} == x86 ]]; then
-		mozconfig_annotate "less than -O2 causes a segfault on x86" --enable-optimize=-O2
-	elif [[ ${ARCH} == arm ]] && [[ $(gcc-major-version) -ge 6 ]]; then
-		mozconfig_annotate "less than -O2 causes a breakage on arm with gcc-6" --enable-optimize=-O2
+		mozconfig_annotate "less then -O2 causes a segfault on x86" --enable-optimize=-O2
 	elif use custom-optimization || [[ ${ARCH} =~ (alpha|ia64) ]]; then
 		# Set optimization level based on CFLAGS
 		if is-flag -O0; then
@@ -192,25 +187,14 @@ mozconfig_init() {
 	# Strip optimization so it does not end up in compile string
 	filter-flags '-O*'
 
-	if is-flagq '-g*' ; then
-		mozconfig_annotate 'elf-hack broken with -g* flags' --disable-elf-hack
-	fi
-
 	# Strip over-aggressive CFLAGS
 	use custom-cflags || strip-flags
 
 	# Additional ARCH support
 	case "${ARCH}" in
-	arm | ppc64)
+	arm)
 		# Reduce the memory requirements for linking
-		if [[ "${PN}" != seamonkey ]] && use clang ; then
-			# Nothing to do
-			:;
-		elif tc-ld-is-gold; then
-			append-ldflags -Wl,--no-keep-memory
-		else
-			append-ldflags -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
-		fi
+		append-ldflags -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
 		;;
 	alpha)
 		# Historically we have needed to add -fPIC manually for 64-bit.
@@ -222,15 +206,22 @@ mozconfig_init() {
 		# Historically we have needed to add this manually for 64-bit
 		append-flags -fPIC
 		;;
+	ppc64)
+		append-flags -fPIC -mminimal-toc
+		# Reduce the memory requirements for linking
+		append-ldflags -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
+		;;
 	esac
 
 	# We need to append flags for gcc-6 support
 	if [[ $(gcc-major-version) -ge 6 ]]; then
-		append-cxxflags -flifetime-dse=1
+		append-cxxflags -fno-delete-null-pointer-checks -fno-lifetime-dse -fno-schedule-insns2
 	fi
 
 	# Use the MOZILLA_FIVE_HOME for the rpath
 	append-ldflags -Wl,-rpath="${MOZILLA_FIVE_HOME}",--enable-new-dtags
+	# Set MOZILLA_FIVE_HOME in mozconfig
+	mozconfig_annotate '' --with-default-mozilla-five-home=${MOZILLA_FIVE_HOME}
 
 	####################################
 	#
