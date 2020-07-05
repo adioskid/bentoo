@@ -49,6 +49,7 @@ CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 	)
 	glvnd? (
 		>=media-libs/mesa-19.1.0-r1
+		media-libs/libglvnd
 	)
 	glamor? (
 		media-libs/libepoxy[X]
@@ -98,15 +99,10 @@ DEPEND="${CDEPEND}
 				www-client/w3m
 			)
 		)
-	)
-	glvnd? (
-		media-libs/libglvnd
-	)
-	"
+	)"
 
 RDEPEND="${CDEPEND}
 	selinux? ( sec-policy/selinux-xserver )
-	!x11-drivers/xf86-video-modesetting
 "
 
 PDEPEND="
@@ -175,16 +171,17 @@ pkg_setup() {
 		--without-fop
 		--with-os-vendor=Gentoo
 		--with-sha1=libcrypto
+		CPP="$(tc-getPROG CPP cpp)"
 	)
 
 	if use elogind; then
-		XORG_CONFIGURE_OPTIONS+=( 
+		XORG_CONFIGURE_OPTIONS+=(
 			"--enable-systemd-logind"
 			"--disable-install-setuid"
 			"$(use_enable suid suid-wrapper)"
 		)
 	else
-		XORG_CONFIGURE_OPTIONS+=( 
+		XORG_CONFIGURE_OPTIONS+=(
 			"--disable-systemd-logind"
 			"--disable-suid-wrapper"
 			"$(use_enable suid install-setuid)"
