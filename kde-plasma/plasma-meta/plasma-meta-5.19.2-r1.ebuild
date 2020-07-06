@@ -8,7 +8,7 @@ HOMEPAGE="https://kde.org/plasma-desktop"
 
 LICENSE="metapackage"
 SLOT="5"
-KEYWORDS="~amd64 ~arm64 ~ppc64"
+KEYWORDS="*"
 IUSE="bluetooth +browser-integration crypt +desktop-portal discover
 +display-manager elogind grub gtk +handbook +kwallet +legacy-systray
 +networkmanager plymouth pulseaudio qrcode +sddm sdk systemd thunderbolt +wallpapers"
@@ -85,7 +85,7 @@ RDEPEND="
 
 pkg_postinst() {
 	has_version sys-auth/consolekit || return
-	use elogind || use systemd && return
+	use elogind || return
 	ewarn "An existing installation of sys-auth/consolekit was detected even though"
 	ewarn "${PN} was configured with USE $(usex elogind elogind systemd)."
 	ewarn "There can only be one session manager at runtime, otherwise random issues"

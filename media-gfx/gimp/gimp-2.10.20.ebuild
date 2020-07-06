@@ -6,19 +6,16 @@ PYTHON_COMPAT=( python2_7 )
 GNOME2_EAUTORECONF=yes
 WANT_AUTOMAKE=
 
-inherit autotools gnome2 python-single-r1 virtualx
+inherit autotools gnome2 python-single-r1 toolchain-funcs virtualx
 
 DESCRIPTION="GNU Image Manipulation Program"
 HOMEPAGE="https://www.gimp.org/"
-SRC_URI="
-	https://download.gimp.org/mirror/pub/${PN}/v2.10/${P}.tar.bz2
-	photogimp? ( https://github.com/Diolinux/PhotoGIMP/archive/1.0.tar.gz -> photogimp-1.0.tar.gz )
-	"
+SRC_URI="mirror://gimp/v2.10/${P}.tar.bz2"
 LICENSE="GPL-3 LGPL-3"
 SLOT="2"
-KEYWORDS="~alpha amd64 arm64 ~hppa ~ia64 ppc64 ~x86"
+KEYWORDS="~alpha ~amd64 ~arm64 ~hppa ~ia64 ~ppc64 ~x86"
 
-IUSE="aalib alsa aqua debug doc gnome heif jpeg2k mng openexr postscript python udev unwind vector-icons webp wmf xpm cpu_flags_ppc_altivec cpu_flags_x86_mmx cpu_flags_x86_sse photogimp"
+IUSE="aalib alsa aqua debug doc gnome heif jpeg2k mng openexr postscript python udev unwind vector-icons webp wmf xpm cpu_flags_ppc_altivec cpu_flags_x86_mmx cpu_flags_x86_sse"
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
 RESTRICT="!test? ( test )"
@@ -27,16 +24,16 @@ COMMON_DEPEND="
 	>=app-text/poppler-0.50[cairo]
 	>=app-text/poppler-data-0.4.7
 	>=dev-libs/atk-2.2.0
-	>=dev-libs/glib-2.56.0:2
+	>=dev-libs/glib-2.56.2:2
 	>=dev-libs/json-glib-1.2.6
 	dev-libs/libxml2:2
 	dev-libs/libxslt
 	>=gnome-base/librsvg-2.40.6:2
 	>=media-gfx/mypaint-brushes-1.3.0
-	>=media-libs/babl-0.1.74
+	>=media-libs/babl-0.1.78
 	>=media-libs/fontconfig-2.12.4
 	>=media-libs/freetype-2.1.7
-	>=media-libs/gegl-0.4.22:0.4[cairo]
+	>=media-libs/gegl-0.4.24:0.4[cairo]
 	>=media-libs/gexiv2-0.10.6
 	>=media-libs/harfbuzz-0.9.19
 	>=media-libs/lcms-2.8:2
@@ -103,10 +100,6 @@ pkg_setup() {
 }
 
 src_prepare() {
-	# Disable system CFLAGS suppressing on SSE{2,4.1} support tests by addition of {SSE2,SSE4_1}_EXTRA_CFLAGS: bug #702554
-	sed -i -e 's:\$intrinsics_save_CFLAGS \$SSE2_EXTRA_CFLAGS:\$SSE2_EXTRA_CFLAGS \$intrinsics_save_CFLAGS:' \
-		-e 's:\$intrinsics_save_CFLAGS \$SSE4_1_EXTRA_CFLAGS:\$SSE4_1_EXTRA_CFLAGS \$intrinsics_save_CFLAGS:' configure.ac || die
-
 	sed -i -e 's/== "xquartz"/= "xquartz"/' configure.ac || die #494864
 	sed 's:-DGIMP_DISABLE_DEPRECATED:-DGIMP_protect_DISABLE_DEPRECATED:g' -i configure.ac || die #615144
 
@@ -114,6 +107,8 @@ src_prepare() {
 
 	sed 's:-DGIMP_protect_DISABLE_DEPRECATED:-DGIMP_DISABLE_DEPRECATED:g' -i configure || die #615144
 	fgrep -q GIMP_DISABLE_DEPRECATED configure || die #615144, self-test
+
+	export CC_FOR_BUILD="$(tc-getBUILD_CC)"
 }
 
 _adjust_sandbox() {
@@ -222,21 +217,6 @@ src_install() {
 
 pkg_postinst() {
 	gnome2_pkg_postinst
-
-	if use photogimp; then
-
-		tar xf "${DISTDIR}"/photogimp-*.tar.gz
-	
-		insinto /home/$USER/.icons || die
-		doins "${DISTDIR}"/PhotoGIMP-1.0/.icons || die
-
-		insinto /home/$USER/.local || die
-		doins "${DISTDIR}"/PhotoGIMP-1.0/.local || die
-
-		insinto /home/$USER/.config/ || die
-		doins "${DISTDIR}"/PhotoGIMP-1.0/.var/app/org.gimp.GIMP/config/* || die
-
-	fi
 }
 
 pkg_postrm() {
