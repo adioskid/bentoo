@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 PYTHON_REQ_USE="sqlite,threads(+)"
 
 inherit distutils-r1 virtualx xdg
@@ -29,6 +29,7 @@ RDEPEND="
 	app-arch/p7zip
 	app-arch/unrar
 	app-arch/unzip
+	dev-python/dbus-python[${PYTHON_USEDEP}]
 	dev-python/pillow[${PYTHON_USEDEP}]
 	dev-python/pygobject:3[${PYTHON_USEDEP}]
 	dev-python/python-evdev[${PYTHON_USEDEP}]
