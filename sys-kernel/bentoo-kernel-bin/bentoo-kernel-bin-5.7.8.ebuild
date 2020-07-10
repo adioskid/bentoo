@@ -84,17 +84,17 @@ pkg_preinst() {
 
 pkg_postinst() {
 
-		if use nvidia;
+		if !use nvidia;
 		then
 			rm -rf /lib/modules/5.7.6-bentoo/video
 		fi
 
-		if use vbox-guest;
+		if !use vbox-guest;
 		then
 			rm -rf /lib/modules/5.7.6-bentoo/misc/vbox*
 		fi
 
-		if use vmware-guest;
+		if !use vmware-guest;
 		then
 			rm -rf /lib/modules/5.7.6-bentoo/misc/vm*
 		fi
