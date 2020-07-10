@@ -10,18 +10,22 @@ SRC_URI+="https://binhost.bentoo.info/distfiles/kernel-${PV}.tar.xz -> ${P}.tar.
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+backup clean"
+IUSE="+backup clean initramfs microcodes nvidia vbox-guest vmware-guest"
 
 RDEPEND="
+	app-arch/tar
 	app-arch/xz-utils
-	sys-kernel/genkernel-next
-	x11-drivers/nvidia-drivers
-	x11-drivers/nvidia-kernel-modules
-	app-emulation/virtualbox-guest-additions
-	app-emulation/open-vm-tools
+	app-arch/zstd
 	sys-kernel/linux-firmware
 	sys-firmware/intel-microcode
 	sys-apps/iucode_tool
+	initramfs? ( sys-kernel/genkernel-next )
+	nvidia? (
+		x11-drivers/nvidia-drivers
+		x11-drivers/nvidia-kernel-modules
+	)
+	vbox-guest? ( app-emulation/virtualbox-guest-additions )
+	vmware-guest? ( app-emulation/open-vm-tools )
 "
 S="${WORKDIR}"
 
@@ -30,11 +34,20 @@ src_unpack() {
 }
 
 src_install() {
+
 	insinto /boot/
-	doins -r boot/*
+	doins -r boot/*-${PV}-bentoo
+
+	if use microcodes;
+	then
+		doins boot/amd-uc.img
+		doins boot/intel-uc.img
+		doins boot/early_ucode.cpio
+	fi
 
 	insinto /lib/modules/
 	doins -r lib/modules/*
+
 }
 
 pkg_preinst() {
@@ -70,8 +83,25 @@ pkg_preinst() {
 }
 
 pkg_postinst() {
+
+		if use nvidia;
+		then
+			rm -rf /lib/modules/5.7.6-bentoo/video
+		fi
+
+		if use vbox-guest;
+		then
+			rm -rf /lib/modules/5.7.6-bentoo/misc/vbox*
+		fi
+
+		if use vmware-guest;
+		then
+			rm -rf /lib/modules/5.7.6-bentoo/misc/vm*
+		fi
+
 	kernel-2_pkg_postinst
 	elog "A new version of image, initramfs, microcodes and modules are installed."
+
 }
 
 pkg_postrm() {
