@@ -7,10 +7,10 @@ DESCRIPTION="Image and modules from bentoo sources(gentoo-sources fork)"
 HOMEPAGE=""
 SRC_URI+="https://binhost.bentoo.info/distfiles/kernel-${PV}.tar.xz -> ${P}.tar.xz"
 
+KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
 IUSE="+backup clean"
-
 
 RDEPEND="
 	app-arch/xz-utils
