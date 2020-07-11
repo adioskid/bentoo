@@ -10,7 +10,7 @@ SRC_URI+="https://binhost.bentoo.info/distfiles/kernel-${PV}.tar.xz -> ${P}.tar.
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd +backup clean +initramfs +intel microcode nvidia +symlink vbox-guest vmware-guest"
+IUSE="+amd +backup clean ego-boot +initramfs +intel microcode nvidia vbox-guest vmware-guest"
 
 RDEPEND="
 	app-arch/tar
@@ -118,7 +118,7 @@ pkg_postinst() {
 
 	elog "A new version of image, initramfs, microcode and modules are installed."
 
-	if use symlink;
+	if use ego-boot;
 	then
 		ego boot update
 		elog "The new kernel was updated on grub boot menu."
