@@ -10,15 +10,18 @@ SRC_URI+="https://binhost.bentoo.info/distfiles/kernel-${PV}.tar.xz -> ${P}.tar.
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+backup clean initramfs microcodes nvidia vbox-guest vmware-guest"
+IUSE="+amd +backup clean +initramfs +intel microcode nvidia +symlink vbox-guest vmware-guest"
 
 RDEPEND="
 	app-arch/tar
 	app-arch/xz-utils
 	app-arch/zstd
-	sys-kernel/linux-firmware
-	sys-firmware/intel-microcode
-	sys-apps/iucode_tool
+	microcode? (
+		intel? ( sys-firmware/intel-microcode
+							sys-apps/iucode_tool
+						)
+		amd? ( sys-kernel/linux-firmware )
+	)
 	initramfs? ( sys-kernel/genkernel-next )
 	nvidia? (
 		x11-drivers/nvidia-drivers
@@ -27,6 +30,8 @@ RDEPEND="
 	vbox-guest? ( app-emulation/virtualbox-guest-additions )
 	vmware-guest? ( app-emulation/open-vm-tools )
 "
+QA_PREBUILT='*'
+
 S="${WORKDIR}"
 
 src_unpack() {
@@ -36,13 +41,25 @@ src_unpack() {
 src_install() {
 
 	insinto /boot/
-	doins -r boot/*-${PV}-bentoo
+	doins -r boot/config-${PV}-bentoo
+	doins -r boot/System.map-${PV}-bentoo
+	doins -r boot/vmlinuz-${PV}-bentoo
 
-	if use microcodes;
+	if use initramfs;
 	then
-		doins boot/amd-uc.img
-		doins boot/intel-uc.img
-		doins boot/early_ucode.cpio
+		doins -r boot/initramfs-${PV}-bentoo
+	fi
+
+	if use microcode;
+	then
+		if use amd;
+		then
+			doins boot/amd-uc.img
+		elif use intel;
+		then
+			doins boot/intel-uc.img
+			doins boot/early_ucode.cpio
+		fi
 	fi
 
 	insinto /lib/modules/
@@ -51,6 +68,21 @@ src_install() {
 }
 
 pkg_preinst() {
+
+	if !use nvidia;
+	then
+		rm -rf ${S}/lib/modules/5.7.6-bentoo/video
+	fi
+
+	if !use vbox-guest;
+	then
+		rm -rf ${S}/lib/modules/5.7.6-bentoo/misc/vbox*
+	fi
+
+	if !use vmware-guest;
+	then
+		rm -rf ${S}/lib/modules/5.7.6-bentoo/misc/vm*
+	fi
 
 	check_kernel() {
 		vmlinuz=$(ls /boot/vmlinuz-${PV}-bentoo)
@@ -84,26 +116,12 @@ pkg_preinst() {
 
 pkg_postinst() {
 
-		if !use nvidia;
-		then
-			rm -rf /lib/modules/5.7.6-bentoo/video
-		fi
+	elog "A new version of image, initramfs, microcode and modules are installed."
 
-		if !use vbox-guest;
-		then
-			rm -rf /lib/modules/5.7.6-bentoo/misc/vbox*
-		fi
+	if use symlink;
+	then
+		ego boot update
+		elog "The new kernel was updated on grub boot menu."
+	fi
 
-		if !use vmware-guest;
-		then
-			rm -rf /lib/modules/5.7.6-bentoo/misc/vm*
-		fi
-
-	kernel-2_pkg_postinst
-	elog "A new version of image, initramfs, microcodes and modules are installed."
-
-}
-
-pkg_postrm() {
-	kernel-2_pkg_postrm
 }
