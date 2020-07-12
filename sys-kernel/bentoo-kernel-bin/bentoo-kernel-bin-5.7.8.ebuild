@@ -9,7 +9,7 @@ SRC_URI="https://binhost.bentoo.info/distfiles/${P}.tar.xz"
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd backup clean +ego-boot +initramfs +intel +microcode +nvidia"
+IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia"
 
 RDEPEND="
 	app-arch/tar
