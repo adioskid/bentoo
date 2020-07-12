@@ -11,7 +11,7 @@ LICENSE="GPL-2"
 SLOT="0"
 IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia"
 
-RESTRICT="-splitdebug"
+RESTRICT="splitdebug"
 
 RDEPEND="
 	app-arch/tar
