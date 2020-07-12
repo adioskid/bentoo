@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -11,11 +11,11 @@ inherit ecm kde.org
 
 DESCRIPTION="Simple image scanning application based on libksane and KDE Frameworks"
 HOMEPAGE="https://kde.org/applications/graphics/org.kde.skanlite"
-SRC_URI="mirror://kde/stable/${PN}/2.1/${P}.tar.xz"
+SRC_URI="mirror://kde/stable/${PN}/2.2/${P}.tar.xz"
 
 LICENSE="|| ( GPL-2 GPL-3 ) handbook? ( FDL-1.2+ )"
 SLOT="5"
-KEYWORDS="amd64 x86"
+KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 DEPEND="
@@ -33,8 +33,3 @@ DEPEND="
 	media-libs/libpng:0=
 "
 RDEPEND="${DEPEND}"
-
-PATCHES=(
-	"${FILESDIR}/${P}-cmake.patch"
-	"${FILESDIR}/${P}-hidpi.patch"
-)
