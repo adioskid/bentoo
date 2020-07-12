@@ -16,10 +16,11 @@ RESTRICT="splitdebug"
 RDEPEND="
 	app-arch/tar
 	app-arch/xz-utils
-	app-arch/zstd
 	initramfs? ( sys-kernel/genkernel-next )
 	microcode? (
-		amd? ( sys-kernel/linux-firmware )
+		!intel? (
+			amd? ( sys-kernel/linux-firmware )
+		)
 		intel? (
 			sys-apps/iucode_tool
 			sys-firmware/intel-microcode
@@ -102,7 +103,7 @@ pkg_preinst() {
 	# check if exist all files.
 	if [ check_kernel ] && [ check_initramfs ] && [ check_modules ];
 	then
-		if use backup;
+		if use backup && ! use clean;
 		then
 
 			# rename kernel and initramfs to old files => *.old
@@ -120,7 +121,7 @@ pkg_preinst() {
 				find ${ROOT}/usr/src -name linux-${PV}-bentoo | sed -e "p;s/bentoo/bentoo-old/" | xargs -n2 mv -f
 			fi
 
-		elif use clean;
+		elif use clean && ! use backup;
 		then 
 			# remove old files.
 			rm ${ROOT}/boot/*-${PV}-bentoo
