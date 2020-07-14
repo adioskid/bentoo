@@ -1,0 +1,38 @@
+--- a/meson.build	2020-02-15 13:39:42.000000000 -0600
++++ b/meson.build	2020-02-15 21:35:20.894147050 -0600
+@@ -46,6 +46,7 @@
+ pango_req_version         = '1.22.0'
+ pcre2_req_version         = '10.21'
+ systemd_req_version       = '220'
++elogind_req_version       = '241.3'
+ 
+ # API
+ 
+@@ -440,8 +441,12 @@
+   icu_dep = dependency('', required: false)
+ endif
+ 
+-if host_machine.system() == 'linux' and get_option('_systemd')
+-  systemd_dep = dependency('libsystemd', version: '>=' + systemd_req_version)
++if host_machine.system() == 'linux'
++  if get_option('elogind')
++    systemd_dep = dependency('libelogind', version: '>=' + elogind_req_version)
++  else
++    systemd_dep = dependency('libsystemd', version: '>=' + systemd_req_version)
++  endif
+ else
+   systemd_dep = dependency('', required: false)
+ endif
+--- a/meson_options.txt	2020-02-15 13:39:42.000000000 -0600
++++ b/meson_options.txt	2020-02-15 21:36:33.438362900 -0600
+@@ -91,3 +91,10 @@
+   value: true,
+   description: 'Enable Vala bindings',
+ )
++
++option(
++  'elogind',
++  type: 'boolean',
++  value: false,
++  description: 'Enable elogind support',
++)
