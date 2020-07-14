@@ -16,7 +16,7 @@ SRC_URI="https://www.webkitgtk.org/releases/${MY_P}.tar.xz"
 
 LICENSE="LGPL-2+ BSD"
 SLOT="4/37" # soname version of libwebkit2gtk-4.0
-KEYWORDS="~amd64 ~arm arm64 ~ppc64 ~sparc ~x86"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 ~sparc x86"
 
 IUSE="aqua +egl +geolocation gles2-only gnome-keyring +gstreamer gtk-doc +introspection +jpeg2k +jumbo-build libnotify +opengl seccomp spell wayland +X"
 
@@ -119,7 +119,7 @@ DEPEND="${RDEPEND}
 	virtual/perl-Carp
 	virtual/perl-JSON-PP
 
-	gtk-doc? ( >=dev-util/gtk-doc-1.32 )
+	gtk-doc? ( >=dev-util/gtk-doc-1.10 )
 	geolocation? ( dev-util/gdbus-codegen )
 "
 #	test? (
@@ -167,9 +167,12 @@ pkg_setup() {
 
 src_prepare() {
 	eapply "${FILESDIR}/${PN}-2.24.4-eglmesaext-include.patch" # bug 699054 # https://bugs.webkit.org/show_bug.cgi?id=204108
-	eapply "${FILESDIR}"/2.28.2-opengl-without-X-fixes.patch
-	eapply "${FILESDIR}"/2.28.2-non-jumbo-fix.patch
-	eapply "${FILESDIR}"/2.28.3-non-jumbo-fix2.patch
+	eapply "${FILESDIR}"/2.26.3-fix-gtk-doc.patch # bug 704550 - retest without it once we can depend on >=gtk-doc-1.32
+	eapply "${FILESDIR}"/${PV}-fix-yelp-desktopless-build.patch
+	eapply "${FILESDIR}"/${PV}-use-gst-audiointerleave.patch
+	eapply "${FILESDIR}"/${PV}-fix-ppc64-JSC.patch
+	eapply "${FILESDIR}"/${PV}-opengl-without-X-fixes.patch
+	eapply "${FILESDIR}"/${PV}-non-jumbo-fix.patch
 	cmake-utils_src_prepare
 	gnome2_src_prepare
 }
