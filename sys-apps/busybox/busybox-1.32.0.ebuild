@@ -16,7 +16,7 @@ if [[ ${PV} == "9999" ]] ; then
 else
 	MY_P=${PN}-${PV/_/-}
 	SRC_URI="https://www.busybox.net/downloads/${MY_P}.tar.bz2"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ia64 m68k ~mips ppc ppc64 ~riscv s390 sh sparc x86 ~amd64-linux ~x86-linux"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux"
 fi
 
 LICENSE="GPL-2" # GPL-2 only
@@ -70,7 +70,6 @@ busybox_config_enabled() {
 # patches go here!
 PATCHES=(
 	"${FILESDIR}"/${PN}-1.26.2-bb.patch
-	"${FILESDIR}"/${PN}-1.31.1-glibc-2.31.patch
 	# "${FILESDIR}"/${P}-*.patch
 )
 
