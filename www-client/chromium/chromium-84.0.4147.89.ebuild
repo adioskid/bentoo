@@ -23,7 +23,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64 ~x86"
-IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts headless kerberos ozone pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc vaapi wayland widevine"
+IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts headless kerberos ozone pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc wayland widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="
 	component-build? ( !suid )
@@ -99,7 +99,6 @@ COMMON_DEPEND="
 		x11-libs/gtk+:3[X]
 		${COMMON_X_DEPEND}
 	)
-	vaapi? ( x11-libs/libva:= )
 "
 # For nvidia-drivers blocker, see bug #413637 .
 RDEPEND="${COMMON_DEPEND}
@@ -186,7 +185,6 @@ in /etc/chromium/default.
 
 PATCHES=(
 	"${FILESDIR}/chromium-84-mediaalloc.patch"
-	"${FILESDIR}/chromium-83-vaapi.patch"
 )
 
 pre_build_checks() {
@@ -580,7 +578,6 @@ src_configure() {
 	myconf_gn+=" use_cups=$(usex cups true false)"
 	myconf_gn+=" use_kerberos=$(usex kerberos true false)"
 	myconf_gn+=" use_pulseaudio=$(usex pulseaudio true false)"
-	myconf_gn+=" use_vaapi=$(usex vaapi true false)"
 
 	# TODO: link_pulseaudio=true for GN.
 
@@ -623,7 +620,7 @@ src_configure() {
 
 		# Prevent libvpx build failures. Bug 530248, 544702, 546984.
 		if [[ ${myarch} == amd64 || ${myarch} == x86 ]]; then
-			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2
+			filter-flags -mno-mmx -mno-sse2 -mno-ssse3 -mno-sse4.1 -mno-avx -mno-avx2 -mno-fma -mno-fma4
 		fi
 	fi
 
@@ -792,11 +789,6 @@ src_install() {
 	)
 	sed "${sedargs[@]}" "${FILESDIR}/chromium-launcher-r4.sh" > chromium-launcher.sh || die
 	doexe chromium-launcher.sh
-
-	if use vaapi; then
-		insinto /usr/share/drirc.d
-		newins "${FILESDIR}"/01-chromium.conf 01-chromium.conf
-	fi
 
 	# It is important that we name the target "chromium-browser",
 	# xdg-utils expect it; bug #355517.

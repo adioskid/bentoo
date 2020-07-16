@@ -1,0 +1,9 @@
+<pkgmetadata>
+    <maintainer type="person">
+        <email>scott.wl.furry@gmail.com</email>
+        <name>scott furry</name>
+    </maintainer>
+    <upstream>
+        <doc>https://github.com/VSCodium/vscodium/blob/master/DOCS.md</doc>
+    </upstream>
+</pkgmetadata>

@@ -29,6 +29,13 @@ RDEPEND="
 
 QA_PREBUILT='*'
 
+pkg_pretend() {
+	ewarn "Starting with 5.7.9, Distribution Kernels are switching from Arch"
+	ewarn "Linux configs to Fedora.  Please keep a backup kernel just in case."
+
+	kernel-install_pkg_pretend
+}
+
 src_unpack() {
 	ebegin "Unpacking ${MY_P}.${ARCH}.xpak"
 	tar -x < <(xz -c -d --single-stream "${DISTDIR}/${MY_P}.${ARCH}.xpak")

@@ -7,12 +7,9 @@ inherit kernel-build
 
 MY_P=linux-${PV%.*}
 GENPATCHES_P=genpatches-${PV%.*}-$(( ${PV##*.} + 1 ))
-# https://git.archlinux.org/svntogit/packages.git/log/trunk/config?h=packages/linux
-AMD64_CONFIG_VER=5.7.6-arch1
-AMD64_CONFIG_HASH=39802f4425f0fc50dd8040ad30cfdd001bd2b40b
-# https://git.archlinux32.org/packages/log/core/linux/config.i686
-I686_CONFIG_VER=5.7.6-arch1
-I686_CONFIG_HASH=89ff2bdc14819f3834874e83b97620c5daeafb11
+# https://koji.fedoraproject.org/koji/packageinfo?packageID=8
+CONFIG_VER=5.7.8
+CONFIG_HASH=14d239184a721485a823f30f5aede1c6190558ad
 
 DESCRIPTION="Linux kernel built with Gentoo patches"
 HOMEPAGE="https://www.kernel.org/"
@@ -20,12 +17,12 @@ SRC_URI+=" https://cdn.kernel.org/pub/linux/kernel/v$(ver_cut 1).x/${MY_P}.tar.x
 	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.base.tar.xz
 	https://dev.gentoo.org/~mpagano/dist/genpatches/${GENPATCHES_P}.extras.tar.xz
 	amd64? (
-		https://git.archlinux.org/svntogit/packages.git/plain/trunk/config?h=packages/linux&id=${AMD64_CONFIG_HASH}
-			-> linux-${AMD64_CONFIG_VER}.amd64.config
+		https://src.fedoraproject.org/rpms/kernel/raw/${CONFIG_HASH}/f/kernel-x86_64-fedora.config
+			-> kernel-x86_64-fedora.config.${CONFIG_VER}
 	)
 	x86? (
-		https://git.archlinux32.org/packages/plain/core/linux/config.i686?id=${I686_CONFIG_HASH}
-			-> linux-${I686_CONFIG_VER}.i686.config
+		https://src.fedoraproject.org/rpms/kernel/raw/${CONFIG_HASH}/f/kernel-i686-fedora.config
+			-> kernel-i686-fedora.config.${CONFIG_VER}
 	)"
 S=${WORKDIR}/${MY_P}
 
@@ -42,6 +39,13 @@ RDEPEND="
 BDEPEND="
 	debug? ( dev-util/dwarves )"
 
+pkg_pretend() {
+	ewarn "Starting with 5.7.9, Distribution Kernels are switching from Arch"
+	ewarn "Linux configs to Fedora.  Please keep a backup kernel just in case."
+
+	kernel-install_pkg_pretend
+}
+
 src_prepare() {
 	local PATCHES=(
 		# meh, genpatches have no directory
@@ -52,10 +56,10 @@ src_prepare() {
 	# prepare the default config
 	case ${ARCH} in
 		amd64)
-			cp "${DISTDIR}"/linux-${AMD64_CONFIG_VER}.amd64.config .config || die
+			cp "${DISTDIR}/kernel-x86_64-fedora.config.${CONFIG_VER}" .config || die
 			;;
 		x86)
-			cp "${DISTDIR}"/linux-${I686_CONFIG_VER}.i686.config .config || die
+			cp "${DISTDIR}/kernel-i686-fedora.config.${CONFIG_VER}" .config || die
 			;;
 		arm|arm64)
 			return
@@ -73,10 +77,6 @@ src_prepare() {
 		# disable signatures
 		-e '/CONFIG_MODULE_SIG/d'
 		-e '/CONFIG_SECURITY_LOCKDOWN/d'
-		# disable compression to allow stripping
-		-e '/CONFIG_MODULE_COMPRESS/d'
-		# disable gcc plugins to unbreak distcc
-		-e '/CONFIG_GCC_PLUGIN_STRUCTLEAK/d'
 	)
 	use debug || config_tweaks+=(
 		-e '/CONFIG_DEBUG_INFO/d'
