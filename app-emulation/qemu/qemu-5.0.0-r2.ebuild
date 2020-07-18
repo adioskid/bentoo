@@ -37,7 +37,7 @@ IUSE="accessibility +aio alsa bzip2 capstone +caps +curl debug doc
 	jemalloc +jpeg kernel_linux
 	kernel_FreeBSD lzo ncurses nfs nls numa opengl +oss +pin-upstream-blobs
 	plugins +png pulseaudio python rbd sasl +seccomp sdl sdl-image selinux
-	slirp
+	+slirp
 	smartcard snappy spice ssh static static-user systemtap tci test usb
 	usbredir vde +vhost-net vhost-user-fs virgl virtfs +vnc vte xattr xen
 	xfs +xkb zstd"
@@ -68,7 +68,7 @@ REQUIRED_USE="${PYTHON_REQUIRED_USE}
 	qemu_softmmu_targets_riscv64? ( fdt )
 	static? ( static-user !alsa !gtk !opengl !pulseaudio !plugins !rbd !snappy )
 	static-user? ( !plugins )
-	virtfs? ( xattr )
+	virtfs? ( caps xattr )
 	vte? ( gtk )
 	plugins? ( !static !static-user )
 "
@@ -413,6 +413,7 @@ qemu_src_configure() {
 		--with-confsuffix=/qemu
 		--localstatedir=/var
 		--disable-bsd-user
+		--disable-containers # bug #732972
 		--disable-guest-agent
 		--disable-strip
 		--disable-werror
