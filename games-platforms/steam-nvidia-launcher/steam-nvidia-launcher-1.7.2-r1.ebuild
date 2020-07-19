@@ -11,7 +11,7 @@ KEYWORDS="amd64"
 
 GITHUB_REPO="steam-launcher"
 GITHUB_USER="adioskid"
-GITHUB_TAG="47f8c2c011cd1a57ff91ffd4f0ae2619f22cf2a1"
+GITHUB_TAG="d7ebb8728a4d1bf5285176fb5acf2baa8f470e9f"
 SRC_URI="https://www.github.com/${GITHUB_USER}/${GITHUB_REPO}/tarball/${GITHUB_TAG} -> ${PN}-${GITHUB_TAG}.tar.gz"
 
 RDEPEND="
