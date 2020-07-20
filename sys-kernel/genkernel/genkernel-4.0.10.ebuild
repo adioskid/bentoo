@@ -25,19 +25,19 @@ VERSION_ISCSI="2.0.878"
 VERSION_JSON_C="0.13.1"
 VERSION_KMOD="27"
 VERSION_LIBAIO="0.3.112"
-VERSION_LIBGCRYPT="1.8.5"
+VERSION_LIBGCRYPT="1.8.6"
 VERSION_LIBGPGERROR="1.38"
 VERSION_LVM="2.02.187"
 VERSION_LZO="2.10"
 VERSION_MDADM="4.1"
-VERSION_POPT="1.16"
+VERSION_POPT="1.18"
 VERSION_STRACE="5.7"
 VERSION_THIN_PROVISIONING_TOOLS="0.8.5"
 VERSION_UNIONFS_FUSE="2.0"
 VERSION_UTIL_LINUX="2.35.2"
 VERSION_XFSPROGS="5.6.0"
 VERSION_ZLIB="1.2.11"
-VERSION_ZSTD="1.4.4"
+VERSION_ZSTD="1.4.5"
 
 COMMON_URI="
 	https://dl.bintray.com/boostorg/release/${VERSION_BOOST}/source/boost_${VERSION_BOOST//./_}.tar.bz2
@@ -78,7 +78,7 @@ if [[ ${PV} == 9999* ]] ; then
 else
 	SRC_URI="https://dev.gentoo.org/~whissi/dist/genkernel/${P}.tar.xz
 		${COMMON_URI}"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 fi
 
 DESCRIPTION="Gentoo automatic kernel building scripts"

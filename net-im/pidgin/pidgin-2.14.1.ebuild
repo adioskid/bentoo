@@ -1,15 +1,15 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 GENTOO_DEPEND_ON_PERL=no
-PYTHON_COMPAT=( python{2_7,3_{6,7}} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 
-inherit autotools flag-o-matic gnome2 toolchain-funcs multilib perl-module python-single-r1 xdg-utils
+inherit autotools gnome2-utils flag-o-matic toolchain-funcs multilib perl-module python-single-r1 xdg
 
 DESCRIPTION="GTK Instant Messenger client"
-HOMEPAGE="http://pidgin.im/"
+HOMEPAGE="https://pidgin.im/"
 SRC_URI="
 	mirror://sourceforge/${PN}/${P}.tar.bz2
 	https://dev.gentoo.org/~polynomial-c/${PN}-eds-3.6.patch.bz2
@@ -17,11 +17,10 @@ SRC_URI="
 
 LICENSE="GPL-2"
 SLOT="0/2" # libpurple version
-KEYWORDS="~alpha amd64 arm arm64 hppa ia64 ppc ppc64 sparc x86 ~amd64-linux ~x86-linux ~x86-macos"
-IUSE="dbus debug doc eds gadu gnutls +gstreamer +gtk idn meanwhile pie"
-IUSE+=" networkmanager nls perl tcl tk spell sasl ncurses"
-IUSE+=" groupwise prediction python +xscreensaver zephyr zeroconf" # mono"
-IUSE+=" aqua"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux ~x86-macos"
+IUSE="aqua dbus debug doc eds gadu gnutls groupwise +gstreamer +gtk idn
+meanwhile ncurses networkmanager nls perl pie prediction python sasl spell tcl
+tk +xscreensaver zephyr zeroconf"
 
 # dbus requires python to generate C code for dbus bindings (thus DEPEND only).
 # finch uses libgnt that links with libpython - {R,}DEPEND. But still there is
@@ -33,6 +32,7 @@ RDEPEND="
 	>=dev-libs/glib-2.16
 	>=dev-libs/libxml2-2.6.18
 	ncurses? (
+		>=dev-libs/libgnt-$(ver_cut 1-2)
 		sys-libs/ncurses:0=[unicode]
 		dbus? ( ${PYTHON_DEPS} )
 		python? ( ${PYTHON_DEPS} )
@@ -55,16 +55,16 @@ RDEPEND="
 	dbus? (
 		>=dev-libs/dbus-glib-0.71
 		>=sys-apps/dbus-0.90
-		dev-python/dbus-python[${PYTHON_USEDEP}]
+		$(python_gen_cond_dep '
+			dev-python/dbus-python[${PYTHON_MULTI_USEDEP}]
+		')
 	)
 	perl? ( >=dev-lang/perl-5.16:= )
-	gadu? (
-		|| (
-			>=net-libs/libgadu-1.11.0[ssl,gnutls]
-			>=net-libs/libgadu-1.11.0[-ssl]
-		)
-	)
-	gnutls? ( net-libs/gnutls )
+	gadu? ( || (
+		>=net-libs/libgadu-1.11.0[ssl,gnutls(+)]
+		>=net-libs/libgadu-1.11.0[-ssl]
+	) )
+	gnutls? ( net-libs/gnutls:= )
 	!gnutls? (
 		dev-libs/nspr
 		dev-libs/nss
@@ -75,24 +75,26 @@ RDEPEND="
 	sasl? ( dev-libs/cyrus-sasl:2 )
 	networkmanager? ( net-misc/networkmanager )
 	idn? ( net-dns/libidn:= )
-	!<x11-plugins/pidgin-facebookchat-1.69-r1"
-	# Mono support crashes pidgin
-	#mono? ( dev-lang/mono )"
+	!<x11-plugins/pidgin-facebookchat-1.69-r1
+"
 
 # We want nls in case gtk is enabled, bug #
 NLS_DEPEND=">=dev-util/intltool-0.41.1 sys-devel/gettext"
 
-DEPEND="$RDEPEND
-	dev-lang/perl
-	dev-perl/XML-Parser
-	virtual/pkgconfig
+DEPEND="${RDEPEND}
 	gtk? (
 		x11-base/xorg-proto
 		${NLS_DEPEND}
 	)
 	dbus? ( ${PYTHON_DEPS} )
+"
+BDEPEND="
+	dev-lang/perl
+	dev-perl/XML-Parser
+	virtual/pkgconfig
 	doc? ( app-doc/doxygen )
-	!gtk? ( nls? ( ${NLS_DEPEND} ) )"
+	!gtk? ( nls? ( ${NLS_DEPEND} ) )
+"
 
 DOCS=( AUTHORS HACKING NEWS README ChangeLog )
 
@@ -137,14 +139,14 @@ DYNAMIC_PRPLS="irc,jabber,oscar,simple"
 #	x11-plugins/pidgimpd
 
 PATCHES=(
-	"${FILESDIR}/${PN}-2.10.0-gold.patch"
+	"${FILESDIR}/${PN}-2.14.0-gold.patch"
 	"${WORKDIR}/${PN}-eds-3.6.patch"
 	"${FILESDIR}/${PN}-2.10.9-fix-gtkmedia.patch"
 	"${FILESDIR}/${PN}-2.10.10-eds-3.6-configure.ac.patch"
 	"${FILESDIR}/${PN}-2.10.11-tinfo.patch"
 	"${DISTDIR}/${PN}-2.10.9-irc_join_sleep.patch" # 577286
 	"${FILESDIR}/${PN}-2.13.0-disable-one-jid-test.patch" # 593338
-	"${FILESDIR}/${PN}-2.13.0-python3_support.patch" #459996
+	"${FILESDIR}/${PN}-2.13.0-metainfo.patch"
 )
 
 pkg_pretend() {
@@ -218,12 +220,18 @@ src_configure() {
 
 	if use gnutls; then
 		einfo "Disabling NSS, using GnuTLS"
-		myconf+=( --enable-nss=no --enable-gnutls=yes )
-		myconf+=( --with-gnutls-includes="${EPREFIX}/usr/include/gnutls" )
-		myconf+=( --with-gnutls-libs="${EPREFIX}/usr/$(get_libdir)" )
+		myconf+=(
+			--enable-nss=no
+			--enable-gnutls=yes
+			--with-gnutls-includes="${EPREFIX}/usr/include/gnutls"
+			--with-gnutls-libs="${EPREFIX}/usr/$(get_libdir)"
+		)
 	else
 		einfo "Disabling GnuTLS, using NSS"
-		myconf+=( --enable-gnutls=no --enable-nss=yes )
+		myconf+=(
+			--enable-gnutls=no
+			--enable-nss=yes
+		)
 	fi
 
 	if use dbus || { use ncurses && use python ; } ; then
@@ -236,14 +244,16 @@ src_configure() {
 }
 
 src_install() {
-	gnome2_src_install
+	# setting this here because gnome2.eclass is not EAPI-7 ready
+	export GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL="1"
+	default
 
 	if use gtk ; then
 		# Fix tray paths for e16 (x11-wm/enlightenment) and other
 		# implementations that are not complient with new hicolor theme yet, #323355
 		local pixmapdir
 		for d in 16 22 32 48; do
-			pixmapdir=${ED%/}/usr/share/pixmaps/pidgin/tray/hicolor/${d}x${d}/actions
+			pixmapdir=${ED}/usr/share/pixmaps/pidgin/tray/hicolor/${d}x${d}/actions
 			mkdir "${pixmapdir}" || die
 			pushd "${pixmapdir}" >/dev/null || die
 			for f in ../status/*; do
@@ -259,7 +269,7 @@ src_install() {
 		python_optimize
 	fi
 
-	dodoc ${DOCS} finch/plugins/pietray.py
+	dodoc ${DOCS[@]} finch/plugins/pietray.py
 	docompress -x /usr/share/doc/${PF}/pietray.py
 
 	find "${ED}" \( -name "*.a" -o -name "*.la" \) -delete || die
@@ -270,14 +280,19 @@ src_test() {
 	emake check VERBOSE=1
 }
 
-pkg_preinst() { gnome2_icon_savelist; }
+pkg_preinst() {
+	gnome2_gconf_savelist
+	xdg_pkg_preinst
+}
 
 pkg_postinst() {
-	gnome2_icon_cache_update
-	xdg_desktop_database_update
+	gnome2_gconf_install
+	gnome2_schemas_update
+	xdg_pkg_postinst
 }
 
 pkg_postrm() {
-	gnome2_icon_cache_update
-	xdg_desktop_database_update
+	gnome2_gconf_uninstall
+	gnome2_schemas_update
+	xdg_pkg_postrm
 }
