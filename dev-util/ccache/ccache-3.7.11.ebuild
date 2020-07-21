@@ -28,7 +28,7 @@ RESTRICT="!test? ( test )"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-3.5-nvcc-test.patch
-	"${FILESDIR}"/${P}-objdump.patch
+	"${FILESDIR}"/${PN}-3.7.10-objdump.patch
 )
 
 src_prepare() {

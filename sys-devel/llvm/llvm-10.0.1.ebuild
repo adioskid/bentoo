@@ -3,15 +3,12 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
-inherit cmake-utils llvm.org multilib-minimal multiprocessing \
-	pax-utils python-any-r1 toolchain-funcs
+PYTHON_COMPAT=( python3_{6..9} )
+inherit cmake llvm.org multilib-minimal pax-utils python-any-r1 \
+	toolchain-funcs
 
-MANPAGE_P=llvm-10.0.0-manpages
 DESCRIPTION="Low Level Virtual Machine"
 HOMEPAGE="https://llvm.org/"
-SRC_URI="
-	!doc? ( https://dev.gentoo.org/~mgorny/dist/llvm/${MANPAGE_P}.tar.bz2 )"
 LLVM_COMPONENTS=( llvm )
 llvm.org_set_globals
 
@@ -31,7 +28,7 @@ ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA BSD public-domain rc"
 SLOT="$(ver_cut 1)"
-KEYWORDS="amd64 arm arm64 ppc64 ~x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~ppc-macos ~x64-macos ~x86-macos"
 IUSE="debug doc exegesis gold libedit +libffi ncurses test xar xml z3
 	kernel_Darwin ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )"
@@ -61,12 +58,11 @@ BDEPEND="
 		<sys-libs/libcxx-$(ver_cut 1-3).9999
 		>=sys-devel/binutils-apple-5.1
 	)
-	doc? ( $(python_gen_any_dep '
-		dev-python/recommonmark[${PYTHON_USEDEP}]
-		dev-python/sphinx[${PYTHON_USEDEP}]
-	') )
 	libffi? ( virtual/pkgconfig )
-	${PYTHON_DEPS}"
+	$(python_gen_any_dep '
+		dev-python/sphinx[${PYTHON_USEDEP}]
+		doc? ( dev-python/recommonmark[${PYTHON_USEDEP}] )
+	')"
 # There are no file collisions between these versions but having :0
 # installed means llvm-config there will take precedence.
 RDEPEND="${RDEPEND}
@@ -74,23 +70,77 @@ RDEPEND="${RDEPEND}
 PDEPEND="sys-devel/llvm-common
 	gold? ( >=sys-devel/llvmgold-${SLOT} )"
 
-# least intrusive of all
-CMAKE_BUILD_TYPE=RelWithDebInfo
+PATCHES=(
+	# Fix linking to dylib and .a libs simultaneously
+	"${FILESDIR}"/10.0.1/0001-llvm-Avoid-linking-llvm-cfi-verify-to-duplicate-libs.patch
+	"${FILESDIR}"/10.0.1/0002-llvm-Disable-linking-llvm-exegesis-to-dylib.patch
+)
 
 python_check_deps() {
-	use doc || return 0
-
-	has_version -b "dev-python/recommonmark[${PYTHON_USEDEP}]" &&
+	if use doc; then
+		has_version -b "dev-python/recommonmark[${PYTHON_USEDEP}]" ||
+			return 1
+	fi
 	has_version -b "dev-python/sphinx[${PYTHON_USEDEP}]"
 }
 
-src_unpack() {
-	llvm.org_src_unpack
+check_distribution_components() {
+	if [[ ${CMAKE_MAKEFILE_GENERATOR} == ninja ]]; then
+		local all_targets=() my_targets=() l
+		cd "${BUILD_DIR}" || die
 
-	if ! use doc; then
-		ebegin "Unpacking ${MANPAGE_P}.tar.bz2"
-		tar -xf "${DISTDIR}/${MANPAGE_P}.tar.bz2" || die
-		eend ${?}
+		while read -r l; do
+			if [[ ${l} == install-*-stripped:* ]]; then
+				l=${l#install-}
+				l=${l%%-stripped*}
+
+				case ${l} in
+					# shared libs
+					LLVM|LLVMgold)
+						;;
+					# TableGen lib + deps
+					LLVMDemangle|LLVMSupport|LLVMTableGen)
+						;;
+					# static libs
+					LLVM*)
+						continue
+						;;
+					# meta-targets
+					distribution|llvm-libraries)
+						continue
+						;;
+					# used only w/ USE=doc
+					docs-llvm-html)
+						continue
+						;;
+				esac
+
+				all_targets+=( "${l}" )
+			fi
+		done < <(ninja -t targets all)
+
+		while read -r l; do
+			my_targets+=( "${l}" )
+		done < <(get_distribution_components $"\n")
+
+		local add=() remove=()
+		for l in "${all_targets[@]}"; do
+			if ! has "${l}" "${my_targets[@]}"; then
+				add+=( "${l}" )
+			fi
+		done
+		for l in "${my_targets[@]}"; do
+			if ! has "${l}" "${all_targets[@]}"; then
+				remove+=( "${l}" )
+			fi
+		done
+
+		if [[ ${#add[@]} -gt 0 || ${#remove[@]} -gt 0 ]]; then
+			eqawarn "get_distribution_components() is outdated!"
+			eqawarn "   Add: ${add[*]}"
+			eqawarn "Remove: ${remove[*]}"
+		fi
+		cd - >/dev/null || die
 	fi
 }
 
@@ -105,8 +155,12 @@ src_prepare() {
 	# Update config.guess to support more systems
 	cp "${BROOT}/usr/share/gnuconfig/config.guess" cmake/ || die
 
-	# User patches + QA
-	cmake-utils_src_prepare
+	# manpages don't use markdown
+	if ! use doc; then
+		sed -i -e '/source_parsers/d' docs/conf.py || die
+	fi
+
+	llvm.org_src_prepare
 }
 
 # Is LLVM being linked against libc++?
@@ -221,12 +275,13 @@ get_distribution_components() {
 
 			# python modules
 			opt-viewer
-		)
 
-		use doc && out+=(
+			# manpages
 			docs-dsymutil-man
 			docs-llvm-dwarfdump-man
 			docs-llvm-man
+		)
+		use doc && out+=(
 			docs-llvm-html
 		)
 
@@ -303,18 +358,16 @@ multilib_src_configure() {
 #	fi
 
 	use test && mycmakeargs+=(
-		-DLLVM_LIT_ARGS="-vv;-j;${LIT_JOBS:-$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")}"
+		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 	)
 
 	if multilib_is_native_abi; then
 		mycmakeargs+=(
-			-DLLVM_BUILD_DOCS=$(usex doc)
+			-DLLVM_BUILD_DOCS=ON
 			-DLLVM_ENABLE_OCAMLDOC=OFF
-			-DLLVM_ENABLE_SPHINX=$(usex doc)
+			-DLLVM_ENABLE_SPHINX=ON
 			-DLLVM_ENABLE_DOXYGEN=OFF
 			-DLLVM_INSTALL_UTILS=ON
-		)
-		use doc && mycmakeargs+=(
 			-DCMAKE_INSTALL_MANDIR="${EPREFIX}/usr/lib/llvm/${SLOT}/share/man"
 			-DLLVM_INSTALL_SPHINX_HTML_DIR="${EPREFIX}/usr/share/doc/${PF}/html"
 			-DSPHINX_WARNINGS_AS_ERRORS=OFF
@@ -350,11 +403,13 @@ multilib_src_configure() {
 
 	# LLVM_ENABLE_ASSERTIONS=NO does not guarantee this for us, #614844
 	use debug || local -x CPPFLAGS="${CPPFLAGS} -DNDEBUG"
-	cmake-utils_src_configure
+	cmake_src_configure
+
+	multilib_is_native_abi && check_distribution_components
 }
 
 multilib_src_compile() {
-	cmake-utils_src_compile
+	cmake_src_compile
 
 	pax-mark m "${BUILD_DIR}"/bin/llvm-rtdyld
 	pax-mark m "${BUILD_DIR}"/bin/lli
@@ -370,7 +425,7 @@ multilib_src_compile() {
 multilib_src_test() {
 	# respect TMPDIR!
 	local -x LIT_PRESERVES_TMP=1
-	cmake-utils_src_make check
+	cmake_build check
 }
 
 src_install() {
@@ -390,7 +445,7 @@ src_install() {
 }
 
 multilib_src_install() {
-	DESTDIR=${D} cmake-utils_src_make install-distribution
+	DESTDIR=${D} cmake_build install-distribution
 
 	# move headers to /usr/include for wrapping
 	rm -rf "${ED}"/usr/include || die
@@ -408,13 +463,6 @@ multilib_src_install_all() {
 		MANPATH="${EPREFIX}/usr/lib/llvm/${SLOT}/share/man"
 		LDPATH="$( IFS=:; echo "${LLVM_LDPATHS[*]}" )"
 	_EOF_
-
-	# install pre-generated manpages
-	if ! use doc; then
-		# (doman does not support custom paths)
-		insinto "/usr/lib/llvm/${SLOT}/share/man/man1"
-		doins "${WORKDIR}/${MANPAGE_P}/llvm"/*.1
-	fi
 
 	docompress "/usr/lib/llvm/${SLOT}/share/man"
 }

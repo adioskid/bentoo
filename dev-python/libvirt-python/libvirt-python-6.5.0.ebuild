@@ -3,7 +3,9 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{6..9} )
+
+DISTUTILS_USE_SETUPTOOLS=no
 
 MY_P="${P/_rc/-rc}"
 
@@ -12,12 +14,10 @@ inherit distutils-r1
 if [[ ${PV} = *9999* ]]; then
 	inherit git-r3
 	EGIT_REPO_URI="https://libvirt.org/git/libvirt-python.git"
-	SRC_URI=""
-	KEYWORDS="amd64 x86"
 	RDEPEND="app-emulation/libvirt:=[-python(-)]"
 else
 	SRC_URI="https://libvirt.org/sources/python/${MY_P}.tar.gz"
-	KEYWORDS="amd64 ~arm64 ~ppc64 x86"
+	KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 	RDEPEND="app-emulation/libvirt:0/${PV}"
 fi
 S="${WORKDIR}/${P%_rc*}"
@@ -29,14 +29,13 @@ SLOT="0"
 IUSE="examples test"
 RESTRICT="!test? ( test )"
 
-DEPEND="${RDEPEND}
-	virtual/pkgconfig
-	test? ( dev-python/lxml[${PYTHON_USEDEP}]
-		dev-python/nose[${PYTHON_USEDEP}] )"
+DEPEND="virtual/pkgconfig"
+BDEPEND="test? (
+	dev-python/lxml[${PYTHON_USEDEP}]
+	dev-python/nose[${PYTHON_USEDEP}]
+)"
 
-python_test() {
-	esetup.py test
-}
+distutils_enable_tests setup.py
 
 python_install_all() {
 	if use examples; then
