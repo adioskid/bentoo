@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-inherit readme.gentoo-r1 systemd
+inherit readme.gentoo-r1
 
 DESCRIPTION="Scripts to support compressed swap devices or ramdisks with zram"
 HOMEPAGE="https://github.com/vaeth/zram-init/"
@@ -39,7 +39,6 @@ src_prepare() {
 src_install() {
 	doinitd openrc/init.d/*
 	doconfd openrc/conf.d/*
-	systemd_dounit systemd/system/*
 	insinto /etc/modprobe.d
 	doins modprobe.d/*
 	insinto /usr/share/zsh/site-functions

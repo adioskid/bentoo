@@ -66,6 +66,8 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.8.10.2-FindPythonLibs.patch
 	"${FILESDIR}"/${PN}-3.9.0_rc2-FindPythonInterp.patch
 
+	"${FILESDIR}"/${PN}-3.18.0-filter_distcc_warning.patch #691544
+
 	# upstream fixes (can usually be removed with a version bump)
 )
 
@@ -197,8 +199,6 @@ src_install() {
 	doins "${FILESDIR}/${PN}.vim"
 
 	dobashcomp Auxiliary/bash-completion/{${PN},ctest,cpack}
-
-	rm -r "${ED}"/usr/share/cmake/{completions,editors} || die
 }
 
 pkg_postinst() {
