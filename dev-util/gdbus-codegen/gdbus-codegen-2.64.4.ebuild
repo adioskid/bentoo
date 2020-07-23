@@ -1,10 +1,12 @@
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 GNOME_ORG_MODULE="glib"
-PYTHON_COMPAT=( python{2_7,3_4,3_5,3_6,3_7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 PYTHON_REQ_USE="xml"
 DISTUTILS_SINGLE_IMPL=1
+DISTUTILS_USE_SETUPTOOLS=no
 
 inherit gnome.org distutils-r1
 
@@ -13,28 +15,30 @@ HOMEPAGE="https://www.gtk.org/"
 
 LICENSE="LGPL-2+"
 SLOT="0"
-KEYWORDS="*"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos"
 IUSE=""
 
 RDEPEND="${PYTHON_DEPS}"
-DEPEND="${RDEPEND}
+DEPEND="${RDEPEND}"
+BDEPEND="
 	dev-libs/libxslt
 	app-text/docbook-xsl-stylesheets
 "
-
-# To prevent circular dependencies with glib[test]
-PDEPEND=">=dev-libs/glib-${PV}:2"
 
 S="${WORKDIR}/glib-${PV}/gio/gdbus-2.0/codegen"
 
 python_prepare_all() {
 	PATCHES=(
-		"${FILESDIR}/gdbus-codegen-2.60.3-sitedir.patch"
+		"${FILESDIR}/${PN}-2.56.1-sitedir.patch"
 	)
 	distutils-r1_python_prepare_all
 
+	local MAJOR_VERSION=$(ver_cut 1)
+	local MINOR_VERSION=$(ver_cut 2)
 	sed -e 's:@PYTHON@:python:' gdbus-codegen.in > gdbus-codegen || die
-	sed -e "s:@VERSION@:${PV}:" config.py.in > config.py || die
+	sed -e "s:@VERSION@:${PV}:" \
+		-e "s:@MAJOR_VERSION@:${MAJOR_VERSION}:" \
+		-e "s:@MINOR_VERSION@:${MINOR_VERSION}:" config.py.in > config.py || die
 	cp "${FILESDIR}/setup.py-2.32.4" setup.py || die "cp failed"
 	sed -e "s/@PV@/${PV}/" -i setup.py || die "sed setup.py failed"
 }
