@@ -7,7 +7,7 @@ RESTRICT="mirror" # until available on gentoo mirrors
 
 DESCRIPTION="Scripts to support compressed swap devices or ramdisks with zram"
 HOMEPAGE="https://github.com/vaeth/zram-init/"
-SRC_URI="https://github.com/vaeth/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://binhost.bentoo.info/distfiles/${P}.tar.gz"
 
 LICENSE="GPL-2"
 SLOT="0"
