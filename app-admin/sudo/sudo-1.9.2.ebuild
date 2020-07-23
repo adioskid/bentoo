@@ -62,6 +62,7 @@ RDEPEND="
 "
 BDEPEND="
 	sys-devel/bison
+	virtual/pkgconfig
 "
 
 S="${WORKDIR}/${MY_P}"
@@ -70,6 +71,8 @@ REQUIRED_USE="
 	pam? ( !skey )
 	skey? ( !pam )
 "
+
+REQUIRED_USE="?? ( gcrypt ssl )"
 
 MAKEOPTS+=" SAMPLES="
 
