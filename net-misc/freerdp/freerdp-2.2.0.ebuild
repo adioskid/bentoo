@@ -15,7 +15,7 @@ else
 	MY_P=${P/_/-}
 	S="${WORKDIR}/${MY_P}"
 	SRC_URI="https://pub.freerdp.com/releases/${MY_P}.tar.gz"
-	KEYWORDS="~alpha amd64 arm arm64 ppc ppc64 x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 DESCRIPTION="Free implementation of the Remote Desktop Protocol"
@@ -56,7 +56,7 @@ RDEPEND="
 		x11-libs/libXrandr
 	)
 	jpeg? ( virtual/jpeg:0 )
-	openh264? ( media-libs/openh264 )
+	openh264? ( media-libs/openh264:0= )
 	pulseaudio? ( media-sound/pulseaudio )
 	server? (
 		X? (
@@ -88,10 +88,6 @@ BDEPEND="
 		app-text/xmlto
 	) )
 "
-
-PATCHES=(
-	"${FILESDIR}/2.1.2-mask-cached_brush.patch"
-)
 
 src_configure() {
 	local mycmakeargs=(

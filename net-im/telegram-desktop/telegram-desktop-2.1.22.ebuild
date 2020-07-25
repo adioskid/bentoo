@@ -16,7 +16,7 @@ SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc64"
-IUSE="+alsa +dbus enchant +gtk +hunspell libressl pulseaudio +spell wayland +X"
+IUSE="+alsa +dbus enchant +gtk +hunspell libressl pulseaudio +spell +X"
 
 RDEPEND="
 	!net-im/telegram-desktop-bin
@@ -26,7 +26,7 @@ RDEPEND="
 	libressl? ( dev-libs/libressl:0= )
 	dev-libs/xxhash
 	dev-qt/qtcore:5
-	dev-qt/qtgui:5[dbus?,jpeg,png,wayland?,X(-)?]
+	dev-qt/qtgui:5[dbus?,jpeg,png,wayland,X(-)?]
 	dev-qt/qtimageformats:5
 	dev-qt/qtnetwork:5
 	dev-qt/qtsvg:5
@@ -39,6 +39,7 @@ RDEPEND="
 	media-video/ffmpeg:=[alsa?,opus,pulseaudio?]
 	sys-libs/zlib[minizip]
 	virtual/libiconv
+	x11-libs/libxcb:=
 	dbus? (
 		dev-qt/qtdbus:5
 		dev-libs/libdbusmenu-qt[qt5(+)]
@@ -47,7 +48,7 @@ RDEPEND="
 	gtk? (
 		dev-libs/glib:2
 		x11-libs/gdk-pixbuf:2[jpeg,X?]
-		x11-libs/gtk+:3[X?,wayland?]
+		x11-libs/gtk+:3[X?,wayland]
 		x11-libs/libX11
 	)
 	hunspell? ( >=app-text/hunspell-1.7:= )
@@ -68,7 +69,6 @@ BDEPEND="
 
 REQUIRED_USE="
 	|| ( alsa pulseaudio )
-	|| ( X wayland )
 	spell? (
 		^^ ( enchant hunspell )
 	)
