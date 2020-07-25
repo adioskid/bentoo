@@ -1,10 +1,9 @@
-# Copyright 1999-2020 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
 XORG_DOC=doc
-inherit xorg-3 multilib flag-o-matic
+inherit xorg-3 multilib flag-o-matic toolchain-funcs
 EGIT_REPO_URI="https://gitlab.freedesktop.org/xorg/xserver.git"
 
 DESCRIPTION="X.Org X servers"
@@ -83,7 +82,7 @@ CDEPEND=">=app-eselect/eselect-opengl-1.3.0
 	>=x11-apps/xinit-1.3.3-r1
 	elogind? (
 		sys-apps/dbus
-		sys-auth/elogind
+		sys-auth/elogind[pam]
 		sys-auth/pambase[elogind]
 	)
 	"
