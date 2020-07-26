@@ -9,13 +9,13 @@ DESCRIPTION="Official desktop client for Telegram (binary package)"
 HOMEPAGE="https://desktop.telegram.org"
 SRC_URI="
 	https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz
-	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.beta.tar.xz )
-	x86? ( https://updates.tdesktop.com/tlinux32/tsetup32.${PV}.beta.tar.xz )
+	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.tar.xz )
+	x86? ( https://updates.tdesktop.com/tlinux32/tsetup32.${PV}.tar.xz )
 "
 
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
-KEYWORDS="*"
+KEYWORDS="-* ~amd64 ~x86"
 
 QA_PREBUILT="usr/lib/${PN}/Telegram"
 
@@ -23,7 +23,14 @@ RDEPEND="
 	dev-libs/glib:2
 	dev-libs/gobject-introspection
 	>=media-libs/fontconfig-2.13
-	>=sys-apps/dbus-1.4.20
+	media-libs/freetype:2
+	media-libs/libglvnd[X]
+	>=sys-apps/dbus-1.4.2[X]
+	sys-libs/zlib
+	x11-libs/libSM
+	x11-libs/libdrm
+	x11-libs/libICE
+	x11-libs/libSM
 	x11-libs/libX11
 	>=x11-libs/libxcb-1.10[xkb]
 "
