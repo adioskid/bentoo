@@ -3,13 +3,18 @@
 EAPI=6
 inherit
 
+distfile="https://binhost.bentoo.info/distfiles"
+
 DESCRIPTION="Image and modules from bentoo sources(gentoo-sources fork)"
 HOMEPAGE=""
-SRC_URI="https://binhost.bentoo.info/distfiles/${P}.tar.xz"
+SRC_URI="
+	${distfile}/${P}.tar.xz
+	source? ( ${distfile}/bentoo-sources-bin-5.7.10.tar.xz )
+	"
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia"
+IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia +source"
 
 RESTRICT="splitdebug mirror"
 
@@ -36,8 +41,18 @@ QA_PREBUILT='*'
 S=${WORKDIR}
 
 src_unpack() {
-	unpack ${A}
+
+	if use source;
+	then
+		unpack ${P}.tar.xz
+		mkdir source
+		cd source && unpack bentoo-sources-bin-${PV}.tar.xz
+	else
+		unpack ${A}
+	fi
+
 }
+
 
 src_install() {
 
@@ -77,12 +92,25 @@ src_install() {
 	insinto /lib/modules/
 	doins -r lib/modules/*
 
-	# remove symlinks to sources.
-	rm -rf ${D}/lib/modules/*/{source,build} || die
+	
+
+	if ! use source;
+	then
+		# remove symlinks to sources.
+		rm -rf ${D}/lib/modules/*/{source,build} || die
+	fi
 
 	# create source folder to map on eselect kernel.
 	insinto /usr/src/
-	doins -r usr/src/*
+	
+	if use source;
+	then
+		cd source && doins -r usr/src/*
+	else
+		doins -r usr/src/*
+	fi
+
+	sleep 3600
 
 }
 
