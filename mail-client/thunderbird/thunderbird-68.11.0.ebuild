@@ -28,7 +28,7 @@ if [[ ${MOZ_ESR} == 1 ]] ; then
 fi
 
 # Patches
-PATCHFF="firefox-68.0-patches-14"
+PATCHFF="firefox-68.0-patches-15"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/releases"
 MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/${PN}-${MOZ_PV}.source.tar.xz"
@@ -48,7 +48,7 @@ inherit check-reqs eapi7-ver flag-o-matic toolchain-funcs eutils \
 DESCRIPTION="Thunderbird Mail Client"
 HOMEPAGE="https://www.mozilla.org/thunderbird"
 
-KEYWORDS="amd64 ~arm64 ~ppc64 x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
@@ -134,7 +134,6 @@ DEPEND="${CDEPEND}
 	sys-apps/findutils
 	virtual/pkgconfig
 	>=virtual/rust-1.34.0
-	<virtual/rust-1.45.0
 	|| (
 		(
 			sys-devel/clang:10
@@ -217,15 +216,6 @@ llvm_check_deps() {
 
 pkg_pretend() {
 	if [[ ${MERGE_TYPE} != binary ]] ; then
-		local rustc_version=( $(eselect --brief rust show 2>/dev/null) )
-		rustc_version=${rustc_version[0]/rust-bin-/}
-		rustc_version=${rustc_version/rust-/}
-		if [[ -n "${rustc_version}" ]] ; then
-			if ver_test "${rustc_version}" -ge "1.45.0" ; then
-				die "Rust >=1.45.0 is not supported. Please use 'eselect rust' to switch to <rust-1.45.0!"
-			fi
-		fi
-
 		if use pgo ; then
 			if ! has usersandbox $FEATURES ; then
 				die "You must enable usersandbox as X server can not run as root!"
@@ -247,15 +237,6 @@ pkg_setup() {
 	moz_pkgsetup
 
 	if [[ ${MERGE_TYPE} != binary ]] ; then
-		local rustc_version=( $(eselect --brief rust show 2>/dev/null) )
-		rustc_version=${rustc_version[0]/rust-bin-/}
-		rustc_version=${rustc_version/rust-/}
-		[[ -z "${rustc_version}" ]] && die "Failed to determine rustc version!"
-
-		if ver_test "${rustc_version}" -ge "1.45.0" ; then
-			die "Rust >=1.45.0 is not supported. Please use 'eselect rust' to switch to <rust-1.45.0!"
-		fi
-
 		# Ensure we have enough disk space to compile
 		if use pgo || use lto || use debug || use test ; then
 			CHECKREQS_DISK_BUILD="8G"
@@ -298,8 +279,7 @@ src_unpack() {
 
 src_prepare() {
 	# Apply firefox patchset then apply thunderbird patches
-	rm "${WORKDIR}"/firefox/2013_avoid_noinline_on_GCC_with_skcms.patch || die
-	rm "${WORKDIR}"/firefox/2015_fix_cssparser.patch || die
+	rm "${WORKDIR}"/firefox/2016_set_CARGO_PROFILE_RELEASE_LTO.patch || die
 	eapply "${WORKDIR}/firefox"
 	pushd "${S}"/comm &>/dev/null || die
 	eapply "${FILESDIR}/1000_fix_gentoo_preferences.patch"

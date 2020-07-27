@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-PYTHON_COMPAT=( python3_{6..8} )
+PYTHON_COMPAT=( python3_{6..9} )
 
 WANT_AUTOCONF="2.1"
 
@@ -27,7 +27,7 @@ if [[ ${MOZ_ESR} == 1 ]] ; then
 fi
 
 # Patch version
-FIREFOX_PATCHSET="firefox-68.0-patches-14"
+FIREFOX_PATCHSET="firefox-68.0-patches-15"
 SPIDERMONKEY_PATCHSET="${PN}-68.6.0-patches-03"
 
 MOZ_HTTP_URI="https://archive.mozilla.org/pub/firefox/releases"
@@ -99,6 +99,12 @@ src_prepare() {
 
 	default
 
+	# sed-in toolchain prefix
+	sed -i \
+		-e "s/objdump/${CHOST}-objdump/" \
+		python/mozbuild/mozbuild/configure/check_debug_ranges.py \
+		|| die "sed failed to set toolchain prefix"
+
 	MOZJS_BUILDDIR="${WORKDIR}/build"
 	mkdir "${MOZJS_BUILDDIR}" || die
 
@@ -124,6 +130,8 @@ src_configure() {
 	# and other minor arches
 	ECONF_SOURCE="${S}" \
 	econf \
+		--host="${CBUILD:-${CHOST}}" \
+		--target="${CHOST}" \
 		--disable-jemalloc \
 		--disable-optimize \
 		--disable-strip \
@@ -133,6 +141,7 @@ src_configure() {
 		--with-system-icu \
 		--with-system-nspr \
 		--with-system-zlib \
+		--with-toolchain-prefix="${CHOST}-" \
 		$(use_enable debug) \
 		$(use_enable jit ion) \
 		$(use_enable test tests) \
@@ -156,6 +165,7 @@ src_test() {
 
 	local -a KNOWN_TESTFAILURES
 	KNOWN_TESTFAILURES+=( test262/intl402/RelativeTimeFormat/prototype/format/en-us-numeric-auto.js )
+	KNOWN_TESTFAILURES+=( non262/Intl/DateTimeFormat/timeZone_backward_links.js )
 	KNOWN_TESTFAILURES+=( non262/Intl/DateTimeFormat/tz-environment-variable.js )
 	KNOWN_TESTFAILURES+=( non262/Intl/RelativeTimeFormat/format.js )
 	KNOWN_TESTFAILURES+=( non262/Date/time-zones-imported.js )
