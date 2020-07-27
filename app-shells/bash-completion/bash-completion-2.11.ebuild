@@ -4,8 +4,8 @@
 EAPI=7
 
 BASHCOMP_P=bashcomp-2.0.3
-PYTHON_COMPAT=( python3_{6,7} )
-inherit bash-completion-r1 python-any-r1
+PYTHON_COMPAT=( python3_{6..9} )
+inherit bash-completion-r1 python-any-r1 user-info
 
 DESCRIPTION="Programmable Completion for bash"
 HOMEPAGE="https://github.com/scop/bash-completion"
@@ -15,9 +15,9 @@ SRC_URI="
 
 LICENSE="GPL-2+"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 ~s390 sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris"
 IUSE="+eselect test"
-RESTRICT="test"
+RESTRICT="!test? ( test )"
 
 # completion collision with net-fs/mc
 RDEPEND=">=app-shells/bash-4.3_p30-r1:0
@@ -26,9 +26,6 @@ RDEPEND=">=app-shells/bash-4.3_p30-r1:0
 DEPEND="
 	test? (
 		${RDEPEND}
-		app-misc/dtach
-		dev-util/dejagnu
-		dev-tcltk/tcllib
 		$(python_gen_any_dep '
 			dev-python/pexpect[${PYTHON_USEDEP}]
 			dev-python/pytest[${PYTHON_USEDEP}]
@@ -81,32 +78,18 @@ pkg_setup() {
 src_prepare() {
 	use eselect &&
 		eapply "${WORKDIR}/${BASHCOMP_P}/bash-completion-blacklist-support.patch"
-	# Bug 543100, update bug 601194
-	eapply "${FILESDIR}/${PN}-2.1-escape-characters-r1.patch"
+
+	# redhat-specific, we strip these completions
+	rm test/t/test_if{down,up}.py || die
+	# not available for icedtea
+	rm test/t/test_javaws.py || die
+
 	eapply_user
 }
 
 src_test() {
-	# Tests need an interactive shell, #477066
-	# idea stolen from:
-	# http://pkgs.fedoraproject.org/cgit/rpms/bash-completion.git/tree/bash-completion.spec
-
-	# real-time output of the log ;-)
-	touch "${T}/dtach-test.log" || die
-	tail -f "${T}/dtach-test.log" &
-	local tail_pid=${!}
-
-	# override the default expect timeout and buffer size to avoid tests
-	# failing randomly due to cold cache, busy system or just more output
-	# than upstream anticipated (they run tests on pristine docker
-	# installs of binary distros)
-	nonfatal dtach -N "${T}/dtach.sock" \
-		bash -c 'emake check RUNTESTFLAGS="OPT_TIMEOUT=300 OPT_BUFFER_SIZE=1000000" PYTESTFLAGS="-vv" \
-			&> "${T}"/dtach-test.log; echo ${?} > "${T}"/dtach-test.out'
-
-	kill "${tail_pid}"
-	[[ -f ${T}/dtach-test.out ]] || die "Unable to run tests"
-	[[ $(<"${T}"/dtach-test.out) == 0 ]] || die "Tests failed"
+	# portage's HOME override breaks tests
+	emake check HOME="$(egethome "${UID}")" PYTESTFLAGS="-vv" NETWORK=none
 }
 
 src_install() {
