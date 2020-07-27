@@ -14,7 +14,7 @@ SRC_URI="
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia +source"
+IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia source"
 
 RESTRICT="splitdebug mirror"
 
@@ -109,8 +109,6 @@ src_install() {
 	else
 		doins -r usr/src/*
 	fi
-
-	sleep 3600
 
 }
 
