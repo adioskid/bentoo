@@ -9,12 +9,12 @@ DESCRIPTION="Image and modules from bentoo sources(gentoo-sources fork)"
 HOMEPAGE=""
 SRC_URI="
 	${distfile}/${P}.tar.xz
-	source? ( ${distfile}/bentoo-sources-bin-5.7.10.tar.xz )
+	source-bin? ( ${distfile}/bentoo-sources-bin-5.7.10.tar.xz )
 	"
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia source"
+IUSE="+amd +backup clean +ego-boot +initramfs +intel +microcode +nvidia source-bin"
 
 RESTRICT="splitdebug mirror"
 
@@ -42,7 +42,7 @@ S=${WORKDIR}
 
 src_unpack() {
 
-	if use source;
+	if use source-bin;
 	then
 		unpack ${P}.tar.xz
 		mkdir source
@@ -92,22 +92,20 @@ src_install() {
 	insinto /lib/modules/
 	doins -r lib/modules/*
 
-	
-
-	if ! use source;
-	then
-		# remove symlinks to sources.
-		rm -rf ${D}/lib/modules/*/{source,build} || die
-	fi
-
 	# create source folder to map on eselect kernel.
 	insinto /usr/src/
 	
-	if use source;
+	if use source-bin;
 	then
 		cd source && doins -r usr/src/*
 	else
 		doins -r usr/src/*
+	fi
+
+	if ! use source-bin;
+	then
+		# remove symlinks to sources.
+		rm -rf ${D}/lib/modules/*/{source,build} || die
 	fi
 
 }
