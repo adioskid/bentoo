@@ -22,13 +22,12 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 arm64 ~x86"
-IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts headless kerberos ozone pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc vaapi wayland widevine"
+KEYWORDS="amd64 ~arm64 ~x86"
+IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts headless kerberos ozone pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc wayland widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="
 	component-build? ( !suid )
 	wayland? ( ozone )
-	vaapi? ( !ozone )
 "
 
 COMMON_X_DEPEND="
@@ -81,7 +80,6 @@ COMMON_DEPEND="
 	>=media-libs/libwebp-0.4.0:=
 	sys-libs/zlib:=[minizip]
 	kerberos? ( virtual/krb5 )
-	vaapi? ( x11-libs/libva:= )
 	ozone? (
 		!headless? (
 			${COMMON_X_DEPEND}
@@ -187,7 +185,6 @@ in /etc/chromium/default.
 
 PATCHES=(
 	"${FILESDIR}/chromium-84-mediaalloc.patch"
-	"${FILESDIR}/chromium-83-vaapi.patch"
 )
 
 pre_build_checks() {
@@ -581,7 +578,6 @@ src_configure() {
 	myconf_gn+=" use_cups=$(usex cups true false)"
 	myconf_gn+=" use_kerberos=$(usex kerberos true false)"
 	myconf_gn+=" use_pulseaudio=$(usex pulseaudio true false)"
-	myconf_gn+=" use_vaapi=$(usex vaapi true false)"
 
 	# TODO: link_pulseaudio=true for GN.
 
@@ -793,11 +789,6 @@ src_install() {
 	)
 	sed "${sedargs[@]}" "${FILESDIR}/chromium-launcher-r5.sh" > chromium-launcher.sh || die
 	doexe chromium-launcher.sh
-
-	if use vaapi; then
-		insinto /usr/share/drirc.d
-		newins "${FILESDIR}"/01-chromium.conf 01-chromium.conf
-	fi
 
 	# It is important that we name the target "chromium-browser",
 	# xdg-utils expect it; bug #355517.

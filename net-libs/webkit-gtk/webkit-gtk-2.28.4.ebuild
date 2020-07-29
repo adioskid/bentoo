@@ -16,7 +16,7 @@ SRC_URI="https://www.webkitgtk.org/releases/${MY_P}.tar.xz"
 
 LICENSE="LGPL-2+ BSD"
 SLOT="4/37" # soname version of libwebkit2gtk-4.0
-KEYWORDS="amd64 ~arm arm64 ~ppc64 ~sparc x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~sparc ~x86"
 
 IUSE="aqua +egl +geolocation gles2-only gnome-keyring +gstreamer gtk-doc +introspection +jpeg2k +jumbo-build libnotify +opengl seccomp spell wayland +X"
 
@@ -169,7 +169,7 @@ src_prepare() {
 	eapply "${FILESDIR}/${PN}-2.24.4-eglmesaext-include.patch" # bug 699054 # https://bugs.webkit.org/show_bug.cgi?id=204108
 	eapply "${FILESDIR}"/2.28.2-opengl-without-X-fixes.patch
 	eapply "${FILESDIR}"/2.28.2-non-jumbo-fix.patch
-	eapply "${FILESDIR}"/2.28.3-non-jumbo-fix2.patch
+	eapply "${FILESDIR}"/2.28.4-non-jumbo-fix2.patch
 	cmake-utils_src_prepare
 	gnome2_src_prepare
 }
