@@ -12,7 +12,7 @@ MY_PV=$(ver_rs 2 '-')
 
 DESCRIPTION="Proprietary OpenCL implementation for AMD GPUs"
 HOMEPAGE="https://www.amd.com/en/support/kb/release-notes/rn-amdgpu-unified-navi-linux"
-SRC_URI="https://binhost.bentoo.info/distfiles/amdgpu-pro-20.20-1089974-ubuntu-20.04.tar.xz"
+SRC_URI="https://binhost.bentoo.info/distfiles/amdgpu-pro-${PV}-ubuntu-20.04.tar.xz"
 
 LICENSE="AMD-GPU-PRO-EULA"
 SLOT="0"

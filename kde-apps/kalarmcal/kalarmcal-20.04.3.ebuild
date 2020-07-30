@@ -13,7 +13,7 @@ DESCRIPTION="Client library to access and handling of KAlarm calendar data"
 
 LICENSE="GPL-2+ LGPL-2.1+"
 SLOT="5"
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="amd64 ~arm64 x86"
 IUSE=""
 
 COMMON_DEPEND="
@@ -34,5 +34,5 @@ RDEPEND="${COMMON_DEPEND}
 "
 
 src_test() {
-	LANG="C" ecm_src_test #bug 665626
+	LC_TIME="C" ecm_src_test #bug 665626
 }

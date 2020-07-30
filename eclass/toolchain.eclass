@@ -1299,12 +1299,6 @@ toolchain_src_configure() {
 		confgcc+=( $(use_with zstd) )
 	fi
 
-	# newer gcc's come with libquadmath, but only fortran uses
-	# it, so auto punt it when we don't care
-	if tc_version_is_at_least 4.6 && ! is_fortran ; then
-		confgcc+=( --disable-libquadmath )
-	fi
-
 	if tc_version_is_at_least 4.6 ; then
 		confgcc+=( --enable-lto )
 	elif tc_version_is_at_least 4.5 ; then
@@ -2232,6 +2226,7 @@ toolchain_pkg_postinst() {
 		# gcc stopped installing .la files fixer in June 2020.
 		# Cleaning can be removed in June 2022.
 		rm -f "${EROOT%/}"/sbin/fix_libtool_files.sh
+		rm -f "${EROOT%/}"/usr/sbin/fix_libtool_files.sh
 		rm -f "${EROOT%/}"/usr/share/gcc-data/fixlafiles.awk
 
 		mkdir -p "${EROOT%/}"/usr/bin
