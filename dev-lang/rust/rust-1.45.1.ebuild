@@ -78,7 +78,7 @@ DEPEND="
 	>=dev-libs/libgit2-0.99:=
 	net-libs/libssh2:=
 	net-libs/http-parser:=
-	net-misc/curl:=[ssl]
+	net-misc/curl:=[http2,ssl]
 	sys-libs/zlib:=
 	!libressl? ( dev-libs/openssl:0= )
 	libressl? ( dev-libs/libressl:0= )
@@ -102,6 +102,7 @@ REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
 QA_FLAGS_IGNORED="
 	usr/bin/.*-${PV}
 	usr/lib.*/lib.*.so
+	usr/lib/rustlib/.*/bin/rust-lld
 	usr/lib/rustlib/.*/codegen-backends/librustc_codegen_llvm-llvm.so
 	usr/lib/rustlib/.*/lib/lib.*.so
 "
