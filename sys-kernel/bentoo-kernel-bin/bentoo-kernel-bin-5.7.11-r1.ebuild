@@ -9,7 +9,7 @@ DESCRIPTION="Image and modules from bentoo sources(gentoo-sources fork)"
 HOMEPAGE=""
 SRC_URI="
 	${distfile}/${P}.tar.xz
-	source-bin? ( ${distfile}/bentoo-sources-bin-5.7.10.tar.xz )
+	source-bin? ( ${distfile}/bentoo-sources-bin-${PV}.tar.xz )
 	"
 KEYWORDS="amd64"
 LICENSE="GPL-2"
