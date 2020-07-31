@@ -10,19 +10,25 @@ SRC_URI="https://github.com/storaged-project/udisks/releases/download/${P}/${P}.
 
 LICENSE="LGPL-2+ GPL-2+"
 SLOT="2"
-KEYWORDS="~alpha amd64 arm arm64 ia64 ~mips ppc ppc64 sparc x86"
-IUSE="acl debug elogind +introspection lvm nls selinux systemd vdo"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 sparc ~x86"
+IUSE="acl +daemon debug elogind +introspection lvm nls selinux systemd vdo"
 
-REQUIRED_USE="?? ( elogind systemd )"
+REQUIRED_USE="
+	?? ( elogind systemd )
+	elogind? ( daemon )
+	systemd? ( daemon )
+"
 
 COMMON_DEPEND="
-	>=dev-libs/glib-2.50:2
-	>=dev-libs/libatasmart-0.19
-	>=dev-libs/libgudev-165:=
 	>=sys-auth/polkit-0.110
-	>=sys-libs/libblockdev-2.19[cryptsetup,lvm?,vdo?]
+	>=sys-libs/libblockdev-2.24[cryptsetup,lvm?,vdo?]
 	virtual/udev
 	acl? ( virtual/acl )
+	daemon? (
+		>=dev-libs/glib-2.50:2
+		>=dev-libs/libatasmart-0.19
+		>=dev-libs/libgudev-165:=
+	)
 	elogind? ( >=sys-auth/elogind-219 )
 	introspection? ( >=dev-libs/gobject-introspection-1.30:= )
 	lvm? ( sys-fs/lvm2 )
@@ -30,9 +36,9 @@ COMMON_DEPEND="
 "
 # util-linux -> mount, umount, swapon, swapoff (see also #403073)
 RDEPEND="${COMMON_DEPEND}
-	>=sys-apps/util-linux-2.30
 	>=sys-block/parted-3
 	virtual/eject
+	daemon? ( >=sys-apps/util-linux-2.30 )
 	selinux? ( sec-policy/selinux-devicekit )
 "
 DEPEND="${COMMON_DEPEND}
@@ -83,6 +89,7 @@ src_configure() {
 		--with-tmpfilesdir="/usr/lib/tmpfiles.d"
 		--with-udevdir="$(get_udevdir)"
 		$(use_enable acl)
+		$(use_enable daemon)
 		$(use_enable debug)
 		$(use_enable introspection)
 		$(use_enable lvm lvm2)
