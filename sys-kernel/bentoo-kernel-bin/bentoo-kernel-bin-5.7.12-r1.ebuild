@@ -188,10 +188,16 @@ pkg_postinst() {
 	initramfs_old="initramfs-*-bentoo"
 	initramfs_new="initramfs-${PV}-bentoo"
 
-	# check initramfs image.
-	find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${vmlinuz_old}/${vmlinuz_new}/g' || die
+	# change the entry on grub.cfg
 
-	find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${initramfs_old}/${initramfs_new}/g' || die
+	if [ -f "${ROOT}/${grub_cfg}" ];
+	then
+
+		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${vmlinuz_old}/${vmlinuz_new}/g' || die
+
+		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${initramfs_old}/${initramfs_new}/g' || die
+
+	fi
 	
 	# remove microcode lines if not use.
 	if ! use amd ;
@@ -206,7 +212,7 @@ pkg_postinst() {
 	fi
 
 
-	# change the entry on grub.cfg
+	
 
 
 
