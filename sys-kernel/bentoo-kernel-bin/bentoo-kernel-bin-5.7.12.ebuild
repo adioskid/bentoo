@@ -189,9 +189,9 @@ pkg_postinst() {
 	initramfs_new="initramfs-${PV}-bentoo"
 
 	# check initramfs image.
-	#find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${vmlinuz_old}/${vmlinuz_new}/g' || die
+	find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${vmlinuz_old}/${vmlinuz_new}/g' || die
 
-	#find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${initramfs_old}/${initramfs_new}/g' || die
+	find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${initramfs_old}/${initramfs_new}/g' || die
 	
 	# remove microcode lines if not use.
 	if ! use amd ;
@@ -204,6 +204,11 @@ pkg_postinst() {
 		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/intel-uc.img//g' || die
 		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/early_ucode.cpio//g' || die
 	fi
+
+
+	# change the entry on grub.cfg
+
+
 
 	ewarn "That package installed the current version of Bentoo kernel binary."
 
