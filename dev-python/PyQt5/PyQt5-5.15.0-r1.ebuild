@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{6..9} )
+PYTHON_COMPAT=( python3_{6..9} )
 inherit multibuild python-r1 qmake-utils
 
 DESCRIPTION="Python bindings for the Qt framework"
@@ -54,11 +54,7 @@ REQUIRED_USE="
 # Minimal supported version of Qt.
 QT_PV="5.12:5"
 
-RDEPEND="
-	${PYTHON_DEPS}
-	$(python_gen_cond_dep '
-		dev-python/enum34[${PYTHON_USEDEP}]
-	' -2)
+RDEPEND="${PYTHON_DEPS}
 	>=dev-python/PyQt5-sip-4.19.23:=[${PYTHON_USEDEP}]
 	>=dev-qt/qtcore-${QT_PV}
 	>=dev-qt/qtxml-${QT_PV}
@@ -156,13 +152,8 @@ src_configure() {
 		"${myconf[@]}" || die
 
 		# Fix parallel install failure
-		if python_is_python3; then
-			sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets install_pep484_stubs install_qscintilla_api' \
-				${PN}.pro || die
-		else
-			sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets install_qscintilla_api' \
-				${PN}.pro || die
-		fi
+		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets install_pep484_stubs install_qscintilla_api' \
+			${PN}.pro || die
 
 		# Run eqmake to respect toolchain and build flags
 		eqmake5 -recursive ${PN}.pro
@@ -187,11 +178,7 @@ src_install() {
 		done
 
 		local uic_dir=${tmp_root}$(python_get_sitedir)/${PN}/uic
-		if python_is_python3; then
-			rm -r "${uic_dir}"/port_v2 || die
-		else
-			rm -r "${uic_dir}"/port_v3 || die
-		fi
+		rm -r "${uic_dir}"/port_v2 || die
 
 		multibuild_merge_root "${tmp_root}" "${D}"
 		python_optimize

@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{6,7,8,9} )
+PYTHON_COMPAT=( python3_{6,7,8,9} )
 inherit python-r1 toolchain-funcs
 
 DESCRIPTION="Private sip module for PyQt5"
@@ -50,10 +50,6 @@ src_prepare() {
 
 src_configure() {
 	configuration() {
-		if ! python_is_python3; then
-			local CFLAGS="${CFLAGS} -fno-strict-aliasing"
-		fi
-
 		local myconf=(
 			"${PYTHON}"
 			"${S}"/configure.py

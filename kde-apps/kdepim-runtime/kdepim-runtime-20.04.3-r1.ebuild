@@ -16,7 +16,7 @@ HOMEPAGE="https://kde.org/applications/office/org.kde.kontact"
 
 LICENSE="GPL-2+ LGPL-2.1+"
 SLOT="5"
-KEYWORDS="amd64 ~arm64 x86"
+KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE=""
 
 # TODO kolab
@@ -80,6 +80,8 @@ DEPEND="${RDEPEND}
 "
 
 RESTRICT+=" test"
+
+PATCHES=( "${FILESDIR}/${P}-CVE-2020-15954.patch" )
 
 src_configure() {
 	local mycmakeargs=(

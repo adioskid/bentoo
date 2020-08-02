@@ -16,7 +16,7 @@ https://utils.kde.org/projects/ark/"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="amd64 ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 IUSE="bzip2 lzma zip"
 
 BDEPEND="
@@ -52,6 +52,8 @@ DEPEND="${RDEPEND}
 
 # bug #560548, last checked with 16.04.1
 RESTRICT+=" test"
+
+PATCHES=( "${FILESDIR}/${P}-CVE-2020-16116.patch" )
 
 src_configure() {
 	local mycmakeargs=(

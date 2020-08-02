@@ -16,7 +16,7 @@ HOMEPAGE+=" https://userbase.kde.org/KMail/Account_Wizard"
 
 LICENSE="GPL-2+ handbook? ( FDL-1.2+ )"
 SLOT="5"
-KEYWORDS="amd64 ~arm64 x86"
+KEYWORDS="~amd64 ~arm64 ~x86"
 IUSE=""
 
 DEPEND="
@@ -51,3 +51,5 @@ DEPEND="
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
 "
 RDEPEND="${DEPEND}"
+
+PATCHES=( "${FILESDIR}/${P}-CVE-2020-15954.patch" )
