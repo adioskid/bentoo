@@ -99,17 +99,19 @@ REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
 	x86? ( cpu_flags_x86_sse2 )
 "
 
+# we don't use cmake.eclass, but can get a warnin -l
+CMAKE_WARN_UNUSED_CLI=no
+
 QA_FLAGS_IGNORED="
 	usr/bin/.*-${PV}
-	usr/lib.*/lib.*.so
-	usr/lib/rustlib/.*/bin/rust-lld
-	usr/lib/rustlib/.*/codegen-backends/librustc_codegen_llvm-llvm.so
-	usr/lib/rustlib/.*/lib/lib.*.so
+	usr/lib.*/${P}/lib.*.so.*
+	usr/lib.*/${P}/rustlib/.*/bin/.*
+	usr/lib.*/${P}/rustlib/.*/lib/lib.*.so.*
 "
 
 QA_SONAME="
-	usr/lib.*/lib.*.so
-	usr/lib.*/librustc_macros.*.s
+	usr/lib.*/${P}/lib.*.so.*
+	usr/lib.*/${P}/rustlib/.*/lib/lib.*.so.*
 "
 
 # tests need a bit more work, currently they are causing multiple
@@ -242,9 +244,9 @@ src_configure() {
 		cargo-native-static = false
 		[install]
 		prefix = "${EPREFIX}/usr"
-		libdir = "lib"
+		libdir = "$(get_libdir)/${P}"
 		docdir = "share/doc/${PF}"
-		mandir = "share/man"
+		mandir = "share/${P}/man"
 		[rust]
 		optimize = true
 		debug = $(toml_usex debug)
@@ -435,12 +437,27 @@ src_install() {
 		mv "${ED}/usr/bin/cargo-fmt" "${ED}/usr/bin/cargo-fmt-${PV}" || die
 	fi
 
-	# Move public shared libs to abi specific libdir
-	# Private and target specific libs MUST stay in /usr/lib/rustlib/${rust_target}/lib
-	if [[ $(get_libdir) != lib ]]; then
-		dodir /usr/$(get_libdir)
-		mv "${ED}/usr/lib"/*.so "${ED}/usr/$(get_libdir)/" || die
-	fi
+	# Copy shared library versions of standard libraries for all targets
+	# into the system's abi-dependent lib directories because the rust
+	# installer only does so for the native ABI.
+
+	local abi_libdir rust_target
+	for v in $(multilib_get_enabled_abi_pairs); do
+		if [ ${v##*.} = ${DEFAULT_ABI} ]; then
+			continue
+		fi
+		abi_libdir=$(get_abi_LIBDIR ${v##*.})
+		rust_target=$(rust_abi $(get_abi_CHOST ${v##*.}))
+		mkdir -p "${ED}/usr/${abi_libdir}/${P}"
+		cp "${ED}/usr/$(get_libdir)/${P}/rustlib/${rust_target}/lib"/*.so \
+		   "${ED}/usr/${abi_libdir}/${P}" || die
+	done
+
+	# versioned libdir/mandir support
+	newenvd - "50${P}" <<-_EOF_
+		LDPATH="${EPREFIX}/usr/$(get_libdir)/${P}"
+		MANPATH="${EPREFIX}/usr/share/${P}/man"
+	_EOF_
 
 	dodoc COPYRIGHT
 	rm "${ED}/usr/share/doc/${P}"/*.old || die
