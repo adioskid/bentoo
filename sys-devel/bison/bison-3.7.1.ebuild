@@ -5,7 +5,7 @@ EAPI=7
 
 inherit flag-o-matic
 
-PATCH_TAR="${PN}-3.7-patches-01.tar.xz"
+PATCH_TAR="${PN}-3.7.1-patches-01.tar.xz"
 
 DESCRIPTION="A general-purpose (yacc-compatible) parser generator"
 HOMEPAGE="https://www.gnu.org/software/bison/"
@@ -33,7 +33,7 @@ DOCS=( AUTHORS ChangeLog NEWS README THANKS TODO ) # ChangeLog-2012 ChangeLog-19
 
 PATCHES=(
 	"${WORKDIR}"/patches/${PN}-3.5-optional-perl.patch #538300
-	"${WORKDIR}"/patches/${PN}-3.7-avoid_autoreconf.patch
+	"${WORKDIR}"/patches/${PN}-3.7.1-avoid_autoreconf.patch
 )
 
 src_prepare() {

@@ -3,7 +3,7 @@
 
 EAPI=6
 
-KEYWORDS="amd64 ~arm ~arm64 ~ppc ~ppc64 x86 ~amd64-linux"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86 ~amd64-linux"
 
 SLOT="0"
 
@@ -33,7 +33,6 @@ DEPEND="${COMMONDEPEND}
 "
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-5.0.1.1-x86_32.patch
 	"${FILESDIR}"/mono-5.12-try-catch.patch
 )
 
@@ -82,6 +81,7 @@ multilib_src_configure() {
 		$(use_with xen xen_opt)
 		--without-ikvm-native
 		--disable-dtrace
+		--enable-system-aot
 		$(use_with doc mcs-docs)
 		$(use_enable nls)
 	)
