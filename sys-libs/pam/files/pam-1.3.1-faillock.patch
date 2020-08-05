@@ -1,0 +1,2433 @@
+diff -urN linux-pam-1.3.1.20190226/configure.ac linux-pam-1.3.1.20190226-fixed/configure.ac
+--- linux-pam-1.3.1.20190226/configure.ac	2019-04-26 20:41:17.511202341 -0600
++++ linux-pam-1.3.1.20190226-fixed/configure.ac	2019-04-26 20:42:03.079202389 -0600
+@@ -611,7 +611,7 @@
+ 	modules/pam_access/Makefile modules/pam_cracklib/Makefile \
+         modules/pam_debug/Makefile modules/pam_deny/Makefile \
+ 	modules/pam_echo/Makefile modules/pam_env/Makefile \
+-	modules/pam_faildelay/Makefile \
++	modules/pam_faildelay/Makefile modules/pam_faillock/Makefile \
+ 	modules/pam_filter/Makefile modules/pam_filter/upperLOWER/Makefile \
+ 	modules/pam_ftp/Makefile modules/pam_group/Makefile \
+ 	modules/pam_issue/Makefile modules/pam_keyinit/Makefile \
+diff -urN linux-pam-1.3.1.20190226/configure.ac.orig linux-pam-1.3.1.20190226-fixed/configure.ac.orig
+--- linux-pam-1.3.1.20190226/configure.ac.orig	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/configure.ac.orig	2019-04-26 20:41:17.511202341 -0600
+@@ -0,0 +1,639 @@
++dnl Process this file with autoconf to produce a configure script.
++AC_INIT([Linux-PAM], [1.3.1], , [Linux-PAM])
++AC_CONFIG_SRCDIR([conf/pam_conv1/pam_conv_y.y])
++AC_CONFIG_AUX_DIR([build-aux])
++AM_INIT_AUTOMAKE([-Wall -Wno-portability])
++AC_PREREQ([2.61])
++AC_CONFIG_HEADERS([config.h])
++AC_CONFIG_MACRO_DIR([m4])
++AC_CANONICAL_HOST
++
++AC_SUBST(PACKAGE)
++AC_SUBST(VERSION)
++
++dnl
++dnl By default, everything under PAM is installed below /usr.
++dnl
++AC_PREFIX_DEFAULT(/usr)
++
++dnl and some hacks to use /etc and /lib
++test "${prefix}" = "NONE" && prefix="/usr"
++if test ${prefix} = '/usr'
++then
++dnl If we use /usr as prefix, use /etc for config files
++        if test ${sysconfdir} = '${prefix}/etc'
++        then
++                sysconfdir="/etc"
++        fi
++	if test ${libdir} = '${exec_prefix}/lib'
++	then
++		case "$host_cpu" in
++		    x86_64|ppc64|s390x|sparc64)
++			libdir="/lib64" ;;
++		    *)
++			libdir="/lib" ;;
++		esac
++	fi
++	if test ${sbindir} = '${exec_prefix}/sbin'
++        then
++                sbindir="/sbin"
++        fi
++dnl If we use /usr as prefix, use /usr/share/man for manual pages
++        if test ${mandir} = '${prefix}/man'
++        then
++                mandir='${prefix}/share/man'
++        fi
++dnl Add security to include directory
++	if test ${includedir} = '${prefix}/include'
++	then
++		includedir="${prefix}/include/security"
++	fi
++
++dnl Add /var directory
++        if test ${localstatedir} = '${prefix}/var'
++        then
++                localstatedir="/var"
++        fi
++
++fi
++
++dnl This should be called before any macros that run the C compiler.
++AC_USE_SYSTEM_EXTENSIONS
++
++LT_INIT([disable-static])
++AC_ENABLE_STATIC([no])
++AC_ENABLE_SHARED([yes])
++
++dnl Checks for programs.
++AC_PROG_CC
++AC_PROG_YACC
++AM_PROG_LEX
++AC_PROG_INSTALL
++AC_PROG_LN_S
++AC_PROG_MAKE_SET
++AM_PROG_CC_C_O
++PAM_LD_AS_NEEDED
++PAM_LD_NO_UNDEFINED
++PAM_LD_O1
++
++dnl Largefile support
++AC_SYS_LARGEFILE
++
++dnl icc claims to be GCC compatible, but use other flags for warnings
++if eval "test x$GCC = xyes -a $CC != icc"; then
++  for flag in \
++      -W \
++      -Wall \
++      -Wbad-function-cast \
++      -Wcast-align \
++      -Wcast-qual \
++      -Wmissing-declarations \
++      -Wmissing-prototypes \
++      -Wpointer-arith \
++      -Wreturn-type \
++      -Wstrict-prototypes \
++      -Wwrite-strings \
++      -Winline \
++      -Wshadow
++  do
++    JAPHAR_GREP_CFLAGS($flag, [ CFLAGS="$CFLAGS $flag" ])
++  done
++fi
++dnl icc has special warning flags
++if eval "test x$CC = xicc"; then
++  for flag in \
++      -Wall \
++      -Wmissing-prototypes \
++      -Wpointer-arith \
++      -Wreturn-type \
++      -Wstrict-prototypes \
++      -Wwrite-strings \
++      -Wshadow \
++      -Wp64 \
++      -Wdeprecated \
++      -Wuninitialized \
++      -Wmain
++  do
++    JAPHAR_GREP_CFLAGS($flag, [ CFLAGS="$CFLAGS $flag" ])
++  done
++fi
++
++if test "x${CC_FOR_BUILD+set}" != "xset" ; then
++  if test "x$cross_compiling" = "xyes" ; then
++    AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
++  else
++    CC_FOR_BUILD=${CC}
++  fi
++fi
++AC_MSG_CHECKING([for CC_FOR_BUILD])
++AC_MSG_RESULT([$CC_FOR_BUILD])
++AC_SUBST(CC_FOR_BUILD)
++
++if test "x${BUILD_CPPFLAGS+set}" != "xset" ; then
++  if test "x$cross_compiling" = "xyes" ; then
++    BUILD_CPPFLAGS=
++  else
++    BUILD_CPPFLAGS=${CPPFLAGS}
++  fi
++fi
++AC_SUBST(BUILD_CPPFLAGS)
++
++if test "x${BUILD_CFLAGS+set}" != "xset" ; then
++  if test "x$cross_compiling" = "xyes" ; then
++    BUILD_CFLAGS=
++  else
++    BUILD_CFLAGS=${CFLAGS}
++  fi
++fi
++AC_SUBST(BUILD_CFLAGS)
++
++if test "x${BUILD_LDFLAGS+set}" != "xset" ; then
++  if test "x$cross_compiling" = "xyes" ; then
++    BUILD_LDFLAGS=
++  else
++    BUILD_LDFLAGS=${LDFLAGS}
++  fi
++fi
++AC_SUBST(BUILD_LDFLAGS)
++
++AC_C___ATTRIBUTE__
++
++dnl
++dnl Check if --version-script is supported by ld
++dnl
++AC_CACHE_CHECK(for .symver assembler directive, libc_cv_asm_symver_directive,
++[cat > conftest.s <<EOF
++${libc_cv_dot_text}
++_sym:
++.symver _sym,sym@VERS
++EOF
++if ${CC-cc} -c $ASFLAGS conftest.s 1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD; then
++  libc_cv_asm_symver_directive=yes
++else
++  libc_cv_asm_symver_directive=no
++fi
++rm -f conftest*])
++AC_CACHE_CHECK(for ld --version-script, libc_cv_ld_version_script_option, [dnl
++if test $libc_cv_asm_symver_directive = yes; then
++  cat > conftest.s <<EOF
++${libc_cv_dot_text}
++_sym:
++.symver _sym,sym@VERS
++EOF
++  cat > conftest.map <<EOF
++VERS_1 {
++        global: sym;
++};
++
++VERS_2 {
++        global: sym;
++} VERS_1;
++EOF
++  if ${CC-cc} -c $ASFLAGS conftest.s 1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD;
++then
++    if AC_TRY_COMMAND([${CC-cc} $CFLAGS $LDFLAGS -shared
++                                -o conftest.so conftest.o
++                                -nostartfiles -nostdlib
++                                -Wl,--version-script,conftest.map
++                       1>&AS_MESSAGE_LOG_FD]);
++    then
++      libc_cv_ld_version_script_option=yes
++    else
++      libc_cv_ld_version_script_option=no
++    fi
++  else
++    libc_cv_ld_version_script_option=no
++  fi
++else
++  libc_cv_ld_version_script_option=no
++fi
++rm -f conftest*])
++AM_CONDITIONAL([HAVE_VERSIONING],
++	[test "$libc_cv_ld_version_script_option" = "yes"])
++
++dnl
++dnl check for -fPIE/-pie support
++dnl
++dnl icc handles -fpie as -fp without error, so blacklist icc
++dnl
++AC_ARG_ENABLE(pie,AS_HELP_STRING([--disable-pie],
++                        [disable position-independent executeables (PIE)]),
++        USE_PIE=$enableval, USE_PIE=yes)
++
++AC_CACHE_CHECK(for -fpie, libc_cv_fpie, [dnl
++  cat > conftest.c <<EOF
++int foo;
++main () { return 0;}
++EOF
++  if test "$USE_PIE" = "yes" -a "$CC" != "icc" &&
++        AC_TRY_COMMAND([${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS -pie -fpie
++                              -o conftest conftest.c 1>&AS_MESSAGE_LOG_FD])
++  then
++    libc_cv_fpie=yes
++    PIE_CFLAGS="-fpie"
++    PIE_LDFLAGS="-pie"
++  else
++    libc_cv_fpie=no
++    PIE_CFLAGS=""
++    PIE_LDFLAGS=""
++  fi
++  rm -f conftest*])
++AC_SUBST(libc_cv_fpie)
++AC_SUBST(PIE_CFLAGS)
++AC_SUBST(PIE_LDFLAGS)
++
++
++dnl
++dnl options and defaults
++dnl
++
++AC_ARG_ENABLE([prelude],
++	AS_HELP_STRING([--disable-prelude],[do not use prelude]),
++	WITH_PRELUDE=$enableval, WITH_PRELUDE=yes)
++if test "$WITH_PRELUDE" = "yes" ; then
++  AM_PATH_LIBPRELUDE([0.9.0])
++  if test "$LIBPRELUDE_CONFIG" != "no" ; then
++    LIBPRELUDE_CFLAGS="$LIBPRELUDE_CFLAGS -DPRELUDE=1"
++  fi
++fi
++
++dnl lots of debugging information goes to /var/run/pam-debug.log
++AC_ARG_ENABLE([debug],
++    AS_HELP_STRING([--enable-debug],[specify you are building with debugging on]))
++
++if test x"$enable_debug" = x"yes" ; then
++   AC_DEFINE([PAM_DEBUG],,
++		[lots of stuff gets written to /var/run/pam-debug.log])
++fi
++
++AC_ARG_ENABLE(securedir,
++	AS_HELP_STRING([--enable-securedir=DIR],[path to location of PAMs @<:@default=$libdir/security@:>@]),
++	SECUREDIR=$enableval, SECUREDIR=$libdir/security)
++AC_SUBST(SECUREDIR)
++
++AC_ARG_ENABLE([isadir],
++	AS_HELP_STRING([--enable-isadir=DIR],[path to arch-specific module files @<:@default=../../(basename of $libdir)/security@:>@]),
++ISA=$enableval,
++ISA=../../`basename $libdir`/security)
++unset mylibdirbase
++AC_DEFINE_UNQUOTED(_PAM_ISA,"$ISA",[Define to the path, relative to SECUREDIR, where PAMs specific to this architecture can be found.])
++AC_MSG_RESULT([Defining \$ISA to "$ISA"])
++
++AC_ARG_ENABLE(sconfigdir,
++	AS_HELP_STRING([--enable-sconfigdir=DIR],[path to module conf files @<:@default=$sysconfdir/security@:>@]),
++	SCONFIGDIR=$enableval, SCONFIGDIR=$sysconfdir/security)
++AC_SUBST(SCONFIGDIR)
++
++AC_ARG_ENABLE(pamlocking,
++	AS_HELP_STRING([--enable-pamlocking],[configure libpam to observe a global authentication lock]))
++
++if test x"$enable_pamlocking" = "xyes"; then
++   AC_DEFINE([PAM_LOCKING],,
++	[libpam should observe a global authentication lock])
++fi
++
++AC_ARG_ENABLE(read-both-confs,
++	AS_HELP_STRING([--enable-read-both-confs],[read both /etc/pam.d and /etc/pam.conf files]))
++
++if test x"$enable_read_both_confs" = "xyes"; then
++   AC_DEFINE([PAM_READ_BOTH_CONFS],,
++		[read both /etc/pam.d and /etc/pam.conf files])
++fi
++
++AC_ARG_ENABLE([lckpwdf],
++	AS_HELP_STRING([--disable-lckpwdf],[do not use the lckpwdf function]),
++	WITH_LCKPWDF=$enableval, WITH_LCKPWDF=yes)
++if test "$WITH_LCKPWDF" = "yes" ; then
++    AC_DEFINE([USE_LCKPWDF], 1,
++		[Define to 1 if the lckpwdf function should be used])
++fi
++
++AC_CHECK_HEADERS(paths.h)
++AC_ARG_WITH(mailspool,
++[  --with-mailspool        path to mail spool directory
++                          [default _PATH_MAILDIR if defined in paths.h, otherwise /var/spool/mail]],
++with_mailspool=${withval})
++if test x$with_mailspool != x ; then
++	pam_mail_spool="\"$with_mailspool\""
++else
++	AC_RUN_IFELSE([AC_LANG_SOURCE([[
++#include <paths.h>
++int main() {
++#ifdef _PATH_MAILDIR
++exit(0);
++#else
++exit(1);
++#endif
++}]])],[pam_mail_spool="_PATH_MAILDIR"],[pam_mail_spool="\"/var/spool/mail\""],[pam_mail_spool="\"/var/spool/mail\""])
++fi
++AC_DEFINE_UNQUOTED(PAM_PATH_MAILDIR, $pam_mail_spool,
++	[Path where mails are stored])
++
++AC_ARG_WITH(xauth,
++[  --with-xauth            additional path to check for xauth when it is called from pam_xauth
++                          [added to the default of /usr/X11R6/bin/xauth, /usr/bin/xauth, /usr/bin/X11/xauth]],
++pam_xauth_path=${withval})
++if test x$with_xauth = x ; then
++	AC_PATH_PROG(pam_xauth_path, xauth)
++dnl There is no sense in adding the first default path
++	if test x$pam_xauth_path = x/usr/X11R6/bin/xauth ; then
++		unset pam_xauth_path
++	fi
++fi
++
++if test x$pam_xauth_path != x ; then
++	AC_DEFINE_UNQUOTED(PAM_PATH_XAUTH, "$pam_xauth_path",
++	[Additional path of xauth executable])
++fi
++
++dnl Checks for the existence of libdl - on BSD and Tru64 its part of libc
++AC_CHECK_LIB([dl], [dlopen], LIBDL="-ldl", LIBDL="")
++AC_SUBST(LIBDL)
++
++# Check for cracklib
++AC_ARG_ENABLE([cracklib],
++        AS_HELP_STRING([--disable-cracklib],[do not use cracklib]),
++        WITH_CRACKLIB=$enableval, WITH_CRACKLIB=yes)
++if test x"$WITH_CRACKLIB" != xno ; then
++        AC_CHECK_HEADERS([crack.h],
++              AC_CHECK_LIB([crack], [FascistCheck], LIBCRACK="-lcrack", LIBCRACK=""))
++else
++	LIBCRACK=""
++fi
++if test -n "$LIBCRACK"; then
++	AC_DEFINE([HAVE_LIBCRACK], [1], [Define to 1 if you have cracklib.])
++fi
++AC_SUBST(LIBCRACK)
++AM_CONDITIONAL([HAVE_LIBCRACK], [test -n "$LIBCRACK"])
++
++dnl Look for Linux Auditing library - see documentation
++AC_ARG_ENABLE([audit],
++        AS_HELP_STRING([--disable-audit],[do not enable audit support]),
++        WITH_LIBAUDIT=$enableval, WITH_LIBAUDIT=yes)
++if test x"$WITH_LIBAUDIT" != xno ; then
++        AC_CHECK_HEADER([libaudit.h],
++              [AC_CHECK_LIB(audit, audit_log_acct_message, LIBAUDIT=-laudit, LIBAUDIT="")
++	       AC_CHECK_TYPE([struct audit_tty_status],
++		             [HAVE_AUDIT_TTY_STATUS=yes],
++			     [HAVE_AUDIT_TTY_STATUS=""],
++			     [#include <libaudit.h>])]
++        )
++        if test ! -z "$LIBAUDIT" -a "$ac_cv_header_libaudit_h" != "no" ; then
++            AC_DEFINE([HAVE_LIBAUDIT], 1, [Define to 1 if audit support should be compiled in.])
++        fi
++        if test ! -z "$HAVE_AUDIT_TTY_STATUS" ; then
++            AC_DEFINE([HAVE_AUDIT_TTY_STATUS], 1, [Define to 1 if struct audit_tty_status exists.])
++
++            AC_CHECK_MEMBERS([struct audit_tty_status.log_passwd], [],
++                            AC_MSG_WARN([audit_tty_status.log_passwd is not available.  The log_passwd option is disabled.]),
++                            [[#include <libaudit.h>]])
++        fi
++else
++	LIBAUDIT=""
++fi
++AC_SUBST(LIBAUDIT)
++AM_CONDITIONAL([HAVE_AUDIT_TTY_STATUS],
++	       [test "x$HAVE_AUDIT_TTY_STATUS" = xyes])
++
++AC_CHECK_HEADERS(xcrypt.h crypt.h)
++AS_IF([test "x$ac_cv_header_xcrypt_h" = "xyes"],
++  [crypt_libs="xcrypt crypt"],
++  [crypt_libs="crypt"])
++
++BACKUP_LIBS=$LIBS
++AC_SEARCH_LIBS([crypt],[$crypt_libs], LIBCRYPT="${ac_lib:+-l$ac_lib}", LIBCRYPT="")
++AC_CHECK_FUNCS(crypt_r crypt_gensalt_r)
++LIBS=$BACKUP_LIBS
++AC_SUBST(LIBCRYPT)
++if test "$LIBCRYPT" = "-lxcrypt" -a "$ac_cv_header_xcrypt_h" = "yes" ; then
++	AC_DEFINE([HAVE_LIBXCRYPT], 1, [Define to 1 if xcrypt support should be compiled in.])
++fi
++
++AC_ARG_WITH([randomdev], AS_HELP_STRING([--with-randomdev=(<path>|yes|no)],[use specified random device instead of /dev/urandom or 'no' to disable]), opt_randomdev=$withval)
++if test "$opt_randomdev" = yes -o -z "$opt_randomdev"; then
++       opt_randomdev="/dev/urandom"
++elif test "$opt_randomdev" = no; then
++       opt_randomdev=
++fi
++if test -n "$opt_randomdev"; then
++       AC_DEFINE_UNQUOTED(PAM_PATH_RANDOMDEV, "$opt_randomdev", [Random device path.])
++fi
++
++dnl check for libdb or libndbm as fallback. Some libndbm compat
++dnl libraries are unuseable, so try libdb first.
++AC_ARG_ENABLE([db],
++        AS_HELP_STRING([--enable-db=(db|ndbm|yes|no)],[Default behavior 'yes', which is to check for libdb first, followed by ndbm. Use 'no' to disable db support.]),
++        WITH_DB=$enableval, WITH_DB=yes)
++AC_ARG_WITH([db-uniquename],
++	AS_HELP_STRING([--with-db-uniquename=extension],[Unique name for db libraries and functions.]))
++if test x"$WITH_DB" != xno ; then
++        if test x"$WITH_DB" = xyes -o x"$WITH_DB" = xdb ; then
++              old_libs=$LIBS
++              LIBS="$LIBS -ldb$with_db_uniquename"
++              AC_CHECK_FUNCS([db_create$with_db_uniquename db_create dbm_store$with_db_uniquename dbm_store],
++                [LIBDB="-ldb$with_db_uniquename"; break])
++              LIBS=$old_libs
++        fi
++        if test -z "$LIBDB" ; then
++            AC_CHECK_LIB([ndbm],[dbm_store], LIBDB="-lndbm", LIBDB="")
++            if test ! -z "$LIBDB" ; then
++                AC_CHECK_HEADERS(ndbm.h)
++            fi
++        else
++            AC_CHECK_HEADERS(db.h)
++        fi
++fi
++AC_SUBST(LIBDB)
++AM_CONDITIONAL([HAVE_LIBDB], [test ! -z "$LIBDB"])
++
++AC_ARG_ENABLE([nis],
++        AS_HELP_STRING([--disable-nis], [Disable building NIS/YP support in pam_unix]))
++
++AS_IF([test "x$enable_nis" != "xno"], [
++  old_CFLAGS=$CFLAGS
++  old_CPPFLAGS=$CPPFLAGS
++  old_LIBS=$LIBS
++
++  dnl if there's libtirpc available, prefer that over the system
++  dnl implementation.
++  PKG_CHECK_MODULES([TIRPC], [libtirpc], [
++    CFLAGS="$CFLAGS $TIRPC_CFLAGS"
++    CPPFLAGS="$CPPFLAGS $TIRPC_CFLAGS"
++    LIBS="$LIBS $TIRPC_LIBS"
++  ], [:;])
++
++  PKG_CHECK_MODULES([NSL], [libnsl], [],
++    [AC_CHECK_LIB([nsl],[yp_match],[NSL_LIBS="-lnsl"],[NSL_LIBS=""])])
++  CFLAGS="$CFLAGS $NSL_CFLAGS"
++  CPPFLAGS="$CPPFLAGS $NSL_CFLAGS"
++  LIBS="$LIBS $NSL_LIBS"
++
++  AC_CHECK_FUNCS([yp_get_default_domain yperr_string yp_master yp_bind yp_match yp_unbind])
++  AC_CHECK_FUNCS([getrpcport rpcb_getaddr])
++  AC_CHECK_HEADERS([rpc/rpc.h rpcsvc/ypclnt.h rpcsvc/yp_prot.h])
++  AC_CHECK_DECLS([getrpcport], , , [
++    #if HAVE_RPC_RPC_H
++    # include <rpc/rpc.h>
++    #endif
++  ])
++
++  CFLAGS="$old_CFLAGS"
++  CPPFLAGS="$old_CPPFLAGS"
++  LIBS="$old_LIBS"
++])
++
++AC_SUBST([NIS_CFLAGS])
++AC_SUBST([NIS_LIBS])
++
++AC_ARG_ENABLE([selinux],
++        AS_HELP_STRING([--disable-selinux],[do not use SELinux]),
++        WITH_SELINUX=$enableval, WITH_SELINUX=yes)
++if test "$WITH_SELINUX" = "yes" ; then
++  AC_CHECK_LIB([selinux],[getfilecon], LIBSELINUX="-lselinux", LIBSELINUX="")
++else
++  LIBSELINUX=""
++fi
++AC_SUBST(LIBSELINUX)
++AM_CONDITIONAL([HAVE_LIBSELINUX], [test ! -z "$LIBSELINUX"])
++if test ! -z "$LIBSELINUX" ; then
++    AC_DEFINE([WITH_SELINUX], 1, [Defined if SE Linux support is compiled in])
++    BACKUP_LIBS=$LIBS
++    LIBS="$LIBS $LIBSELINUX"
++    AC_CHECK_FUNCS(setkeycreatecon)
++    AC_CHECK_FUNCS(getseuser)
++    LIBS=$BACKUP_LIBS
++fi
++
++dnl Checks for header files.
++AC_HEADER_DIRENT
++AC_HEADER_STDC
++AC_HEADER_SYS_WAIT
++AC_CHECK_HEADERS(fcntl.h limits.h malloc.h sys/file.h sys/ioctl.h sys/time.h syslog.h net/if.h termio.h unistd.h sys/fsuid.h inittypes.h)
++
++dnl For module/pam_lastlog
++AC_CHECK_HEADERS(lastlog.h utmp.h utmpx.h)
++
++dnl Checks for typedefs, structures, and compiler characteristics.
++AC_C_BIGENDIAN
++AC_C_CONST
++AC_TYPE_UID_T
++AC_TYPE_OFF_T
++AC_TYPE_PID_T
++AC_TYPE_SIZE_T
++AC_HEADER_TIME
++AC_STRUCT_TM
++
++dnl Checks for library functions.
++AC_TYPE_GETGROUPS
++AC_PROG_GCC_TRADITIONAL
++AC_FUNC_MEMCMP
++AC_FUNC_VPRINTF
++AC_CHECK_FUNCS(fseeko getdomainname gethostname gettimeofday lckpwdf mkdir select)
++AC_CHECK_FUNCS(strcspn strdup strspn strstr strtol uname)
++AC_CHECK_FUNCS(getutent_r getpwnam_r getpwuid_r getgrnam_r getgrgid_r getspnam_r)
++AC_CHECK_FUNCS(getgrouplist getline getdelim)
++AC_CHECK_FUNCS(inet_ntop inet_pton innetgr)
++AC_CHECK_FUNCS([ruserok_af ruserok], [break])
++BACKUP_LIBS=$LIBS
++LIBS="$LIBS -lutil"
++AC_CHECK_FUNCS([logwtmp])
++LIBS=$BACKUP_LIBS
++
++AM_CONDITIONAL([COND_BUILD_PAM_RHOSTS], [test "$ac_cv_func_ruserok_af" = yes -o "$ac_cv_func_ruserok" = yes])
++AM_CONDITIONAL([COND_BUILD_PAM_LASTLOG], [test "$ac_cv_func_logwtmp" = yes])
++
++AC_CHECK_FUNCS(unshare, [UNSHARE=yes], [UNSHARE=no])
++AM_CONDITIONAL([HAVE_UNSHARE], [test "$UNSHARE" = yes])
++
++AC_ARG_ENABLE([regenerate-docu],
++  AS_HELP_STRING([--disable-regenerate-docu],[Don't re-build documentation from XML sources]),
++  [enable_docu=$enableval], [enable_docu=yes])
++dnl
++dnl Check for xsltproc
++dnl
++AC_PATH_PROG([XSLTPROC], [xsltproc])
++if test -z "$XSLTPROC"; then
++     enable_docu=no
++fi
++AC_PATH_PROG([XMLLINT], [xmllint],[/bin/true])
++dnl check for DocBook DTD and stylesheets in the local catalog.
++JH_CHECK_XML_CATALOG([-//OASIS//DTD DocBook XML V4.4//EN],
++                [DocBook XML DTD V4.4], [], enable_docu=no)
++JH_CHECK_XML_CATALOG([http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
++                [DocBook XSL Stylesheets], [], enable_docu=no)
++
++
++AC_PATH_PROG([FO2PDF], [fop])
++
++AM_CONDITIONAL(ENABLE_REGENERATE_MAN, test x$enable_docu != xno)
++AM_CONDITIONAL(ENABLE_GENERATE_PDF, test ! -z "$FO2PDF")
++
++
++AM_GNU_GETTEXT_VERSION([0.18.3])
++AM_GNU_GETTEXT([external])
++AC_CHECK_FUNCS(dngettext)
++
++AH_BOTTOM([#ifdef ENABLE_NLS
++#include <libintl.h>
++#define _(msgid) dgettext(PACKAGE, msgid)
++#define N_(msgid) msgid
++#else
++#define _(msgid) (msgid)
++#define N_(msgid) msgid
++#endif /* ENABLE_NLS */])
++
++dnl
++dnl Check for the availability of the kernel key management facility
++dnl - The pam_keyinit module only requires the syscalls, not the error codes
++dnl
++AC_CHECK_DECL(__NR_keyctl, [have_key_syscalls=1],[have_key_syscalls=0],[#include <sys/syscall.h>])
++AC_CHECK_DECL(ENOKEY, [have_key_errors=1],[have_key_errors=0],[#include <errno.h>])
++
++HAVE_KEY_MANAGEMENT=0
++if test $have_key_syscalls$have_key_errors = 11
++then
++	HAVE_KEY_MANAGEMENT=1
++fi
++
++if test $HAVE_KEY_MANAGEMENT = 1; then
++   AC_DEFINE([HAVE_KEY_MANAGEMENT], 1,
++	     [Defined if the kernel key management facility is available])
++fi
++AC_SUBST([HAVE_KEY_MANAGEMENT], $HAVE_KEY_MANAGEMENT)
++
++AM_CONDITIONAL([HAVE_KEY_MANAGEMENT], [test "$have_key_syscalls" = 1])
++
++dnl Files to be created from when we run configure
++AC_CONFIG_FILES([Makefile libpam/Makefile libpamc/Makefile libpamc/test/Makefile \
++	libpam_misc/Makefile conf/Makefile conf/pam_conv1/Makefile \
++	po/Makefile.in \
++	modules/Makefile \
++	modules/pam_access/Makefile modules/pam_cracklib/Makefile \
++        modules/pam_debug/Makefile modules/pam_deny/Makefile \
++	modules/pam_echo/Makefile modules/pam_env/Makefile \
++	modules/pam_faildelay/Makefile \
++	modules/pam_filter/Makefile modules/pam_filter/upperLOWER/Makefile \
++	modules/pam_ftp/Makefile modules/pam_group/Makefile \
++	modules/pam_issue/Makefile modules/pam_keyinit/Makefile \
++	modules/pam_lastlog/Makefile modules/pam_limits/Makefile \
++	modules/pam_listfile/Makefile modules/pam_localuser/Makefile \
++	modules/pam_loginuid/Makefile modules/pam_mail/Makefile \
++	modules/pam_mkhomedir/Makefile modules/pam_motd/Makefile \
++	modules/pam_namespace/Makefile \
++	modules/pam_nologin/Makefile modules/pam_permit/Makefile \
++	modules/pam_pwhistory/Makefile modules/pam_rhosts/Makefile \
++	modules/pam_rootok/Makefile modules/pam_exec/Makefile \
++	modules/pam_securetty/Makefile modules/pam_selinux/Makefile \
++	modules/pam_sepermit/Makefile \
++	modules/pam_shells/Makefile modules/pam_stress/Makefile \
++	modules/pam_succeed_if/Makefile modules/pam_tally/Makefile \
++	modules/pam_tally2/Makefile modules/pam_time/Makefile \
++	modules/pam_timestamp/Makefile modules/pam_tty_audit/Makefile \
++	modules/pam_umask/Makefile \
++	modules/pam_unix/Makefile modules/pam_userdb/Makefile \
++	modules/pam_warn/Makefile modules/pam_wheel/Makefile \
++	modules/pam_xauth/Makefile doc/Makefile doc/specs/Makefile \
++	doc/man/Makefile doc/sag/Makefile doc/adg/Makefile \
++	doc/mwg/Makefile examples/Makefile tests/Makefile \
++	xtests/Makefile])
++AC_OUTPUT
+diff -urN linux-pam-1.3.1.20190226/doc/sag/pam_faillock.xml linux-pam-1.3.1.20190226-fixed/doc/sag/pam_faillock.xml
+--- linux-pam-1.3.1.20190226/doc/sag/pam_faillock.xml	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/doc/sag/pam_faillock.xml	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,38 @@
++<?xml version='1.0' encoding='UTF-8'?>
++<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
++        "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
++<section id='sag-pam_faillock'>
++  <title>pam_faillock - temporarily locking access based on failed authentication attempts during an interval</title>
++  <cmdsynopsis>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//cmdsynopsis[@id = "pam_faillock-cmdsynopsisauth"]/*)'/>
++  </cmdsynopsis>
++  <cmdsynopsis>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//cmdsynopsis[@id = "pam_faillock-cmdsynopsisacct"]/*)'/>
++  </cmdsynopsis>
++  <section id='sag-pam_faillock-description'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-description"]/*)'/>
++  </section>
++  <section id='sag-pam_faillock-options'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-options"]/*)'/>
++  </section>
++  <section id='sag-pam_faillock-types'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-types"]/*)'/>
++  </section>
++  <section id='sag-pam_faillock-return_values'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-return_values"]/*)'/>
++  </section>
++  <section id='sag-pam_faillock-examples'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-examples"]/*)'/>
++  </section>
++  <section id='sag-pam_faillock-author'>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++     href="../../modules/pam_faillock/pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-author"]/*)'/>
++  </section>
++</section>
+diff -urN linux-pam-1.3.1.20190226/modules/Makefile.am linux-pam-1.3.1.20190226-fixed/modules/Makefile.am
+--- linux-pam-1.3.1.20190226/modules/Makefile.am	2019-02-26 02:06:07.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/Makefile.am	2019-04-26 20:42:41.959202431 -0600
+@@ -11,7 +11,7 @@
+ endif
+ 
+ SUBDIRS := pam_access pam_cracklib pam_debug pam_deny pam_echo \
+-	pam_env pam_exec pam_faildelay pam_filter pam_ftp \
++	pam_env pam_exec pam_faildelay pam_faillock pam_filter pam_ftp \
+ 	pam_group pam_issue pam_keyinit pam_limits \
+ 	pam_listfile pam_localuser pam_loginuid pam_mail \
+ 	pam_mkhomedir pam_motd pam_namespace pam_nologin \
+diff -urN linux-pam-1.3.1.20190226/modules/Makefile.am.orig linux-pam-1.3.1.20190226-fixed/modules/Makefile.am.orig
+--- linux-pam-1.3.1.20190226/modules/Makefile.am.orig	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/Makefile.am.orig	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,27 @@
++#
++# Copyright (c) 2005, 2006, 2008 Thorsten Kukuk <kukuk@thkukuk.de>
++#
++
++if COND_BUILD_PAM_RHOSTS
++ MAYBE_PAM_RHOSTS = pam_rhosts
++endif
++
++if COND_BUILD_PAM_LASTLOG
++ MAYBE_PAM_LASTLOG = pam_lastlog
++endif
++
++SUBDIRS := pam_access pam_cracklib pam_debug pam_deny pam_echo \
++	pam_env pam_exec pam_faildelay pam_filter pam_ftp \
++	pam_group pam_issue pam_keyinit pam_limits \
++	pam_listfile pam_localuser pam_loginuid pam_mail \
++	pam_mkhomedir pam_motd pam_namespace pam_nologin \
++	pam_permit pam_pwhistory pam_rootok pam_securetty \
++	pam_selinux pam_sepermit pam_shells pam_stress \
++	pam_succeed_if pam_tally pam_tally2 pam_time pam_timestamp \
++	pam_tty_audit pam_umask \
++	pam_unix pam_userdb pam_warn pam_wheel pam_xauth \
++	$(MAYBE_PAM_RHOSTS) $(MAYBE_PAM_LASTLOG)
++
++CLEANFILES = *~
++
++EXTRA_DIST = modules.map
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/Makefile.am linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/Makefile.am
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/Makefile.am	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/Makefile.am	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,44 @@
++#
++# Copyright (c) 2005, 2006, 2007, 2009 Thorsten Kukuk <kukuk@thkukuk.de>
++# Copyright (c) 2008 Red Hat, Inc.
++# Copyright (c) 2010 Tomas Mraz <tmraz@redhat.com>
++#
++
++CLEANFILES = *~
++MAINTAINERCLEANFILES = $(MANS) README
++
++EXTRA_DIST = README $(MANS) $(XMLS) tst-pam_faillock
++
++man_MANS = pam_faillock.8 faillock.8
++XMLS = README.xml pam_faillock.8.xml faillock.8.xml
++
++TESTS = tst-pam_faillock
++
++securelibdir = $(SECUREDIR)
++secureconfdir = $(SCONFIGDIR)
++
++noinst_HEADERS = faillock.h
++
++faillock_CFLAGS = -I$(top_srcdir)/libpam/include -I$(top_srcdir)/libpamc/include @PIE_CFLAGS@
++pam_faillock_la_CFLAGS = -I$(top_srcdir)/libpam/include -I$(top_srcdir)/libpamc/include
++
++pam_faillock_la_LDFLAGS = -no-undefined -avoid-version -module
++pam_faillock_la_LIBADD = -L$(top_builddir)/libpam -lpam $(LIBAUDIT)
++if HAVE_VERSIONING
++  pam_faillock_la_LDFLAGS += -Wl,--version-script=$(srcdir)/../modules.map
++endif
++
++faillock_LDFLAGS = -Wl,-z,now @PIE_LDFLAGS@
++faillock_LDADD = -L$(top_builddir)/libpam -lpam $(LIBAUDIT)
++
++securelib_LTLIBRARIES = pam_faillock.la
++sbin_PROGRAMS = faillock
++
++pam_faillock_la_SOURCES = pam_faillock.c faillock.c
++faillock_SOURCES = main.c faillock.c
++
++if ENABLE_REGENERATE_MAN
++noinst_DATA = README
++README: pam_faillock.8.xml
++-include $(top_srcdir)/Make.xml.rules
++endif
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/README.xml linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/README.xml
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/README.xml	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/README.xml	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,46 @@
++<?xml version="1.0" encoding='UTF-8'?>
++<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
++"http://www.docbook.org/xml/4.3/docbookx.dtd"
++[
++<!--
++<!ENTITY pamaccess SYSTEM "pam_faillock.8.xml">
++-->
++]>
++
++<article>
++
++  <articleinfo>
++
++    <title>
++      <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refnamediv[@id = "pam_faillock-name"]/*)'/>
++    </title>
++
++  </articleinfo>
++
++  <section>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-description"]/*)'/>
++  </section>
++
++  <section>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-options"]/*)'/>
++  </section>
++
++  <section>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-notes"]/*)'/>
++  </section>
++
++  <section>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-examples"]/*)'/>
++  </section>
++
++  <section>
++    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
++      href="pam_faillock.8.xml" xpointer='xpointer(//refsect1[@id = "pam_faillock-author"]/*)'/>
++  </section>
++
++</article>
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.8.xml linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.8.xml
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.8.xml	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.8.xml	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,123 @@
++<?xml version="1.0" encoding='UTF-8'?>
++<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
++	"http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
++
++<refentry id="faillock">
++
++  <refmeta>
++    <refentrytitle>faillock</refentrytitle>
++    <manvolnum>8</manvolnum>
++    <refmiscinfo class="sectdesc">Linux-PAM Manual</refmiscinfo>
++  </refmeta>
++
++  <refnamediv id="pam_faillock-name">
++    <refname>faillock</refname>
++    <refpurpose>Tool for displaying and modifying the authentication failure record files</refpurpose>
++  </refnamediv>
++
++  <refsynopsisdiv>
++    <cmdsynopsis id="faillock-cmdsynopsis">
++      <command>faillock</command>
++      <arg choice="opt">
++        --dir <replaceable>/path/to/tally-directory</replaceable>
++      </arg>
++      <arg choice="opt">
++        --user <replaceable>username</replaceable>
++      </arg>
++      <arg choice="opt">
++        --reset
++      </arg>
++    </cmdsynopsis>
++  </refsynopsisdiv>
++
++  <refsect1 id="faillock-description">
++
++    <title>DESCRIPTION</title>
++
++    <para>
++      The <emphasis>pam_faillock.so</emphasis> module maintains a list of
++      failed authentication attempts per user during a specified interval
++      and locks the account in case there were more than
++      <replaceable>deny</replaceable> consecutive failed authentications.
++      It stores the failure records into per-user files in the tally
++      directory.
++    </para>
++    <para>
++      The <command>faillock</command> command is an application which
++      can be used to examine and modify the contents of the
++      the tally files. It can display the recent failed authentication
++      attempts of the <replaceable>username</replaceable> or clear the tally
++      files of all or individual <replaceable>usernames</replaceable>.
++    </para>
++  </refsect1>
++
++  <refsect1 id="faillock-options">
++
++    <title>OPTIONS</title>
++         <variablelist>
++            <varlistentry>
++              <term>
++                <option>--dir <replaceable>/path/to/tally-directory</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  The directory where the user files with the failure records are kept. The
++                  default is <filename>/var/log/faillock</filename>.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>--user <replaceable>username</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  The user whose failure records should be displayed or cleared.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>--reset</option>
++              </term>
++              <listitem>
++                <para>
++                  Instead of displaying the user's failure records, clear them.
++                </para>
++              </listitem>
++            </varlistentry>
++        </variablelist>
++  </refsect1>
++
++  <refsect1 id="faillock-files">
++    <title>FILES</title>
++    <variablelist>
++      <varlistentry>
++        <term><filename>/var/log/faillock/*</filename></term>
++        <listitem>
++          <para>the files logging the authentication failures for users</para>
++        </listitem>
++      </varlistentry>
++    </variablelist>
++  </refsect1>
++
++  <refsect1 id='faillock-see_also'>
++    <title>SEE ALSO</title>
++    <para>
++      <citerefentry>
++        <refentrytitle>pam_faillock</refentrytitle><manvolnum>8</manvolnum>
++      </citerefentry>,
++      <citerefentry>
++        <refentrytitle>pam</refentrytitle><manvolnum>8</manvolnum>
++      </citerefentry>
++    </para>
++  </refsect1>
++
++  <refsect1 id='faillock-author'>
++    <title>AUTHOR</title>
++      <para>
++        faillock was written by Tomas Mraz.
++      </para>
++  </refsect1>
++
++</refentry>
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.c linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.c
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.c	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.c	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,158 @@
++/*
++ * Copyright (c) 2010 Tomas Mraz <tmraz@redhat.com>
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, and the entire permission notice in its entirety,
++ *    including the disclaimer of warranties.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * ALTERNATIVELY, this product may be distributed under the terms of
++ * the GNU Public License, in which case the provisions of the GPL are
++ * required INSTEAD OF the above restrictions.  (This clause is
++ * necessary due to a potential bad interaction between the GPL and
++ * the restrictions contained in a BSD-style copyright.)
++ *
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "config.h"
++#include <string.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <errno.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/file.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <security/pam_modutil.h>
++
++#include "faillock.h"
++
++int
++open_tally (const char *dir, const char *user, uid_t uid, int create)
++{
++	char *path;
++	int flags = O_RDWR;
++	int fd;
++
++	if (strstr(user, "../") != NULL)
++	/* just a defensive programming as the user must be a
++	 * valid user on the system anyway
++	 */
++		return -1;
++	path = malloc(strlen(dir) + strlen(user) + 2);
++	if (path == NULL)
++		return -1;
++
++	strcpy(path, dir);
++	if (*dir && dir[strlen(dir) - 1] != '/') {
++		strcat(path, "/");
++	}
++	strcat(path, user);
++
++	if (create) {
++		flags |= O_CREAT;
++	}
++
++	fd = open(path, flags, 0600);
++
++	free(path);
++
++	if (fd != -1) {
++		struct stat st;
++
++		while (flock(fd, LOCK_EX) == -1 && errno == EINTR);
++		if (fstat(fd, &st) == 0) {
++			if (st.st_uid != uid) {
++				fchown(fd, uid, -1);
++			}
++		}
++	}
++
++	return fd;
++}
++
++#define CHUNK_SIZE (64 * sizeof(struct tally))
++#define MAX_RECORDS 1024
++
++int
++read_tally(int fd, struct tally_data *tallies)
++{
++	void *data = NULL, *newdata;
++	unsigned int count = 0;
++	ssize_t chunk = 0;
++
++	do {
++		newdata = realloc(data, count * sizeof(struct tally) + CHUNK_SIZE);
++		if (newdata == NULL) {
++			free(data);
++			return -1;
++		}
++
++		data = newdata;
++
++		chunk = pam_modutil_read(fd, (char *)data + count * sizeof(struct tally), CHUNK_SIZE);
++		if (chunk < 0) {
++			free(data);
++			return -1;
++		}
++
++		count += chunk/sizeof(struct tally);
++
++		if (count >= MAX_RECORDS)
++			break;
++	}
++	while (chunk == CHUNK_SIZE); 
++
++	tallies->records = data;
++	tallies->count = count;
++
++	return 0;
++}
++
++int
++update_tally(int fd, struct tally_data *tallies)
++{
++	void *data = tallies->records;
++	unsigned int count = tallies->count;
++	ssize_t chunk;
++
++	if (tallies->count > MAX_RECORDS) {
++		data = tallies->records + (count - MAX_RECORDS);
++		count = MAX_RECORDS;
++	}
++
++	if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
++		return -1;
++	}
++
++	chunk = pam_modutil_write(fd, data, count * sizeof(struct tally));
++
++	if (chunk != (ssize_t)(count * sizeof(struct tally))) {
++		return -1;
++	}
++
++	if (ftruncate(fd, count * sizeof(struct tally)) == -1)
++		return -1;
++
++	return 0;
++}
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.h linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.h
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/faillock.h	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/faillock.h	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,73 @@
++/*
++ * Copyright (c) 2010 Tomas Mraz <tmraz@redhat.com>
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, and the entire permission notice in its entirety,
++ *    including the disclaimer of warranties.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * ALTERNATIVELY, this product may be distributed under the terms of
++ * the GNU Public License, in which case the provisions of the GPL are
++ * required INSTEAD OF the above restrictions.  (This clause is
++ * necessary due to a potential bad interaction between the GPL and
++ * the restrictions contained in a BSD-style copyright.)
++ *
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++/*
++ * faillock.h - authentication failure data file record structure
++ *
++ * Each record in the file represents an instance of login failure of
++ * the user at the recorded time
++ */
++
++
++#ifndef _FAILLOCK_H
++#define _FAILLOCK_H
++
++#include <stdint.h>
++#include <sys/types.h>
++
++#define TALLY_STATUS_VALID     0x1       /* the tally file entry is valid */
++#define TALLY_STATUS_RHOST     0x2       /* the source is rhost */
++#define TALLY_STATUS_TTY       0x4       /* the source is tty - if both TALLY_FLAG_RHOST and TALLY_FLAG_TTY are not set the source is service */
++
++struct	tally {
++	char		source[52];	/* rhost or tty of the login failure (not necessarily NULL terminated) */
++	uint16_t	reserved;	/* reserved for future use */
++	uint16_t	status;		/* record status  */
++	uint64_t	time;		/* time of the login failure */
++};
++/* 64 bytes per entry */
++
++struct tally_data {
++	struct tally *records;		/* array of tallies */
++	unsigned int count;		/* number of records */
++};
++
++#define FAILLOCK_DEFAULT_TALLYDIR "/var/log/faillock"
++
++int open_tally(const char *dir, const char *user, uid_t uid, int create);
++int read_tally(int fd, struct tally_data *tallies);
++int update_tally(int fd, struct tally_data *tallies);
++#endif
++
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/main.c linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/main.c
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/main.c	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/main.c	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,232 @@
++/*
++ * Copyright (c) 2010 Tomas Mraz <tmraz@redhat.com>
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, and the entire permission notice in its entirety,
++ *    including the disclaimer of warranties.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * ALTERNATIVELY, this product may be distributed under the terms of
++ * the GNU Public License, in which case the provisions of the GPL are
++ * required INSTEAD OF the above restrictions.  (This clause is
++ * necessary due to a potential bad interaction between the GPL and
++ * the restrictions contained in a BSD-style copyright.)
++ *
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "config.h"
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <dirent.h>
++#include <errno.h>
++#include <pwd.h>
++#include <time.h>
++#include <sys/types.h>
++#include <unistd.h>
++#ifdef HAVE_LIBAUDIT
++#include <libaudit.h>
++#endif
++
++#include "faillock.h"
++
++struct options {
++	unsigned int reset;
++	const char *dir;
++	const char *user;
++	const char *progname;
++};
++
++static int
++args_parse(int argc, char **argv, struct options *opts)
++{
++	int i;
++	memset(opts, 0, sizeof(*opts));
++
++	opts->dir = FAILLOCK_DEFAULT_TALLYDIR;
++	opts->progname = argv[0];
++
++	for (i = 1; i < argc; ++i) {
++
++		if (strcmp(argv[i], "--dir") == 0) {
++			++i;
++			if (i >= argc || strlen(argv[i]) == 0) {
++				fprintf(stderr, "%s: No directory supplied.\n", argv[0]);				
++				return -1;
++			}
++		        opts->dir = argv[i];
++		} 
++		else if (strcmp(argv[i], "--user") == 0) {
++			++i;
++			if (i >= argc || strlen(argv[i]) == 0) {
++				fprintf(stderr, "%s: No user name supplied.\n", argv[0]);				
++				return -1;
++			}
++		        opts->user = argv[i];
++		}
++ 		else if (strcmp(argv[i], "--reset") == 0) {
++			opts->reset = 1;
++		}
++		else {
++			fprintf(stderr, "%s: Unknown option: %s\n", argv[0], argv[i]);
++			return -1;
++		}
++	}
++	return 0;
++}
++
++static void
++usage(const char *progname)
++{
++	fprintf(stderr, _("Usage: %s [--dir /path/to/tally-directory] [--user username] [--reset]\n"),
++		progname);
++}
++
++static int
++do_user(struct options *opts, const char *user)
++{
++	int fd;
++	int rv;
++	struct tally_data tallies;
++	struct passwd *pwd;
++
++	pwd = getpwnam(user);
++
++	fd = open_tally(opts->dir, user, pwd != NULL ? pwd->pw_uid : 0, 0);
++
++	if (fd == -1) {
++		if (errno == ENOENT) {
++			return 0;
++		}
++		else {
++			fprintf(stderr, "%s: Error opening the tally file for %s:",
++				opts->progname, user);
++			perror(NULL);
++			return 3;
++		}
++	}
++	if (opts->reset) {
++#ifdef HAVE_LIBAUDIT
++		int audit_fd;
++#endif
++		
++		while ((rv=ftruncate(fd, 0)) == -1 && errno == EINTR);
++		if (rv == -1) {
++			fprintf(stderr, "%s: Error clearing the tally file for %s:",
++				opts->progname, user);
++			perror(NULL);
++#ifdef HAVE_LIBAUDIT
++		}
++		if ((audit_fd=audit_open()) >= 0) {
++
++			if (pwd != NULL) {
++				audit_log_acct_message(audit_fd, AUDIT_USER_MGMT, NULL,
++					"faillock-reset", NULL, pwd->pw_uid, NULL, NULL, NULL, rv == 0);
++			}
++			close(audit_fd);
++		}
++		if (rv == -1) {
++#endif
++			close(fd);
++			return 4;
++		}
++	}
++	else {
++		unsigned int i;
++
++		memset(&tallies, 0, sizeof(tallies));
++		if ((rv=read_tally(fd, &tallies)) == -1) {
++			fprintf(stderr, "%s: Error reading the tally file for %s:",
++				opts->progname, user);
++			perror(NULL);
++			close(fd);
++			return 5;
++		}
++
++		printf("%s:\n", user);
++		printf("%-19s %-5s %-48s %-5s\n", "When", "Type", "Source", "Valid");
++
++		for (i = 0; i < tallies.count; i++) {
++			struct tm *tm;
++			char timebuf[80];
++			uint16_t status = tallies.records[i].status;
++			time_t when = tallies.records[i].time;
++
++			tm = localtime(&when);
++			strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", tm);
++			printf("%-19s %-5s %-52.52s %s\n", timebuf,
++				status & TALLY_STATUS_RHOST ? "RHOST" : (status & TALLY_STATUS_TTY ? "TTY" : "SVC"),
++				tallies.records[i].source, status & TALLY_STATUS_VALID ? "V":"I");
++		}
++		free(tallies.records);
++	}
++	close(fd);
++	return 0;
++}
++
++static int
++do_allusers(struct options *opts)
++{
++	struct dirent **userlist;
++	int rv, i;
++
++	rv = scandir(opts->dir, &userlist, NULL, alphasort);
++	if (rv < 0) {
++		fprintf(stderr, "%s: Error reading tally directory: ", opts->progname);
++		perror(NULL);
++		return 2;
++	}
++
++	for (i = 0; i < rv; i++) {
++		if (userlist[i]->d_name[0] == '.') {
++			if ((userlist[i]->d_name[1] == '.' && userlist[i]->d_name[2] == '\0') ||
++			    userlist[i]->d_name[1] == '\0')
++				continue;
++		}
++		do_user(opts, userlist[i]->d_name);
++		free(userlist[i]);
++	}
++	free(userlist);
++
++	return 0;
++}
++
++
++/*-----------------------------------------------------------------------*/
++int
++main (int argc, char *argv[])
++{
++	struct options opts;
++
++	if (args_parse(argc, argv, &opts)) {
++		usage(argv[0]);
++		return 1;
++	}
++
++	if (opts.user == NULL) {
++		return do_allusers(&opts);		
++	}
++
++	return do_user(&opts, opts.user);
++}
++
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/pam_faillock.8.xml linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/pam_faillock.8.xml
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/pam_faillock.8.xml	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/pam_faillock.8.xml	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,408 @@
++<?xml version="1.0" encoding='UTF-8'?>
++<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
++	"http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
++
++<refentry id="pam_faillock">
++
++  <refmeta>
++    <refentrytitle>pam_faillock</refentrytitle>
++    <manvolnum>8</manvolnum>
++    <refmiscinfo class="sectdesc">Linux-PAM Manual</refmiscinfo>
++  </refmeta>
++
++  <refnamediv id="pam_faillock-name">
++    <refname>pam_faillock</refname>
++    <refpurpose>Module counting authentication failures during a specified interval</refpurpose>
++  </refnamediv>
++
++  <refsynopsisdiv>
++    <cmdsynopsis id="pam_faillock-cmdsynopsisauth">
++      <command>auth ... pam_faillock.so</command>
++      <arg choice="req">
++        preauth|authfail|authsucc
++      </arg>
++      <arg choice="opt">
++        dir=<replaceable>/path/to/tally-directory</replaceable>
++      </arg>
++      <arg choice="opt">
++        even_deny_root
++      </arg>
++      <arg choice="opt">
++        deny=<replaceable>n</replaceable>
++      </arg>
++      <arg choice="opt">
++        fail_interval=<replaceable>n</replaceable>
++      </arg>
++      <arg choice="opt">
++        unlock_time=<replaceable>n</replaceable>
++      </arg>
++      <arg choice="opt">
++        root_unlock_time=<replaceable>n</replaceable>
++      </arg>
++      <arg choice="opt">
++        audit
++      </arg>
++      <arg choice="opt">
++        silent
++      </arg>
++      <arg choice="opt">
++        no_log_info
++      </arg>
++    </cmdsynopsis>
++    <cmdsynopsis id="pam_faillock-cmdsynopsisacct">
++      <command>account ... pam_faillock.so</command>
++      <arg choice="opt">
++        dir=<replaceable>/path/to/tally-directory</replaceable>
++      </arg>
++      <arg choice="opt">
++        no_log_info
++      </arg>
++    </cmdsynopsis>
++  </refsynopsisdiv>
++
++  <refsect1 id="pam_faillock-description">
++
++    <title>DESCRIPTION</title>
++
++    <para>
++      This module maintains a list of failed authentication attempts per
++      user during a specified interval and locks the account in case
++      there were more than <replaceable>deny</replaceable> consecutive
++      failed authentications.
++    </para>
++    <para>
++      Normally, failed attempts to authenticate <emphasis>root</emphasis> will
++      <emphasis remap='B'>not</emphasis> cause the root account to become
++      blocked, to prevent denial-of-service: if your users aren't given
++      shell accounts and root may only login via <command>su</command> or
++      at the machine console (not telnet/rsh, etc), this is safe.
++    </para>
++  </refsect1>
++
++  <refsect1 id="pam_faillock-options">
++
++    <title>OPTIONS</title>
++         <variablelist>
++            <varlistentry>
++              <term>
++                <option>{preauth|authfail|authsucc}</option>
++              </term>
++              <listitem>
++                <para>
++                  This argument must be set accordingly to the position of this module
++                  instance in the PAM stack.
++                </para>
++                <para>
++                  The <emphasis>preauth</emphasis> argument must be used when the module
++                  is called before the modules which ask for the user credentials such
++                  as the password. The module just examines whether the user should
++                  be blocked from accessing the service in case there were anomalous
++                  number of failed consecutive authentication attempts recently. This
++                  call is optional if <emphasis>authsucc</emphasis> is used.
++                </para>
++                <para>
++                  The <emphasis>authfail</emphasis> argument must be used when the module
++                  is called after the modules which determine the authentication outcome,
++                  failed. Unless the user is already blocked due to previous authentication
++                  failures, the module will record the failure into the appropriate user
++                  tally file.
++                </para>
++                <para>
++                  The <emphasis>authsucc</emphasis> argument must be used when the module
++                  is called after the modules which determine the authentication outcome,
++                  succeded. Unless the user is already blocked due to previous authentication
++                  failures, the module will then clear the record of the failures in the
++                  respective user tally file. Otherwise it will return authentication error.
++                  If this call is not done, the pam_faillock will not distinguish between
++                  consecutive and non-consecutive failed authentication attempts. The
++                  <emphasis>preauth</emphasis> call must be used in such case. Due to
++                  complications in the way the PAM stack can be configured it is also
++                  possible to call <emphasis>pam_faillock</emphasis> as an account module.
++                  In such configuration the module must be also called in the
++                  <emphasis>preauth</emphasis> stage.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>dir=<replaceable>/path/to/tally-directory</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  The directory where the user files with the failure records are kept. The
++                  default is <filename>/var/log/faillock</filename>.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>audit</option>
++              </term>
++              <listitem>
++                <para>
++                  Will log the user name into the system log if the user is not found.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>silent</option>
++              </term>
++              <listitem>
++                <para>
++                  Don't print informative messages. This option is implicite
++                  in the <emphasis>authfail</emphasis> and <emphasis>authsucc</emphasis>
++                  functions.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>no_log_info</option>
++              </term>
++              <listitem>
++                <para>
++                  Don't log informative messages via <citerefentry><refentrytitle>syslog</refentrytitle><manvolnum>3</manvolnum></citerefentry>.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>deny=<replaceable>n</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  Deny access if the number of consecutive authentication failures
++                  for this user during the recent interval exceeds
++                  <replaceable>n</replaceable>. The default is 3.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>fail_interval=<replaceable>n</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  The length of the interval during which the consecutive
++                  authentication failures must happen for the user account
++                  lock out is <replaceable>n</replaceable> seconds.
++                  The default is 900 (15 minutes).
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>unlock_time=<replaceable>n</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  The access will be reenabled after
++                  <replaceable>n</replaceable> seconds after the lock out.
++                  The value 0 has the same meaning as value
++                  <emphasis>never</emphasis> - the access
++                  will not be reenabled without resetting the faillock
++                  entries by the <citerefentry><refentrytitle>faillock</refentrytitle><manvolnum>8</manvolnum></citerefentry> command.
++                  The default is 600 (10 minutes).
++                </para>
++                <para>
++                  Note that the default directory that <emphasis>pam_faillock</emphasis>
++                  uses is usually cleared on system boot so the access will be also reenabled
++                  after system reboot. If that is undesirable a different tally directory
++                  must be set with the <option>dir</option> option.
++                </para>
++                <para>
++                  Also note that it is usually undesirable to permanently lock
++                  out the users as they can become easily a target of denial of service
++                  attack unless the usernames are random and kept secret to potential
++                  attackers.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>even_deny_root</option>
++              </term>
++              <listitem>
++                <para>
++                  Root account can become locked as well as regular accounts.
++                </para>
++              </listitem>
++            </varlistentry>
++            <varlistentry>
++              <term>
++                <option>root_unlock_time=<replaceable>n</replaceable></option>
++              </term>
++              <listitem>
++                <para>
++                  This option implies <option>even_deny_root</option> option.
++                  Allow access after <replaceable>n</replaceable> seconds
++                  to root account after the account is locked. In case the
++                  option is not specified the value is the same as of the
++                  <option>unlock_time</option> option.
++                </para>
++              </listitem>
++            </varlistentry>
++        </variablelist>
++  </refsect1>
++
++  <refsect1 id="pam_faillock-types">
++    <title>MODULE TYPES PROVIDED</title>
++    <para>
++      The <option>auth</option> and <option>account</option> module types are
++      provided.
++    </para>
++  </refsect1>
++
++  <refsect1 id='pam_faillock-return_values'>
++    <title>RETURN VALUES</title>
++    <variablelist>
++      <varlistentry>
++        <term>PAM_AUTH_ERR</term>
++        <listitem>
++          <para>
++            A invalid option was given, the module was not able
++            to retrieve the user name, no valid counter file
++            was found, or too many failed logins.
++          </para>
++        </listitem>
++      </varlistentry>
++      <varlistentry>
++        <term>PAM_SUCCESS</term>
++        <listitem>
++          <para>
++            Everything was successful.
++          </para>
++        </listitem>
++      </varlistentry>
++      <varlistentry>
++        <term>PAM_IGNORE</term>
++        <listitem>
++          <para>
++            User not present in passwd database.
++          </para>
++        </listitem>
++      </varlistentry>
++    </variablelist>
++  </refsect1>
++
++  <refsect1 id='pam_faillock-notes'>
++    <title>NOTES</title>
++    <para>
++      <emphasis>pam_faillock</emphasis> setup in the PAM stack is different
++      from the <emphasis>pam_tally2</emphasis> module setup.
++    </para>
++    <para>
++      The individual files with the failure records are created as owned by
++      the user. This allows <emphasis remap='B'>pam_faillock.so</emphasis> module
++      to work correctly when it is called from a screensaver.
++    </para>
++    <para>
++      Note that using the module in <option>preauth</option> without the
++      <option>silent</option> option or with <emphasis>requisite</emphasis>
++      control field leaks an information about existence or
++      non-existence of an user account in the system because
++      the failures are not recorded for the unknown users. The message
++      about the user account being locked is never displayed for nonexisting
++      user accounts allowing the adversary to infer that a particular account
++      is not existing on a system.
++    </para>
++  </refsect1>
++
++  <refsect1 id='pam_faillock-examples'>
++    <title>EXAMPLES</title>
++    <para>
++      Here are two possible configuration examples for <filename>/etc/pam.d/login</filename>.
++      They make <emphasis>pam_faillock</emphasis> to lock the account after 4 consecutive
++      failed logins during the default interval of 15 minutes. Root account will be locked
++      as well. The accounts will be automatically unlocked after 20 minutes.
++    </para>
++    <para>
++      In the first example the module is called only in the <emphasis>auth</emphasis>
++      phase and the module does not print any information about the account blocking
++      by <emphasis>pam_faillock</emphasis>. The <emphasis>preauth</emphasis> call can
++      be added to tell the user that his login is blocked by the module and also to abort
++      the authentication without even asking for password in such case.
++    </para>
++    <programlisting>
++auth     required       pam_securetty.so
++auth     required       pam_env.so
++auth     required       pam_nologin.so
++# optionally call: auth requisite pam_faillock.so preauth deny=4 even_deny_root unlock_time=1200
++# to display the message about account being locked
++auth     [success=1 default=bad] pam_unix.so
++auth     [default=die]  pam_faillock.so authfail deny=4 even_deny_root unlock_time=1200
++auth     sufficient     pam_faillock.so authsucc deny=4 even_deny_root unlock_time=1200
++auth     required       pam_deny.so
++account  required       pam_unix.so
++password required       pam_unix.so shadow
++session  required       pam_selinux.so close
++session  required       pam_loginuid.so
++session  required       pam_unix.so
++session  required       pam_selinux.so open
++    </programlisting>
++    <para>
++      In the second example the module is called both in the <emphasis>auth</emphasis>
++      and <emphasis>account</emphasis> phases and the module gives the authenticating
++      user message when the account is locked 
++    </para>
++    <programlisting>
++auth     required       pam_securetty.so
++auth     required       pam_env.so
++auth     required       pam_nologin.so
++auth     required       pam_faillock.so preauth silent deny=4 even_deny_root unlock_time=1200
++# optionally use requisite above if you do not want to prompt for the password
++# on locked accounts, possibly with removing the silent option as well
++auth     sufficient     pam_unix.so
++auth     [default=die]  pam_faillock.so authfail deny=4 even_deny_root unlock_time=1200
++auth     required       pam_deny.so
++account  required       pam_faillock.so
++# if you drop the above call to pam_faillock.so the lock will be done also
++# on non-consecutive authentication failures
++account  required       pam_unix.so
++password required       pam_unix.so shadow
++session  required       pam_selinux.so close
++session  required       pam_loginuid.so
++session  required       pam_unix.so
++session  required       pam_selinux.so open
++    </programlisting>
++  </refsect1>
++
++  <refsect1 id="pam_faillock-files">
++    <title>FILES</title>
++    <variablelist>
++      <varlistentry>
++        <term><filename>/var/log/faillock/*</filename></term>
++        <listitem>
++          <para>the files logging the authentication failures for users</para>
++        </listitem>
++      </varlistentry>
++    </variablelist>
++  </refsect1>
++
++  <refsect1 id='pam_faillock-see_also'>
++    <title>SEE ALSO</title>
++    <para>
++      <citerefentry>
++        <refentrytitle>faillock</refentrytitle><manvolnum>8</manvolnum>
++      </citerefentry>,
++      <citerefentry>
++        <refentrytitle>pam.conf</refentrytitle><manvolnum>5</manvolnum>
++      </citerefentry>,
++      <citerefentry>
++        <refentrytitle>pam.d</refentrytitle><manvolnum>5</manvolnum>
++      </citerefentry>,
++      <citerefentry>
++        <refentrytitle>pam</refentrytitle><manvolnum>8</manvolnum>
++      </citerefentry>
++    </para>
++  </refsect1>
++
++  <refsect1 id='pam_faillock-author'>
++    <title>AUTHOR</title>
++      <para>
++        pam_faillock was written by Tomas Mraz.
++      </para>
++  </refsect1>
++
++</refentry>
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/pam_faillock.c linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/pam_faillock.c
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/pam_faillock.c	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/pam_faillock.c	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,571 @@
++/*
++ * Copyright (c) 2010 Tomas Mraz <tmraz@redhat.com>
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, and the entire permission notice in its entirety,
++ *    including the disclaimer of warranties.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * ALTERNATIVELY, this product may be distributed under the terms of
++ * the GNU Public License, in which case the provisions of the GPL are
++ * required INSTEAD OF the above restrictions.  (This clause is
++ * necessary due to a potential bad interaction between the GPL and
++ * the restrictions contained in a BSD-style copyright.)
++ *
++ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "config.h"
++#include <stdio.h>
++#include <string.h>
++#include <unistd.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <time.h>
++#include <pwd.h>
++#include <syslog.h>
++
++#ifdef HAVE_LIBAUDIT
++#include <libaudit.h>
++#endif
++
++#include <security/pam_modules.h>
++#include <security/pam_modutil.h>
++#include <security/pam_ext.h>
++
++#include "faillock.h"
++
++#define PAM_SM_AUTH
++#define PAM_SM_ACCOUNT
++
++#define FAILLOCK_ACTION_PREAUTH  0
++#define FAILLOCK_ACTION_AUTHSUCC 1
++#define FAILLOCK_ACTION_AUTHFAIL 2
++
++#define FAILLOCK_FLAG_DENY_ROOT		0x1
++#define FAILLOCK_FLAG_AUDIT		0x2
++#define FAILLOCK_FLAG_SILENT		0x4
++#define FAILLOCK_FLAG_NO_LOG_INFO	0x8
++#define FAILLOCK_FLAG_UNLOCKED		0x10
++
++#define MAX_TIME_INTERVAL 604800 /* 7 days */
++
++struct options {
++	unsigned int action;
++	unsigned int flags;
++	unsigned short deny;
++	unsigned int fail_interval;
++	unsigned int unlock_time;
++	unsigned int root_unlock_time;
++	const char *dir;
++	const char *user;
++	int failures;
++	uint64_t latest_time;
++	uid_t uid;
++	uint64_t now;
++};
++
++static void
++args_parse(pam_handle_t *pamh, int argc, const char **argv,
++		int flags, struct options *opts)
++{
++	int i;
++	memset(opts, 0, sizeof(*opts));
++
++	opts->dir = FAILLOCK_DEFAULT_TALLYDIR;
++	opts->deny = 3;
++	opts->fail_interval = 900;
++	opts->unlock_time = 600;
++	opts->root_unlock_time = MAX_TIME_INTERVAL+1;
++
++	for (i = 0; i < argc; ++i) {
++
++		if (strncmp(argv[i], "dir=", 4) == 0) {
++			if (argv[i][4] != '/') {
++				pam_syslog(pamh, LOG_ERR,
++					"Tally directory is not absolute path (%s); keeping default", argv[i]);
++	        	} else {
++			        opts->dir = argv[i]+4;
++			}
++		} 
++		else if (strncmp(argv[i], "deny=", 5) == 0) {
++			if (sscanf(argv[i]+5, "%hu", &opts->deny) != 1) {
++				pam_syslog(pamh, LOG_ERR,
++					"Bad number supplied for deny argument");
++        		}
++		}
++		else if (strncmp(argv[i], "fail_interval=", 14) == 0) {
++			unsigned int temp;
++			if (sscanf(argv[i]+14, "%u", &temp) != 1 ||
++				temp > MAX_TIME_INTERVAL) {
++				pam_syslog(pamh, LOG_ERR,
++					"Bad number supplied for fail_interval argument");
++	        	} else {
++				opts->fail_interval = temp;
++			}
++		}
++		else if (strncmp(argv[i], "unlock_time=", 12) == 0) {
++			unsigned int temp;
++
++			if (strcmp(argv[i]+12, "never") == 0) {
++				opts->unlock_time = 0;
++			}
++			else if (sscanf(argv[i]+12, "%u", &temp) != 1 ||
++				temp > MAX_TIME_INTERVAL) {
++				pam_syslog(pamh, LOG_ERR,
++					"Bad number supplied for unlock_time argument");
++			}
++			else {
++				opts->unlock_time = temp;
++			}
++		}
++		else if (strncmp(argv[i], "root_unlock_time=", 17) == 0) {
++			unsigned int temp;
++
++			if (strcmp(argv[i]+17, "never") == 0) {
++				opts->root_unlock_time = 0;
++			}
++			else if (sscanf(argv[i]+17, "%u", &temp) != 1 ||
++				temp > MAX_TIME_INTERVAL) {
++				pam_syslog(pamh, LOG_ERR,
++					"Bad number supplied for root_unlock_time argument");
++			} else {
++				opts->root_unlock_time = temp;
++			}
++		}
++ 		else if (strcmp(argv[i], "preauth") == 0) {
++			opts->action = FAILLOCK_ACTION_PREAUTH;
++		}
++ 		else if (strcmp(argv[i], "authfail") == 0) {
++			opts->action = FAILLOCK_ACTION_AUTHFAIL;
++		}
++	 	else if (strcmp(argv[i], "authsucc") == 0) {
++			opts->action = FAILLOCK_ACTION_AUTHSUCC;
++		}
++	 	else if (strcmp(argv[i], "even_deny_root") == 0) {
++			opts->flags |= FAILLOCK_FLAG_DENY_ROOT;
++		}
++	 	else if (strcmp(argv[i], "audit") == 0) {
++			opts->flags |= FAILLOCK_FLAG_AUDIT;
++		}
++	 	else if (strcmp(argv[i], "silent") == 0) {
++			opts->flags |= FAILLOCK_FLAG_SILENT;
++		}
++	 	else if (strcmp(argv[i], "no_log_info") == 0) {
++			opts->flags |= FAILLOCK_FLAG_NO_LOG_INFO;
++		}
++		else {
++			pam_syslog(pamh, LOG_ERR, "Unknown option: %s", argv[i]);
++		}
++	}
++
++	if (opts->root_unlock_time == MAX_TIME_INTERVAL+1)
++		opts->root_unlock_time = opts->unlock_time;
++	if (flags & PAM_SILENT)
++		opts->flags |= FAILLOCK_FLAG_SILENT;
++}
++
++static int get_pam_user(pam_handle_t *pamh, struct options *opts)
++{
++	const char *user;
++	int rv;
++	struct passwd *pwd;
++
++	if ((rv=pam_get_user(pamh, &user, NULL)) != PAM_SUCCESS) {
++		return rv;
++	}
++
++	if (*user == '\0') {
++		return PAM_IGNORE;
++	}
++
++	if ((pwd=pam_modutil_getpwnam(pamh, user)) == NULL) {
++		if (opts->flags & FAILLOCK_FLAG_AUDIT) {
++			pam_syslog(pamh, LOG_ERR, "User unknown: %s", user);
++		}
++		else {
++			pam_syslog(pamh, LOG_ERR, "User unknown");
++		}
++		return PAM_IGNORE;
++	}
++	opts->user = user;
++	opts->uid = pwd->pw_uid;
++	return PAM_SUCCESS;
++}
++
++static int
++check_tally(pam_handle_t *pamh, struct options *opts, struct tally_data *tallies, int *fd)
++{
++	int tfd;
++	unsigned int i;
++	uint64_t latest_time;
++	int failures;
++
++	opts->now = time(NULL);
++
++	tfd = open_tally(opts->dir, opts->user, opts->uid, 0);
++
++	*fd = tfd;
++
++	if (tfd == -1) {
++		if (errno == EACCES || errno == ENOENT) {
++			return PAM_SUCCESS;
++		}
++		pam_syslog(pamh, LOG_ERR, "Error opening the tally file for %s: %m", opts->user);
++		return PAM_SYSTEM_ERR;
++	}
++
++	if (read_tally(tfd, tallies) != 0) {
++		pam_syslog(pamh, LOG_ERR, "Error reading the tally file for %s: %m", opts->user);
++		return PAM_SYSTEM_ERR;
++	}
++
++	if (opts->uid == 0 && !(opts->flags & FAILLOCK_FLAG_DENY_ROOT)) {
++		return PAM_SUCCESS;
++	}
++
++	latest_time = 0;
++	for(i = 0; i < tallies->count; i++) {
++		if ((tallies->records[i].status & TALLY_STATUS_VALID) &&
++			tallies->records[i].time > latest_time)
++			latest_time = tallies->records[i].time;
++	}
++
++	opts->latest_time = latest_time;
++
++	failures = 0;
++	for(i = 0; i < tallies->count; i++) {
++		if ((tallies->records[i].status & TALLY_STATUS_VALID) &&
++			latest_time - tallies->records[i].time < opts->fail_interval) {
++			++failures;
++		}
++	}
++
++	opts->failures = failures;
++
++	if (opts->uid == 0 && !(opts->flags & FAILLOCK_FLAG_DENY_ROOT)) {
++		return PAM_SUCCESS;
++	}
++
++	if (opts->deny && failures >= opts->deny) {
++		if ((opts->uid && opts->unlock_time && latest_time + opts->unlock_time < opts->now) ||
++			(!opts->uid && opts->root_unlock_time && latest_time + opts->root_unlock_time < opts->now)) {
++#ifdef HAVE_LIBAUDIT
++			if (opts->action != FAILLOCK_ACTION_PREAUTH) { /* do not audit in preauth */
++				char buf[64];
++				int audit_fd;
++				const void *rhost = NULL, *tty = NULL;
++
++				audit_fd = audit_open();
++				/* If there is an error & audit support is in the kernel report error */
++				if ((audit_fd < 0) && !(errno == EINVAL || errno == EPROTONOSUPPORT ||
++					errno == EAFNOSUPPORT))
++					return PAM_SYSTEM_ERR;
++
++				(void)pam_get_item(pamh, PAM_TTY, &tty);
++				(void)pam_get_item(pamh, PAM_RHOST, &rhost);
++				snprintf(buf, sizeof(buf), "pam_faillock uid=%u ", opts->uid);
++				audit_log_user_message(audit_fd, AUDIT_RESP_ACCT_UNLOCK_TIMED, buf,
++					rhost, NULL, tty, 1);
++			}
++#endif
++			opts->flags |= FAILLOCK_FLAG_UNLOCKED;
++			return PAM_SUCCESS;
++		}
++		return PAM_AUTH_ERR;
++	}
++	return PAM_SUCCESS;
++}
++
++static void
++reset_tally(pam_handle_t *pamh, struct options *opts, int *fd)
++{
++	int rv;
++
++	if (*fd == -1) {
++		*fd = open_tally(opts->dir, opts->user, opts->uid, 1);
++	}
++	else {
++		while ((rv=ftruncate(*fd, 0)) == -1 && errno == EINTR);
++		if (rv == -1) {
++			pam_syslog(pamh, LOG_ERR, "Error clearing the tally file for %s: %m", opts->user);
++		}
++	}
++}
++
++static int
++write_tally(pam_handle_t *pamh, struct options *opts, struct tally_data *tallies, int *fd)
++{
++	struct tally *records;
++	unsigned int i;
++	int failures;
++	unsigned int oldest;
++	uint64_t oldtime;
++	const void *source = NULL;
++
++	if (*fd == -1) {
++		*fd = open_tally(opts->dir, opts->user, opts->uid, 1);
++	}
++	if (*fd == -1) {
++		if (errno == EACCES) {
++			return PAM_SUCCESS;
++		}
++		pam_syslog(pamh, LOG_ERR, "Error opening the tally file for %s: %m", opts->user);
++		return PAM_SYSTEM_ERR;
++	}
++
++	oldtime = 0;
++	oldest = 0;
++	failures = 0;
++
++	for (i = 0; i < tallies->count; ++i) {
++		if (tallies->records[i].time < oldtime) {
++			oldtime = tallies->records[i].time;
++			oldest = i;
++		}
++		if (opts->flags & FAILLOCK_FLAG_UNLOCKED ||
++			opts->now - tallies->records[i].time >= opts->fail_interval ) {
++			tallies->records[i].status &= ~TALLY_STATUS_VALID;
++		} else {
++			++failures;
++		}
++	}
++
++	if (oldest >= tallies->count || (tallies->records[oldest].status & TALLY_STATUS_VALID)) {
++		oldest = tallies->count;
++
++		if ((records=realloc(tallies->records, (oldest+1) * sizeof (*tallies->records))) == NULL) {
++			pam_syslog(pamh, LOG_CRIT, "Error allocating memory for tally records: %m");
++			return PAM_BUF_ERR;
++		}
++
++		++tallies->count;
++		tallies->records = records;
++	}
++
++	memset(&tallies->records[oldest], 0, sizeof (*tallies->records));
++
++	tallies->records[oldest].status = TALLY_STATUS_VALID;
++	if (pam_get_item(pamh, PAM_RHOST, &source) != PAM_SUCCESS || source == NULL) {
++		if (pam_get_item(pamh, PAM_TTY, &source) != PAM_SUCCESS || source == NULL) {
++			if (pam_get_item(pamh, PAM_SERVICE, &source) != PAM_SUCCESS || source == NULL) {
++				source = "";
++			}
++		}
++		else {
++			tallies->records[oldest].status |= TALLY_STATUS_TTY;
++		}
++	}
++	else {
++		tallies->records[oldest].status |= TALLY_STATUS_RHOST;
++	}
++
++	strncpy(tallies->records[oldest].source, source, sizeof(tallies->records[oldest].source));
++	/* source does not have to be null terminated */
++	
++	tallies->records[oldest].time = opts->now;
++
++	++failures;
++
++	if (opts->deny && failures == opts->deny) {
++#ifdef HAVE_LIBAUDIT
++		char buf[64];
++		int audit_fd;
++
++		audit_fd = audit_open();
++		/* If there is an error & audit support is in the kernel report error */
++		if ((audit_fd < 0) && !(errno == EINVAL || errno == EPROTONOSUPPORT ||
++			errno == EAFNOSUPPORT))
++			return PAM_SYSTEM_ERR;
++
++		snprintf(buf, sizeof(buf), "pam_faillock uid=%u ", opts->uid);
++		audit_log_user_message(audit_fd, AUDIT_ANOM_LOGIN_FAILURES, buf,
++			NULL, NULL, NULL, 1);
++
++		if (opts->uid != 0 || (opts->flags & FAILLOCK_FLAG_DENY_ROOT)) {
++			audit_log_user_message(audit_fd, AUDIT_RESP_ACCT_LOCK, buf,
++				NULL, NULL, NULL, 1);
++		}
++		close(audit_fd);
++#endif
++		if (!(opts->flags & FAILLOCK_FLAG_NO_LOG_INFO)) {
++			pam_syslog(pamh, LOG_INFO, "Consecutive login failures for user %s account temporarily locked",
++				opts->user);
++		}
++	}
++
++	if (update_tally(*fd, tallies) == 0)
++		return PAM_SUCCESS;
++
++	return PAM_SYSTEM_ERR;
++}
++
++static void
++faillock_message(pam_handle_t *pamh, struct options *opts)
++{
++	int64_t left;
++
++	if (!(opts->flags & FAILLOCK_FLAG_SILENT)) {
++		if (opts->uid) {
++			left = opts->latest_time + opts->unlock_time - opts->now;
++		}
++		else {
++			left = opts->latest_time + opts->root_unlock_time - opts->now;
++		}
++
++		if (left > 0) {
++			left = (left + 59)/60; /* minutes */
++
++			pam_info(pamh, _("Account temporarily locked due to %d failed logins"),
++				opts->failures);
++			pam_info(pamh, _("(%d minutes left to unlock)"), (int)left);
++		}
++		else {
++			pam_info(pamh, _("Account locked due to %d failed logins"),
++				opts->failures);
++		}
++	}
++}
++
++static void
++tally_cleanup(struct tally_data *tallies, int fd)
++{
++	if (fd != -1) {
++		close(fd);
++	}
++
++	free(tallies->records);
++}
++
++/*---------------------------------------------------------------------*/
++
++PAM_EXTERN int
++pam_sm_authenticate(pam_handle_t *pamh, int flags,
++		    int argc, const char **argv)
++{
++	struct options opts;
++	int rv, fd = -1;
++	struct tally_data tallies;
++
++	memset(&tallies, 0, sizeof(tallies));
++
++	args_parse(pamh, argc, argv, flags, &opts);
++
++	pam_fail_delay(pamh, 2000000);	/* 2 sec delay for on failure */
++
++	if ((rv=get_pam_user(pamh, &opts)) != PAM_SUCCESS) {
++		return rv;
++	}
++
++	switch (opts.action) {
++		case FAILLOCK_ACTION_PREAUTH:
++			rv = check_tally(pamh, &opts, &tallies, &fd);
++			if (rv == PAM_AUTH_ERR && !(opts.flags & FAILLOCK_FLAG_SILENT)) {
++				faillock_message(pamh, &opts);
++			}
++                        break;
++
++		case FAILLOCK_ACTION_AUTHSUCC:
++			rv = check_tally(pamh, &opts, &tallies, &fd);
++			if (rv == PAM_SUCCESS) {
++				reset_tally(pamh, &opts, &fd);
++			}
++                        break;
++
++		case FAILLOCK_ACTION_AUTHFAIL:
++			rv = check_tally(pamh, &opts, &tallies, &fd);
++			if (rv == PAM_SUCCESS) {
++				rv = PAM_IGNORE; /* this return value should be ignored */
++				write_tally(pamh, &opts, &tallies, &fd);
++			}
++			break;
++	}
++
++	tally_cleanup(&tallies, fd);
++
++	return rv;
++}
++
++/*---------------------------------------------------------------------*/
++
++PAM_EXTERN int
++pam_sm_setcred(pam_handle_t *pamh UNUSED, int flags UNUSED,
++	       int argc UNUSED, const char **argv UNUSED)
++{
++	return PAM_SUCCESS;
++}
++
++/*---------------------------------------------------------------------*/
++
++PAM_EXTERN int
++pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
++		 int argc, const char **argv)
++{
++	struct options opts;
++	int rv, fd = -1;
++	struct tally_data tallies;
++
++	memset(&tallies, 0, sizeof(tallies));
++
++	args_parse(pamh, argc, argv, flags, &opts);
++
++	opts.action = FAILLOCK_ACTION_AUTHSUCC;
++
++	if ((rv=get_pam_user(pamh, &opts)) != PAM_SUCCESS) {
++		return rv;
++	}
++
++	check_tally(pamh, &opts, &tallies, &fd); /* for auditing */
++	reset_tally(pamh, &opts, &fd);
++
++	tally_cleanup(&tallies, fd);
++
++	return PAM_SUCCESS;
++}
++
++/*-----------------------------------------------------------------------*/
++
++#ifdef PAM_STATIC
++
++/* static module data */
++
++struct pam_module _pam_faillock_modstruct = {
++     MODULE_NAME,
++#ifdef PAM_SM_AUTH
++     pam_sm_authenticate,
++     pam_sm_setcred,
++#else
++     NULL,
++     NULL,
++#endif
++#ifdef PAM_SM_ACCOUNT
++     pam_sm_acct_mgmt,
++#else
++     NULL,
++#endif
++     NULL,
++     NULL,
++     NULL,
++};
++
++#endif   /* #ifdef PAM_STATIC */
++
+diff -urN linux-pam-1.3.1.20190226/modules/pam_faillock/tst-pam_faillock linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/tst-pam_faillock
+--- linux-pam-1.3.1.20190226/modules/pam_faillock/tst-pam_faillock	1969-12-31 17:00:00.000000000 -0700
++++ linux-pam-1.3.1.20190226-fixed/modules/pam_faillock/tst-pam_faillock	2019-04-26 20:42:03.079202389 -0600
+@@ -0,0 +1,2 @@
++#!/bin/sh
++../../tests/tst-dlopen .libs/pam_faillock.so
