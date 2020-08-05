@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -24,8 +24,8 @@ IUSE="offlinehelp"
 # when changing the language lists, please be careful to preserve the spaces (bug 491728)
 #
 # "en:en-US" for mapping from Gentoo "en" to upstream "en-US" etc.
-LANGUAGES_HELP=" am ast bg bn-IN bn bo bs ca-valencia ca cs da de dz el en-GB en:en-US en-ZA eo es et eu fi fr gl gu he hi hr hu id is it ja ka km ko mk nb ne nl nn om pl pt-BR pt ru si sk sl sq sv tg tr ug uk vi zh-CN zh-TW "
-LANGUAGES="${LANGUAGES_HELP}af ar as be br brx cy dgo fa ga gd gug kk kmr-Latn kn kok ks lb lo lt lv mai ml mn mni mr my nr nso oc or pa:pa-IN ro rw sa:sa-IN sat sd sid sr-Latn sr ss st sw-TZ ta te th tn ts tt uz ve xh zu "
+LANGUAGES_HELP=" de en-GB en:en-US ru "
+LANGUAGES="${LANGUAGES_HELP} "
 
 for lang in ${LANGUAGES_HELP}; do
 	helppack="offlinehelp? ( ${BASE_SRC_URI_STABLE}/x86_64/LibreOffice${PN_DEV}_${BASE_PV}_Linux_x86-64_rpm_helppack_${lang#*:}.tar.gz -> LibreOffice_${MY_PV}_Linux_x86-64_rpm_helppack_${lang#*:}.tar.gz ${BASE_SRC_URI_TESTING}/x86_64/LibreOffice${PN_DEV}_${MY_PV}_Linux_x86-64_rpm_helppack_${lang#*:}.tar.gz -> LibreOffice_${MY_PV}_Linux_x86-64_rpm_helppack_${lang#*:}.tar.gz )"
