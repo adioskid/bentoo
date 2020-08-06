@@ -17,7 +17,7 @@ S="${WORKDIR}/${PN}-${MY_P}"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~amd64 ~mips ~x86"
+KEYWORDS="~amd64 ~arm64 ~mips ~x86"
 IUSE="alsa doc ffmpeg +flac id3tag jack +ladspa +lv2 mad ogg oss
 	portmidi +portmixer portsmf sbsms twolame vamp +vorbis +vst"
 
@@ -57,11 +57,14 @@ BDEPEND="app-arch/unzip
 	virtual/pkgconfig
 "
 
+REQUIRED_USE="portmidi? ( portsmf )"
+
 PATCHES=(
 	"${FILESDIR}"/${PN}-2.3.3-Fix-building-against-system-portaudio.patch
 	"${FILESDIR}/${P}-fix-vertical-track-resizing.patch"
 	"${FILESDIR}/${P}-fix-gettimeofday.patch"
 	"${FILESDIR}/${P}-fix-metainfo.patch"
+	"${FILESDIR}/${P}-add-missing-include-portaudio.patch"
 )
 
 src_prepare() {
