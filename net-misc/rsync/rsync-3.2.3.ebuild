@@ -16,7 +16,7 @@ else
 		SRC_DIR="src-previews"
 	else
 		SRC_DIR="src"
-		KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv ~s390 sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+		KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 	fi
 	SRC_URI="https://rsync.samba.org/ftp/rsync/${SRC_DIR}/${P/_/}.tar.gz"
 	S="${WORKDIR}/${P/_/}"
@@ -50,11 +50,6 @@ if [[ "${PV}" == *9999 ]] ; then
 			dev-python/commonmark[${PYTHON_USEDEP}]
 		')"
 fi
-
-PATCHES=(
-	"${FILESDIR}/${P}-allow_bwlimit_0.patch" #731306
-	"${FILESDIR}/${P}-zstd_see_token.patch" #733084
-)
 
 # Only required for live ebuild
 python_check_deps() {

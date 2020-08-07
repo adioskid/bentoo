@@ -67,7 +67,12 @@ PATCHES=(
 	"${FILESDIR}"/050-Makefile-merge-main-version-and-git-version-earlier.patch
 	"${FILESDIR}"/050-dracut.sh-don-t-call-fsfreeze-on-subvol-of-root-file.patch
 	"${FILESDIR}"/050-Makefile-fix-VERSION-again.patch
+	"${FILESDIR}"/050-btrfs-force-preload-btrfs-module.patch
+	"${FILESDIR}"/050-network-manager-ensure-that-nm-run.sh-is-executed-wh.patch
+	"${FILESDIR}"/050-dracut-lib.sh-quote-variables-in-parameter-expansion.patch
 	"${FILESDIR}"/050-busybox-module-fix.patch
+	"${FILESDIR}"/050-systemd-remove-obsolete-syslog-parameter.patch
+	"${FILESDIR}"/050-lvm-fix-removal-of-pvscan-from-udev-rules.patch
 	"${FILESDIR}"/050-gentoo-ldconfig-paths.patch
 )
 
