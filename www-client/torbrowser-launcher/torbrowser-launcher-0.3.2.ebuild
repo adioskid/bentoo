@@ -18,12 +18,11 @@ KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 RDEPEND="${PYTHON_DEPS}
-	$(python_gen_cond_dep \
-	'	app-crypt/gpgme[python,${PYTHON_MULTI_USEDEP}]
-		dev-python/PyQt5[${PYTHON_MULTI_USEDEP}]
-		dev-python/PySocks[${PYTHON_MULTI_USEDEP}]
-		dev-python/requests[${PYTHON_MULTI_USEDEP}]
-	' python3*)"
+	app-crypt/gpgme
+	dev-python/PyQt5
+	dev-python/PySocks
+	dev-python/requests
+	"
 DEPEND="${PYTHON_DEPS}"
 
 python_install_all() {
