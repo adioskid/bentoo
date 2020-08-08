@@ -29,8 +29,6 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
-PATCHES=( "${FILESDIR}/${P}-fix-vtable.patch" )
-
 src_test() {
 	# requires virtual dbus #630672
 	local myctestargs=(
