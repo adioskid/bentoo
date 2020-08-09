@@ -211,11 +211,6 @@ pkg_postinst() {
 		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/early_ucode.cpio//g' || die
 	fi
 
-
-	
-
-
-
 	ewarn "That package installed the current version of Bentoo kernel binary."
 
 	elog "The new kernel was updated on grub boot menu."
