@@ -7,7 +7,7 @@ inherit alternatives flag-o-matic toolchain-funcs multilib multiprocessing
 
 PATCH_VER=1
 CROSS_VER=1.3.4
-PATCH_BASE="perl-5.32.0-patches-${PATCH_VER}"
+PATCH_BASE="perl-5.30.3-patches-${PATCH_VER}"
 PATCH_DEV=kentnl
 
 DIST_AUTHOR=XSAWYERX
@@ -15,7 +15,7 @@ DIST_AUTHOR=XSAWYERX
 # Greatest first, don't include yourself
 # Devel point-releases are not ABI-intercompatible, but stable point releases are
 # BIN_OLDVERSEN is contains only C-ABI-intercompatible versions
-PERL_BIN_OLDVERSEN=""
+PERL_BIN_OLDVERSEN="5.30.0 5.30.1 5.30.2"
 
 if [[ "${PV##*.}" == "9999" ]]; then
 	DIST_VERSION=5.30.0
@@ -80,21 +80,20 @@ PDEPEND="
 S="${WORKDIR}/${MY_P}"
 
 dual_scripts() {
-	src_remove_dual      perl-core/Archive-Tar        2.360.0       ptar ptardiff ptargrep
-	src_remove_dual      perl-core/CPAN               2.270.0       cpan
+	src_remove_dual      perl-core/Archive-Tar        2.320.0       ptar ptardiff ptargrep
+	src_remove_dual      perl-core/CPAN               2.220.0       cpan
 	src_remove_dual      perl-core/Digest-SHA         6.20.0        shasum
-	src_remove_dual      perl-core/Encode             3.60.0        enc2xs piconv
-	src_remove_dual      perl-core/ExtUtils-MakeMaker 7.440.0       instmodsh
+	src_remove_dual      perl-core/Encode             3.10.0        enc2xs piconv
+	src_remove_dual      perl-core/ExtUtils-MakeMaker 7.340.0       instmodsh
 	src_remove_dual      perl-core/ExtUtils-ParseXS   3.400.0       xsubpp
-	src_remove_dual      perl-core/IO-Compress        2.93.0        zipdetails
-	src_remove_dual      perl-core/JSON-PP            4.40.0        json_pp
-	src_remove_dual      perl-core/Module-CoreList    5.202.6.20    corelist
-	src_remove_dual      perl-core/Pod-Checker        1.730.0       podchecker
+	src_remove_dual      perl-core/IO-Compress        2.84.0        zipdetails
+	src_remove_dual      perl-core/JSON-PP            4.20.0        json_pp
+	src_remove_dual      perl-core/Module-CoreList    5.202.6.13.0_rc corelist
+	src_remove_dual      perl-core/Pod-Parser         1.630.0       pod2usage podchecker podselect
 	src_remove_dual      perl-core/Pod-Perldoc        3.280.100     perldoc
-	src_remove_dual      perl-core/Pod-Usage          1.690.0       pod2usage
 	src_remove_dual      perl-core/Test-Harness       3.420.0       prove
-	src_remove_dual      perl-core/podlators          4.140.0       pod2man pod2text
-	src_remove_dual_man  perl-core/podlators          4.140.0       /usr/share/man/man1/perlpodstyle.1
+	src_remove_dual      perl-core/podlators          4.110.0       pod2man pod2text
+	src_remove_dual_man  perl-core/podlators          4.110.0       /usr/share/man/man1/perlpodstyle.1
 }
 
 check_rebuild() {
@@ -619,6 +618,14 @@ src_configure() {
 	# using c89 mode as injected by cflags.SH
 	[[ ${CHOST} == *-darwin* && ${CHOST##*darwin} -le 9 ]] && tc-is-gcc && \
 		append-cflags -Dinline=__inline__
+
+	# fix unaligned access misdetection
+	# https://rt.perl.org/Public/Bug/Display.html?id=133495
+	# https://rt.perl.org/Public/Bug/Display.html?id=133803
+	# bug #676062, bug #688432
+	use hppa || use sparc || [[ ${CHOST} == sparc*-solaris* ]] || \
+		[[ ${CHOST} == armv5tel* ]] \
+			&& myconf "-Dd_u32align='define'"
 
 	# Prefix: the host system needs not to follow Gentoo multilib stuff, and in
 	# Prefix itself we don't do multilib either, so make sure perl can find
