@@ -5,13 +5,14 @@ EAPI="7"
 inherit toolchain-funcs multilib-minimal
 
 # To create a new testdata tarball:
-# 1. Unpack source tarbll or checkout git tag
-# 2. export LIBVPX_TEST_DATA_PATH=libvpx-testdata
-# 3. configure --enable-unit-tests --enable-vp9-highbitdepth
-# 4. make testdata
-# 5. tar -cjf libvpx-testdata-${MY_PV}.tar.xz libvpx-testdata
+# 1. Unpack source tarball or checkout git tag
+# 2. mkdir libvpx-testdata
+# 3. export LIBVPX_TEST_DATA_PATH=libvpx-testdata
+# 4. configure --enable-unit-tests --enable-vp9-highbitdepth
+# 5. make testdata
+# 6. tar -caf libvpx-testdata-${MY_PV}.tar.xz libvpx-testdata
 
-LIBVPX_TESTDATA_VER=1.8.2
+LIBVPX_TESTDATA_VER=1.9.0
 
 DESCRIPTION="WebM VP8 and VP9 Codec SDK"
 HOMEPAGE="https://www.webmproject.org"
