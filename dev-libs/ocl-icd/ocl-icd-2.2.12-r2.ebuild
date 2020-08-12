@@ -11,16 +11,12 @@ HOMEPAGE="https://github.com/OCL-dev/ocl-icd"
 SRC_URI="https://github.com/OCL-dev/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 LICENSE="BSD-2"
 SLOT="0"
-KEYWORDS="amd64 x86"
+KEYWORDS="~amd64 ~x86"
 
-# Does nothing now but by keeping it here we avoid having to have virtual/opencl
-# handle ebuilds both with and without this flag.
 IUSE="+khronos-headers"
 
 BDEPEND="${RUBY_DEPS}"
-DEPEND="dev-util/opencl-headers"
-RDEPEND="${DEPEND}
-	!app-eselect/eselect-opencl
+RDEPEND="app-eselect/eselect-opencl
 	!dev-libs/opencl-icd-loader"
 
 PATCHES=("${FILESDIR}"/${P}-gcc-10.patch)
@@ -33,9 +29,7 @@ src_prepare() {
 }
 
 multilib_src_configure() {
-	# dev-util/opencl-headers ARE official Khronos Group headers, what this option
-	# does is disable the use of the bundled ones
-	ECONF_SOURCE="${S}" econf --enable-pthread-once --disable-official-khronos-headers
+	ECONF_SOURCE="${S}" econf --enable-pthread-once
 }
 
 multilib_src_install() {
@@ -43,4 +37,19 @@ multilib_src_install() {
 
 	# Drop .la files
 	find "${ED}" -name '*.la' -delete || die
+
+	OCL_DIR="/usr/$(get_libdir)/OpenCL/vendors/ocl-icd"
+	dodir ${OCL_DIR}/{,include}
+
+	# Install vendor library
+	mv -f "${ED}/usr/$(get_libdir)"/libOpenCL* "${ED}${OCL_DIR}" || die "Can't install vendor library"
+
+	# Install vendor headers
+	if use khronos-headers; then
+		cp -r "${S}/khronos-headers/CL" "${ED}${OCL_DIR}/include" || die "Can't install vendor headers"
+	fi
+}
+
+pkg_postinst() {
+	eselect opencl set --use-old ${PN}
 }
