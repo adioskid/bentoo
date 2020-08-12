@@ -10,7 +10,7 @@ inherit eutils systemd flag-o-matic prefix toolchain-funcs \
 	multiprocessing java-pkg-opt-2 cmake
 
 # Patch version
-PATCH_SET="https://dev.gentoo.org/~whissi/dist/${PN}/${PN}-10.4.13-patches-03.tar.xz"
+PATCH_SET="https://dev.gentoo.org/~whissi/dist/${PN}/${PN}-10.4.14-patches-01.tar.xz"
 
 SRC_URI="https://downloads.mariadb.org/interstitial/${P}/source/${P}.tar.gz
 	${PATCH_SET}"
@@ -33,7 +33,7 @@ REQUIRED_USE="jdbc? ( extraengine server !static )
 	?? ( tcmalloc jemalloc )
 	static? ( yassl !pam )"
 
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
 
 # Shorten the path because the socket path length must be shorter than 107 chars
 # and we will run a mysql server during test phase
@@ -577,6 +577,7 @@ src_test() {
 	disabled_tests+=( "main.stat_tables;0;Sporadically failing test" )
 	disabled_tests+=( "main.stat_tables_innodb;0;Sporadically failing test" )
 	disabled_tests+=( "mariabackup.*;0;Broken test suite" )
+	disabled_tests+=( "perfschema.nesting;23458;Known to be broken" )
 	disabled_tests+=( "plugins.auth_ed25519;0;Needs client libraries built" )
 	disabled_tests+=( "plugins.cracklib_password_check;0;False positive due to varying policies" )
 	disabled_tests+=( "plugins.two_password_validations;0;False positive due to varying policies" )
@@ -904,15 +905,16 @@ pkg_config() {
 		read -rsp "    >" pwd1 ; echo
 
 		if [[ -n "${pwd1}" ]] ; then
-
 			einfo "Retype the password"
 			read -rsp "    >" pwd2 ; echo
 
 			if [[ "x$pwd1" != "x$pwd2" ]] ; then
 				die "Passwords are not the same"
 			fi
+
 			MYSQL_ROOT_PASSWORD="${pwd1}"
 		fi
+
 		unset pwd1 pwd2
 	fi
 
@@ -964,7 +966,7 @@ pkg_config() {
 	fi
 	popd &>/dev/null || die
 	[[ -f "${ROOT}/${MY_DATADIR}/mysql/user.frm" ]] \
-	|| die "MySQL databases not installed"
+		|| die "MySQL databases not installed"
 
 	if [[ -z ${sqltmp} && -z ${MYSQL_ROOT_PASSWORD} ]] ; then
 		einfo "Done"
@@ -997,8 +999,9 @@ pkg_config() {
 	done
 	eend $rc
 
-	[[ -S "${socket}" ]] ||
+	if ! [[ -S "${socket}" ]]; then
 		die "Completely failed to start up mysqld with: ${mysqld}"
+	fi
 
 	if [[ -n "${MYSQL_ROOT_PASSWORD}" ]] ; then
 		ebegin "Setting root password"
