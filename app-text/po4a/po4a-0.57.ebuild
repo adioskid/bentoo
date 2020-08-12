@@ -24,6 +24,7 @@ RDEPEND="app-text/opensp
 	dev-perl/Text-WrapI18N
 	dev-perl/Unicode-LineBreak
 	dev-perl/YAML-Tiny
+	dev-perl/Pod-Parser
 	sys-devel/gettext"
 DEPEND="${RDEPEND}
 	app-text/docbook-xml-dtd:4.1.2
