@@ -21,6 +21,7 @@ RDEPEND=">=dev-libs/glib-2.20
 	x11-libs/libXinerama
 	x11-libs/libXrandr
 	x11-libs/libXrender
+	x11-libs/libXres
 	x11-libs/pango
 	>=x11-libs/libwnck-3.14:3
 	>=xfce-base/libxfce4util-4.10:=
