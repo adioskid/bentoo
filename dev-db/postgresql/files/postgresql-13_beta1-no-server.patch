@@ -1,21 +1,22 @@
---- a/contrib/Makefile
-+++ b/contrib/Makefile
-@@ -5,64 +5,10 @@
+diff -Naruw postgresql-13beta1.orig/contrib/Makefile postgresql-13beta1/contrib/Makefile
+--- postgresql-13beta1.orig/contrib/Makefile	2020-05-18 16:09:19.000000000 -0400
++++ postgresql-13beta1/contrib/Makefile	2020-05-22 19:56:42.560113731 -0400
+@@ -5,56 +5,9 @@
  include $(top_builddir)/src/Makefile.global
  
  SUBDIRS = \
 -		adminpack	\
+-		amcheck		\
 -		auth_delay	\
 -		auto_explain	\
+-		bloom		\
 -		btree_gin	\
 -		btree_gist	\
--		chkpass		\
 -		citext		\
 -		cube		\
 -		dblink		\
 -		dict_int	\
 -		dict_xsyn	\
--		dummy_seclabel	\
 -		earthdistance	\
 -		file_fdw	\
 -		fuzzystrmatch	\
@@ -28,35 +29,26 @@
  		oid2name	\
 -		pageinspect	\
 -		passwordcheck	\
--		pg_archivecleanup \
 -		pg_buffercache	\
 -		pg_freespacemap \
 -		pg_prewarm	\
 -		pg_standby	\
 -		pg_stat_statements \
--		pg_test_fsync	\
--		pg_test_timing	\
 -		pg_trgm		\
--		pg_upgrade	\
--		pg_upgrade_support \
- 		pgbench		\
 -		pgcrypto	\
 -		pgrowlocks	\
 -		pgstattuple	\
--		pg_xlogdump	\
+-		pg_visibility	\
 -		postgres_fdw	\
 -		seg		\
 -		spi		\
 -		tablefunc	\
 -		tcn		\
 -		test_decoding	\
--		test_parser	\
--		test_shm_mq	\
--		tsearch2	\
+-		tsm_system_rows \
+-		tsm_system_time \
 -		unaccent	\
--		vacuumlo	\
--		worker_spi
-+		vacuumlo
+ 		vacuumlo
  
 -ifeq ($(with_openssl),yes)
 -SUBDIRS += sslinfo
@@ -66,27 +58,19 @@
  
  ifneq ($(with_uuid),no)
  SUBDIRS += uuid-ossp
---- a/src/backend/Makefile
-+++ b/src/backend/Makefile
-@@ -47,7 +47,7 @@
+diff -Naruw postgresql-13beta1.orig/src/backend/Makefile postgresql-13beta1/src/backend/Makefile
+--- postgresql-13beta1.orig/src/backend/Makefile	2020-05-18 16:09:19.000000000 -0400
++++ postgresql-13beta1/src/backend/Makefile	2020-05-22 19:58:14.403299909 -0400
+@@ -56,7 +56,7 @@
  
  ##########################################################################
  
--all: submake-libpgport submake-schemapg postgres $(POSTGRES_IMP)
-+all: someheaders
+-all: submake-libpgport submake-catalog-headers submake-utils-headers postgres $(POSTGRES_IMP)
++all: generated-headers
  
  ifneq ($(PORTNAME), cygwin)
  ifneq ($(PORTNAME), win32)
-@@ -106,7 +106,7 @@
- endif # aix
- 
- # Update the commonly used headers before building the subdirectories
--$(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/catalog/schemapg.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/errcodes.h $(top_builddir)/src/include/utils/probes.h
-+someheaders $(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/catalog/schemapg.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/errcodes.h $(top_builddir)/src/include/utils/probes.h
- 
- # run this unconditionally to avoid needing to know its dependencies here:
- submake-schemapg:
-@@ -199,23 +199,7 @@
+@@ -195,23 +195,7 @@
  
  ##########################################################################
  
@@ -103,29 +87,44 @@
 -endif
 -	$(MAKE) -C catalog install-data
 -	$(MAKE) -C tsearch install-data
+-	$(MAKE) -C utils install-data
 -	$(INSTALL_DATA) $(srcdir)/libpq/pg_hba.conf.sample '$(DESTDIR)$(datadir)/pg_hba.conf.sample'
 -	$(INSTALL_DATA) $(srcdir)/libpq/pg_ident.conf.sample '$(DESTDIR)$(datadir)/pg_ident.conf.sample'
 -	$(INSTALL_DATA) $(srcdir)/utils/misc/postgresql.conf.sample '$(DESTDIR)$(datadir)/postgresql.conf.sample'
--	$(INSTALL_DATA) $(srcdir)/access/transam/recovery.conf.sample '$(DESTDIR)$(datadir)/recovery.conf.sample'
 +install:
  
- install-bin: postgres $(POSTGRES_IMP) installdirs
- 	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
---- a/src/bin/Makefile
-+++ b/src/bin/Makefile
-@@ -13,8 +13,7 @@
- top_builddir = ../..
+ ifeq ($(with_llvm), yes)
+ install-bin: install-postgres-bitcode
+diff -Naruw postgresql-13beta1.orig/src/bin/Makefile postgresql-13beta1/src/bin/Makefile
+--- postgresql-13beta1.orig/src/bin/Makefile	2020-05-18 16:09:19.000000000 -0400
++++ postgresql-13beta1/src/bin/Makefile	2020-05-22 19:59:11.399875256 -0400
+@@ -14,22 +14,8 @@
  include $(top_builddir)/src/Makefile.global
  
--SUBDIRS = initdb pg_ctl pg_dump \
--	psql scripts pg_config pg_controldata pg_resetxlog pg_basebackup
-+SUBDIRS = pg_dump psql scripts pg_config
+ SUBDIRS = \
+-	initdb \
+-	pg_archivecleanup \
+-	pg_basebackup \
+-	pg_checksums \
+ 	pg_config \
+-	pg_controldata \
+-	pg_ctl \
+ 	pg_dump \
+-	pg_resetwal \
+-	pg_rewind \
+-	pg_test_fsync \
+-	pg_test_timing \
+-	pg_upgrade \
+-	pg_verifybackup \
+-	pg_waldump \
+-	pgbench \
+ 	psql \
+ 	scripts
  
- ifeq ($(PORTNAME), win32)
- SUBDIRS += pgevent
---- a/src/Makefile
-+++ b/src/Makefile
-@@ -15,18 +15,11 @@
+diff -Naruw postgresql-13beta1.orig/src/Makefile postgresql-13beta1/src/Makefile
+--- postgresql-13beta1.orig/src/Makefile	2020-05-18 16:09:19.000000000 -0400
++++ postgresql-13beta1/src/Makefile	2020-05-22 19:59:59.656464613 -0400
+@@ -15,21 +15,12 @@
  SUBDIRS = \
  	common \
  	port \
@@ -136,12 +135,15 @@
  	include \
  	interfaces \
 -	backend/replication/libpqwalreceiver \
+-	backend/replication/pgoutput \
+ 	fe_utils \
  	bin \
 -	pl \
 -	makefiles \
 -	test/regress \
+-	test/isolation \
 -	test/perl
 +	makefiles
  
- # There are too many interdependencies between the subdirectories, so
- # don't attempt parallel make here.
+ ifeq ($(with_llvm), yes)
+ SUBDIRS += backend/jit/llvm

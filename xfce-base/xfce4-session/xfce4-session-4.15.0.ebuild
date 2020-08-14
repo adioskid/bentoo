@@ -11,7 +11,7 @@ SRC_URI="https://archive.xfce.org/src/xfce/${PN}/${PV%.*}/${P}.tar.bz2"
 
 LICENSE="GPL-2+"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~mips ppc ppc64 ~sparc x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux"
 IUSE="nls policykit +xscreensaver"
 
 COMMON_DEPEND="x11-apps/iceauth
@@ -20,8 +20,8 @@ COMMON_DEPEND="x11-apps/iceauth
 	x11-libs/libSM
 	x11-libs/libwnck:3
 	x11-libs/libX11
-	>=xfce-base/libxfce4util-4.12:=
-	>=xfce-base/libxfce4ui-4.12.1:=[gtk3(+)]
+	>=xfce-base/libxfce4util-4.15.2:=
+	>=xfce-base/libxfce4ui-4.15.1:=
 	>=xfce-base/xfconf-4.12:=
 	policykit? ( >=sys-auth/polkit-0.102 )"
 RDEPEND="${COMMON_DEPEND}
