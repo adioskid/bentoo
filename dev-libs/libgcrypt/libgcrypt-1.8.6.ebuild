@@ -11,7 +11,7 @@ SRC_URI="mirror://gnupg/${PN}/${P}.tar.bz2"
 
 LICENSE="LGPL-2.1 MIT"
 SLOT="0/20" # subslot = soname major version
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 arm arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="doc o-flag-munging static-libs"
 
 RDEPEND=">=dev-libs/libgpg-error-1.25[${MULTILIB_USEDEP}]"
@@ -57,7 +57,7 @@ multilib_src_configure() {
 		GPG_ERROR_CONFIG="${EROOT}/usr/bin/${CHOST}-gpg-error-config"
 	)
 	ECONF_SOURCE="${S}" econf "${myeconfargs[@]}" \
-		$("${S}/configure" --help | grep -- '--without-.*-prefix' | sed -e 's/^ *\([^ ]*\) .*/\1/g')
+		$("${S}/configure" --help | grep -o -- '--without-.*-prefix')
 }
 
 multilib_src_compile() {
@@ -72,5 +72,5 @@ multilib_src_install() {
 
 multilib_src_install_all() {
 	default
-	find "${D}" -name '*.la' -delete || die
+	find "${D}" -type f -name '*.la' -delete || die
 }

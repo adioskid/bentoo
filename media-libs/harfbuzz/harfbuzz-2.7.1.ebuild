@@ -5,7 +5,7 @@ EAPI=7
 
 PYTHON_COMPAT=( python3_{6,7,8} )
 
-inherit flag-o-matic libtool meson multilib-minimal python-any-r1 xdg-utils
+inherit flag-o-matic meson multilib-minimal python-any-r1 xdg-utils
 
 DESCRIPTION="An OpenType text shaping engine"
 HOMEPAGE="https://www.freedesktop.org/wiki/Software/HarfBuzz"
@@ -40,6 +40,7 @@ DEPEND="${RDEPEND}
 BDEPEND="
 	virtual/pkgconfig
 	doc? ( dev-util/gtk-doc )
+	introspection? ( dev-util/glib-utils )
 "
 
 pkg_setup() {
@@ -58,11 +59,6 @@ src_prepare() {
 		-e 's:tests/macos.tests::' \
 		test/shaping/data/in-house/Makefile.sources \
 		|| die # bug 726120
-
-	if ! use doc ; then
-		# Taken from shipped autogen.sh script
-		echo "EXTRA_DIST = " > gtk-doc.make
-	fi
 
 	# bug 618772
 	append-cxxflags -std=c++14
@@ -83,7 +79,6 @@ multilib_src_configure() {
 		-Dcoretext="disabled"
 		-Ddocs="$(meson_multilib_native_feature doc)"
 		-Dfontconfig="disabled" #609300
-		#-Dgobject="$(meson_multilib_native_feature introspection)"
 		-Dintrospection="$(meson_multilib_native_feature introspection)"
 		-Dstatic="$(usex static-libs true false)"
 		$(meson_feature glib)

@@ -18,4 +18,5 @@ S="${WORKDIR}"
 src_install() {
 	insinto /usr/share/drivers/windows
 	doins "${DISTDIR}/${PN}-${MY_PV}.iso"
+	dosym "${PN}-${MY_PV}.iso" "/usr/share/drivers/windows/${PN}.iso"
 }

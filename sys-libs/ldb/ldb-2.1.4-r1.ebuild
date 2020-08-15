@@ -37,7 +37,8 @@ DEPEND="dev-libs/libxslt
 	${RDEPEND}
 "
 
-REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )
+REQUIRED_USE="
+	${PYTHON_REQUIRED_USE}
 	test? ( python )"
 
 WAF_BINARY="${S}/buildtools/bin/waf"
@@ -50,6 +51,10 @@ PATCHES=(
 )
 
 pkg_setup() {
+	# Package fails to build with distcc
+	export DISTCC_DISABLE=1
+
+	# waf requires a python interpreter
 	python-single-r1_pkg_setup
 }
 
@@ -97,6 +102,8 @@ multilib_src_install() {
 		docinto html
 		dodoc -r apidocs/html/*
 	fi
+
+	use python && python_optimize #726454
 }
 
 pkg_postinst() {
