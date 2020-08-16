@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_{6,7,8}} )
+PYTHON_COMPAT=( python{2_7,3_{6,7,8,9}} )
 
 inherit flag-o-matic multiprocessing python-r1 toolchain-funcs multilib-minimal
 
@@ -60,8 +60,6 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-1.73-boost-mpi-python-PEP-328.patch
 	# Remove annoying #pragma message
 	"${FILESDIR}"/${PN}-1.73-property-tree-include.patch
-	# https://github.com/boostorg/geometry/issues/721
-	"${FILESDIR}"/${PN}-1.73-geometry-private-inheritance.patch
 )
 
 python_bindings_needed() {
