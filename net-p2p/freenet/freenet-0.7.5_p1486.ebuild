@@ -1,9 +1,8 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
-DATE=20160521
 JAVA_PKG_IUSE="doc source"
 
 inherit eutils java-pkg-2 java-ant-2 multilib systemd user
@@ -34,7 +33,7 @@ CDEPEND="dev-java/bcprov:1.54
 
 DEPEND="
 	app-arch/unzip
-	>=virtual/jdk-1.7
+	>=virtual/jdk-1.8
 	${CDEPEND}
 	test? (
 		dev-java/junit:0
@@ -43,7 +42,7 @@ DEPEND="
 	dev-java/ant-core:0"
 
 RDEPEND="
-	>=virtual/jre-1.7
+	>=virtual/jre-1.8
 	net-libs/nativebiginteger:0
 	${CDEPEND}"
 
