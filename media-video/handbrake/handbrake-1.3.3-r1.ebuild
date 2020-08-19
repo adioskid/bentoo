@@ -75,8 +75,10 @@ RDEPEND="
 
 DEPEND="${RDEPEND}
 	${PYTHON_DEPS}
-	dev-lang/yasm
+	dev-lang/nasm
+	dev-util/cmake
 	dev-util/intltool
+	dev-util/meson
 	sys-devel/automake"
 
 PATCHES=(
@@ -90,8 +92,8 @@ PATCHES=(
 	# Use whichever python is set by portage
 	"${FILESDIR}/${PN}-1.3.0-dont-search-for-python.patch"
 
-	# Fix x265 linkage... again #724650
-	"${FILESDIR}/${PN}-1.3.2-x265-link.patch"
+	# Fix x265 linkage... again again #730034
+	"${FILESDIR}/${PN}-1.3.3-x265-link.patch"
 )
 
 src_prepare() {
