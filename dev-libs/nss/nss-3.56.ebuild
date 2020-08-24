@@ -5,7 +5,7 @@ EAPI=7
 
 inherit eutils flag-o-matic multilib toolchain-funcs multilib-minimal
 
-NSPR_VER="4.26"
+NSPR_VER="4.28"
 RTM_NAME="NSS_${PV//./_}_RTM"
 
 DESCRIPTION="Mozilla's Network Security Services library that implements PKI support"
@@ -15,7 +15,7 @@ SRC_URI="https://archive.mozilla.org/pub/security/nss/releases/${RTM_NAME}/src/$
 
 LICENSE="|| ( MPL-2.0 GPL-2 LGPL-2.1 )"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ~ppc64 s390 sparc x86 ~amd64-linux ~x86-linux ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 IUSE="cacert utils"
 # pkg-config called by nss-config -> virtual/pkgconfig in RDEPEND
 RDEPEND="
@@ -178,7 +178,7 @@ multilib_src_compile() {
 		CPPFLAGS="${myCPPFLAGS}" \
 		XCFLAGS="${CFLAGS} ${CPPFLAGS}" \
 		NSPR_LIB_DIR="${T}/fakedir" \
-		emake -j1 "${makeargs[@]}" -C ${d}
+		emake -j1 "${makeargs[@]}" -C ${d} OS_TEST="$(nssarch)"
 	done
 }
 
