@@ -20,7 +20,7 @@ COMMON_DEPEND=">=dev-lang/perl-5.6
 	>=x11-libs/gtk+-3.22:3
 	>=xfce-base/exo-0.12:=
 	>=xfce-base/libxfce4ui-4.15.3:=
-	>=xfce-base/libxfce4util-4.12:=
+	>=xfce-base/libxfce4util-4.15.2:=
 	>=xfce-base/xfconf-4.12:=
 	exif? ( >=media-libs/libexif-0.6.19:= )
 	introspection? ( dev-libs/gobject-introspection:= )
