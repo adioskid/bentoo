@@ -94,6 +94,7 @@ src_prepare() {
 	cd ../.. || die
 	rm "${WORKDIR}"/firefox/2013_avoid_noinline_on_GCC_with_skcms.patch
 	rm "${WORKDIR}"/firefox/2015_fix_cssparser.patch
+	rm "${WORKDIR}"/firefox/2016_set_CARGO_PROFILE_RELEASE_LTO.patch
 	eapply "${WORKDIR}"/firefox
 	eapply "${WORKDIR}"/spidermonkey-patches
 
