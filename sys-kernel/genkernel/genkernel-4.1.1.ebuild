@@ -23,13 +23,13 @@ VERSION_EXPAT="2.2.9"
 VERSION_E2FSPROGS="1.45.6"
 VERSION_FUSE="2.9.9"
 VERSION_GPG="1.4.23"
-VERSION_HWIDS="20200306"
+VERSION_HWIDS="20200813.1"
 VERSION_ISCSI="2.0.878"
 VERSION_JSON_C="0.13.1"
 VERSION_KMOD="27"
 VERSION_LIBAIO="0.3.112"
 VERSION_LIBGCRYPT="1.8.6"
-VERSION_LIBGPGERROR="1.38"
+VERSION_LIBGPGERROR="1.39"
 VERSION_LVM="2.02.187"
 VERSION_LZO="2.10"
 VERSION_MDADM="4.1"
@@ -39,6 +39,7 @@ VERSION_THIN_PROVISIONING_TOOLS="0.8.5"
 VERSION_UNIONFS_FUSE="2.0"
 VERSION_UTIL_LINUX="2.36"
 VERSION_XFSPROGS="5.7.0"
+VERSION_XZ="5.2.5"
 VERSION_ZLIB="1.2.11"
 VERSION_ZSTD="1.4.5"
 
@@ -72,6 +73,7 @@ COMMON_URI="
 	https://github.com/rpodgorny/unionfs-fuse/archive/v${VERSION_UNIONFS_FUSE}.tar.gz -> unionfs-fuse-${VERSION_UNIONFS_FUSE}.tar.gz
 	https://www.kernel.org/pub/linux/utils/util-linux/v${VERSION_UTIL_LINUX:0:4}/util-linux-${VERSION_UTIL_LINUX}.tar.xz
 	https://www.kernel.org/pub/linux/utils/fs/xfs/xfsprogs/xfsprogs-${VERSION_XFSPROGS}.tar.xz
+	https://tukaani.org/xz/xz-${VERSION_XZ}.tar.gz
 	https://zlib.net/zlib-${VERSION_ZLIB}.tar.gz
 	https://github.com/facebook/zstd/archive/v${VERSION_ZSTD}.tar.gz -> zstd-${VERSION_ZSTD}.tar.gz
 "
@@ -84,7 +86,7 @@ if [[ ${PV} == 9999* ]] ; then
 else
 	SRC_URI="https://dev.gentoo.org/~whissi/dist/genkernel/${P}.tar.xz
 		${COMMON_URI}"
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
 fi
 
 DESCRIPTION="Gentoo automatic kernel building scripts"
@@ -117,8 +119,6 @@ RDEPEND="${DEPEND}
 if [[ ${PV} == 9999* ]]; then
 	DEPEND="${DEPEND} app-text/asciidoc"
 fi
-
-PATCHES=( "${FILESDIR}"/${P}-post-release-fixes.patch )
 
 src_unpack() {
 	if [[ ${PV} == 9999* ]]; then
@@ -179,6 +179,7 @@ src_prepare() {
 		-e "s:VERSION_USERSPACE_RCU:${VERSION_USERSPACE_RCU}:"\
 		-e "s:VERSION_UTIL_LINUX:${VERSION_UTIL_LINUX}:"\
 		-e "s:VERSION_XFSPROGS:${VERSION_XFSPROGS}:"\
+		-e "s:VERSION_XZ:${VERSION_XZ}:"\
 		-e "s:VERSION_ZLIB:${VERSION_ZLIB}:"\
 		-e "s:VERSION_ZSTD:${VERSION_ZSTD}:"\
 		"${S}"/defaults/software.sh \
