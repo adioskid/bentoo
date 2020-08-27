@@ -70,7 +70,7 @@ esac
 # @DESCRIPTION:
 # The relative path till the lang code in the langpack file URI.
 # Defaults to ${MOZ_PV}/linux-i686/xpi/
-: ${MOZ_LANGPACK_PREFIX:="${MOZ_PV}/linux-i686/xpi/"}
+: ${MOZ_LANGPACK_PREFIX:="${MOZ_PV}/linux-x86_64/xpi/"}
 
 # @ECLASS-VARIABLE: MOZ_LANGPACK_SUFFIX
 # @DESCRIPTION:

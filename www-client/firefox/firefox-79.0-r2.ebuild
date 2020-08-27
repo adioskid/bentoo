@@ -35,7 +35,7 @@ MOZ_SRC_URI="${MOZ_HTTP_URI}/${MOZ_PV}/source/${PN}-${MOZ_PV}.source.tar.xz"
 
 if [[ "${PV}" == *_rc* ]]; then
 	MOZ_HTTP_URI="https://archive.mozilla.org/pub/${PN}/candidates/${MOZ_PV}-candidates/build${PV##*_rc}"
-	MOZ_LANGPACK_PREFIX="linux-i686/xpi/"
+	MOZ_LANGPACK_PREFIX="linux-x86_64/xpi/"
 	MOZ_SRC_URI="${MOZ_HTTP_URI}/source/${PN}-${MOZ_PV}.source.tar.xz -> $P.tar.xz"
 fi
 
