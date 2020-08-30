@@ -17,10 +17,9 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~
 IUSE="bzip2 doc ldap nls readline selinux +smartcard ssl tofu tools usb user-socket wks-server"
 
 # Existence of executables is checked during configuration.
-DEPEND="!app-crypt/dirmngr
-	>=dev-libs/libassuan-2.5.0
+DEPEND=">=dev-libs/libassuan-2.5.0
 	>=dev-libs/libgcrypt-1.7.3
-	>=dev-libs/libgpg-error-1.28
+	>=dev-libs/libgpg-error-1.29
 	>=dev-libs/libksba-1.3.4
 	>=dev-libs/npth-1.2
 	>=net-misc/curl-7.10
@@ -51,7 +50,6 @@ DOCS=(
 
 PATCHES=(
 	"${FILESDIR}/${PN}-2.1.20-gpgscm-Use-shorter-socket-path-lengts-to-improve-tes.patch"
-	"${FILESDIR}/${PN}-2.2.20-fix-dirmngr-for-non-ipv6-enabled-hosts.patch"
 )
 
 src_prepare() {

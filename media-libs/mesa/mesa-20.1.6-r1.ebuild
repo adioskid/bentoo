@@ -35,13 +35,8 @@ done
 ALL_SWR_ARCHES="avx avx2 knl skx"
 IUSE_SWR_CPUFLAGS="cpu_flags_x86_avx cpu_flags_x86_avx2 cpu_flags_x86_avx512er cpu_flags_x86_avx512bw"
 
-ALL_GALLIUM_DRIVERS="iris pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d etnaviv imx tegra i915 svga virgl swr swrast"
+ALL_GALLIUM_DRIVERS="iris pl111 radeonsi r300 r600 nouveau freedreno vc4 v3d vivante imx tegra i915 vmware virgl svga swr swrast"
 for card in ${ALL_GALLIUM_DRIVERS% swrast*}; do
-	case "$card" in
-		etnaviv) card="vivante" ;;
-		svga) card="vmware" ;;
-		*) : ;;
-	esac
 	ALL_GALLIUM_CARDS+=" video_cards_gallium-${card}"
 done
 
@@ -141,6 +136,7 @@ REQUIRED_USE="
 RDEPEND="
 	!<x11-base/xorg-server-1.7
 	glvnd? ( >=media-libs/libglvnd-0.2.0 )
+	!media-libs/mesa-gl-headers
 	>=app-eselect/eselect-opengl-1.3.0
 	>=dev-libs/expat-2.1.0-r3:=
 	>=sys-libs/zlib-1.2.8
