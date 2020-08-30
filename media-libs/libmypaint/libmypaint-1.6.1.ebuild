@@ -2,9 +2,10 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{6,7,8} )
 
-inherit autotools python-any-r1 xdg-utils toolchain-funcs
+PYTHON_COMPAT=( python3_{7,8,9} )
+
+inherit autotools python-any-r1 toolchain-funcs xdg-utils
 
 MY_PV=${PV/_beta/-beta.}
 MY_P=${PN}-${MY_PV}
@@ -12,13 +13,20 @@ MY_P=${PN}-${MY_PV}
 DESCRIPTION="Library for making brushstrokes"
 HOMEPAGE="https://github.com/mypaint/libmypaint"
 SRC_URI="https://github.com/mypaint/libmypaint/releases/download/v${MY_PV}/${MY_P}.tar.xz"
+S="${WORKDIR}/${MY_P}"
 
 LICENSE="ISC"
-SLOT="0/$(ver_cut 1-2)"  # https://github.com/mypaint/libmypaint/wiki/Versioning
-KEYWORDS="~alpha amd64 ~arm arm64 ~hppa ~ia64 ~ppc ppc64 ~x86"
+# See https://github.com/mypaint/libmypaint/releases/tag/v1.6.1
+# https://github.com/mypaint/libmypaint/compare/v1.6.0...v1.6.1
+SLOT="0/0.0.0"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~x86"
 IUSE="gegl introspection nls openmp"
 
-CDEPEND="
+BDEPEND="
+	${PYTHON_DEPS}
+	nls? ( dev-util/intltool )
+"
+DEPEND="
 	dev-libs/glib:2
 	dev-libs/json-c:=
 	gegl? (
@@ -28,32 +36,14 @@ CDEPEND="
 	introspection? ( >=dev-libs/gobject-introspection-1.32 )
 	openmp? ( >sys-devel/gcc-5:*[openmp] )
 	nls? ( sys-devel/gettext )
-	"
-DEPEND="${CDEPEND}
-	${PYTHON_DEPS}
-	nls? ( dev-util/intltool )
-	"
-RDEPEND="${CDEPEND}
+"
+RDEPEND="
+	${DEPEND}
 	!<media-gfx/mypaint-1.2.1
-	"
-
-S="${WORKDIR}"/${MY_P}
-
-PATCHES=(
-	"${FILESDIR}"/${PN}-1.4.0-drop-libmypaint-gegl-versioning.patch
-	"${FILESDIR}"/${PN}-1.4.0-gegl-0.4.14.patch
-	"${FILESDIR}"/${PN}-1.4.0-adjust-generation-script-to-be-runnable-in-Py3.patch
-	"${FILESDIR}"/${PN}-1.4.0-drop-python2-requirement-recommendation.patch
-)
-
-src_prepare() {
-	xdg_environment_reset
-	default
-	eautoreconf
-}
+"
 
 src_configure() {
-	tc-ld-disable-gold  # bug 589266
+	tc-ld-disable-gold # bug 589266
 	econf \
 			--disable-debug \
 			--disable-docs \
