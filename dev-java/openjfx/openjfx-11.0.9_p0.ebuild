@@ -74,6 +74,7 @@ PATCHES=(
 	"${FILESDIR}"/11/respect-user-cflags.patch
 	"${FILESDIR}"/11/use-system-swt-jar.patch
 	"${FILESDIR}"/11/wno-error.patch
+	"${FILESDIR}/11/${PV}-version.patch"
 )
 
 S="${WORKDIR}/rt-${MY_PV}"
@@ -125,7 +126,7 @@ pkg_setup() {
 	if has_version --host-root dev-java/openjdk:${SLOT}; then
 		export JAVA_HOME=${EPREFIX}/usr/$(get_libdir)/openjdk-${SLOT}
 		export JDK_HOME="${JAVA_HOME}"
-		export ANT_RESPECT_JAVA_HOME=ture
+		export ANT_RESPECT_JAVA_HOME=true
 
 	else
 		if [[ ${MERGE_TYPE} != "binary" ]]; then
@@ -135,7 +136,7 @@ pkg_setup() {
 			JDK_HOME=${EPREFIX}/opt/${JDK_HOME%-r*}
 			export JDK_HOME
 			export JAVA_HOME="${JDK_HOME}"
-			export ANT_RESPECT_JAVA_HOME=ture
+			export ANT_RESPECT_JAVA_HOME=true
 		fi
 	fi
 }
