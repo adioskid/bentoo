@@ -10,7 +10,7 @@ SRC_URI="https://downloads.xiph.org/releases/vorbis/${P}.tar.xz"
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 IUSE="static-libs test"
 
 RESTRICT="!test? ( test )"
@@ -20,11 +20,6 @@ BDEPEND="virtual/pkgconfig"
 RDEPEND=">=media-libs/libogg-1.3.0[${MULTILIB_USEDEP}]"
 
 DEPEND="${RDEPEND}"
-
-PATCHES=(
-	"${FILESDIR}"/${P}-CVE-2017-14160.patch
-	"${FILESDIR}"/${P}-CVE-2018-10392.patch
-)
 
 src_prepare() {
 	default
@@ -56,5 +51,5 @@ multilib_src_configure() {
 }
 
 multilib_src_install_all() {
-	find "${ED}" -name '*.la' -delete || die
+	find "${ED}" -type f -name '*.la' -delete || die
 }
