@@ -50,7 +50,6 @@ DOCS=(
 
 PATCHES=(
 	"${FILESDIR}/${PN}-2.1.20-gpgscm-Use-shorter-socket-path-lengts-to-improve-tes.patch"
-	"${FILESDIR}/${P}-card-status.patch"
 )
 
 src_prepare() {
@@ -67,7 +66,30 @@ src_prepare() {
 }
 
 src_configure() {
-	local myconf=()
+	local myconf=(
+		$(use_enable bzip2)
+		$(use_enable nls)
+		$(use_enable smartcard scdaemon)
+		$(use_enable ssl gnutls)
+		$(use_enable tofu)
+		$(use smartcard && use_enable usb ccid-driver || echo '--disable-ccid-driver')
+		$(use_enable wks-server wks-tools)
+		$(use_with ldap)
+		$(use_with readline)
+		--with-mailprog=/usr/libexec/sendmail
+		--disable-ntbtls
+		--enable-all-tests
+		--enable-gpg
+		--enable-gpgsm
+		--enable-large-secmem
+		CC_FOR_BUILD="$(tc-getBUILD_CC)"
+		GPG_ERROR_CONFIG="${EROOT}/usr/bin/${CHOST}-gpg-error-config"
+		KSBA_CONFIG="${EROOT}/usr/bin/ksba-config"
+		LIBASSUAN_CONFIG="${EROOT}/usr/bin/libassuan-config"
+		LIBGCRYPT_CONFIG="${EROOT}/usr/bin/${CHOST}-libgcrypt-config"
+		NPTH_CONFIG="${EROOT}/usr/bin/npth-config"
+		$("${S}/configure" --help | grep -o -- '--without-.*-prefix')
+	)
 
 	if use prefix && use usb; then
 		# bug #649598
@@ -98,30 +120,7 @@ src_configure() {
 	# the build where the install guide previously make the user chose the
 	# logger & mta early in the install.
 
-	econf \
-		"${myconf[@]}" \
-		$(use_enable bzip2) \
-		$(use_enable nls) \
-		$(use_enable smartcard scdaemon) \
-		$(use_enable ssl gnutls) \
-		$(use_enable tofu) \
-		$(use smartcard && use_enable usb ccid-driver || echo '--disable-ccid-driver') \
-		$(use_enable wks-server wks-tools) \
-		$(use_with ldap) \
-		$(use_with readline) \
-		--with-mailprog=/usr/libexec/sendmail \
-		--disable-ntbtls \
-		--enable-all-tests \
-		--enable-gpg \
-		--enable-gpgsm \
-		--enable-large-secmem \
-		CC_FOR_BUILD="$(tc-getBUILD_CC)" \
-		GPG_ERROR_CONFIG="${EROOT}/usr/bin/${CHOST}-gpg-error-config" \
-		KSBA_CONFIG="${EROOT}/usr/bin/ksba-config" \
-		LIBASSUAN_CONFIG="${EROOT}/usr/bin/libassuan-config" \
-		LIBGCRYPT_CONFIG="${EROOT}/usr/bin/${CHOST}-libgcrypt-config" \
-		NPTH_CONFIG="${EROOT}/usr/bin/npth-config" \
-		$("${S}/configure" --help | grep -- '--without-.*-prefix' | sed -e 's/^ *\([^ ]*\) .*/\1/g')
+	econf "${myconf[@]}"
 }
 
 src_compile() {
