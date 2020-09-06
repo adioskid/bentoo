@@ -193,9 +193,9 @@ pkg_postinst() {
 	if [ -f "${ROOT}/${grub_cfg}" ];
 	then
 
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${vmlinuz_old}/${vmlinuz_new}/g' || die
+		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i "s/${vmlinuz_old}/${vmlinuz_new}/g" || die
 
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/${initramfs_old}/${initramfs_new}/g' || die
+		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i "s/${initramfs_old}/${initramfs_new}/g" || die
 
 	fi
 	
