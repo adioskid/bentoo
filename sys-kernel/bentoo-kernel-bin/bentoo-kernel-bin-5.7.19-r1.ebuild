@@ -14,7 +14,7 @@ SRC_URI="
 KEYWORDS="amd64"
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+amd +backup clean +initramfs +intel +microcode +nvidia source"
+IUSE="+amd +backup clean +grub +initramfs +intel +microcode +nvidia source"
 
 RESTRICT="splitdebug mirror"
 
@@ -178,37 +178,42 @@ pkg_postinst() {
 
 	elog "A new version of image, initramfs, microcode and modules are installed."
 
+	kernel_version=$(uname -r)
+
 	# configure grub with new kernel replace the older.
-	grub_cfg="boot/grub/grub.cfg"
+	grub_cfg="/boot/grub/grub.cfg"
 
 	# check kernel image.
-	vmlinuz_old="vmlinuz-*-bentoo"
+	vmlinuz_old="vmlinuz-$kernel_version"
 	vmlinuz_new="vmlinuz-${PV}-bentoo"
 
-	initramfs_old="initramfs-*-bentoo"
+	initramfs_old="initramfs-$kernel_version"
 	initramfs_new="initramfs-${PV}-bentoo"
 
 	# change the entry on grub.cfg
 
-	if [ -f "${ROOT}/${grub_cfg}" ];
+	if use grub ;
 	then
+		if [ -f "${ROOT}/$grub_cfg" ];
+		then
 
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i "s/${vmlinuz_old}/${vmlinuz_new}/g" || die
+			sed -i "s/$vmlinuz_old/$vmlinuz_new/g" ${ROOT}/$grub_cfg || die
 
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i "s/${initramfs_old}/${initramfs_new}/g" || die
+			sed -i "s/$initramfs_old/$initramfs_new/g" ${ROOT}/$grub_cfg || die
 
+		fi
 	fi
 	
 	# remove microcode lines if not use.
 	if ! use amd ;
 	then
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/amd-uc.img//g' || die
+		sed -i 's/\/amd-uc.img//g' ${ROOT}/$grub_cfg || die
 	fi
 
 	if ! use intel ;
 	then
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/intel-uc.img//g' || die
-		find ${ROOT}/${grub_cf} -type f -print0 | xargs -0 sed -i 's/\/early_ucode.cpio//g' || die
+		sed -i 's/\/intel-uc.img//g' ${ROOT}/$grub_cfg || die
+		sed -i 's/\/early_ucode.cpio//g' ${ROOT}/$grub_cfg || die
 	fi
 
 	ewarn "That package installed the current version of Bentoo kernel binary."
