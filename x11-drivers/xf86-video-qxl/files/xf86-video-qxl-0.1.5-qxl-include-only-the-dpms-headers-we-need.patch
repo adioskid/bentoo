@@ -1,0 +1,40 @@
+From 52c421c650f8813665b31890df691b31fabc366a Mon Sep 17 00:00:00 2001
+From: Adam Jackson <ajax@redhat.com>
+Date: Wed, 5 Feb 2020 12:55:01 -0500
+Subject: [PATCH] qxl: Include only the dpms headers we need
+
+dpms.h is provided by libXext, but nothing in our configure.ac is
+verifying that we have libXext's headers. Fortunately we only need the
+definitions in dpmsconst.h (which dpms.h included for us), which is in
+xorgproto and thus implied by having an xserver DDK to build against.
+
+And we're even trying to include dpmsconst.h when we think we have it,
+meaning when HAVE_XEXTPROTO_71 is defined, but while many other drivers
+define that macro in their configure.ac, we for no particularly good
+reason do not. Oops. But since xextproto is about ten years old by now
+we can probably just safely include it unconditionally.
+---
+ src/qxl_drmmode.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/src/qxl_drmmode.c b/src/qxl_drmmode.c
+index 8ebc708..337bbd7 100644
+--- a/src/qxl_drmmode.c
++++ b/src/qxl_drmmode.c
+@@ -36,13 +36,7 @@
+ #include "qxl_drmmode.h"
+ #include "X11/Xatom.h"
+ #include "xf86DDC.h"
+-/* DPMS */
+-#ifdef HAVE_XEXTPROTO_71
+ #include <X11/extensions/dpmsconst.h>
+-#else
+-#define DPMS_SERVER
+-#include <X11/extensions/dpms.h>
+-#endif
+ #include <cursorstr.h>
+ 
+ #include "qxl.h"
+-- 
+2.24.1
+

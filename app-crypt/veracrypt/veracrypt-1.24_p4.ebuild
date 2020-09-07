@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-inherit eutils linux-info pax-utils toolchain-funcs wxwidgets
+inherit desktop eapi7-ver linux-info pax-utils toolchain-funcs wxwidgets
 
 MY_PV="$(ver_cut 1-2)-Update$(ver_cut 4)"
 DESCRIPTION="Disk encryption with strong security based on TrueCrypt"
@@ -15,8 +15,8 @@ SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_${MY_PV}.tar.gz ->
 # For this reason, we don't have to worry about their licenses
 LICENSE="Apache-2.0 BSD truecrypt-3.0"
 SLOT="0"
-KEYWORDS="~amd64"
-IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doas doc X"
+KEYWORDS="amd64"
+IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doc X"
 RESTRICT="bindist mirror"
 
 WX_GTK_VER="3.0-gtk3"
@@ -25,8 +25,7 @@ RDEPEND="
 	sys-fs/lvm2
 	sys-fs/fuse:0
 	x11-libs/wxGTK:${WX_GTK_VER}[X?]
-	!doas? ( app-admin/sudo )
-	doas? ( app-admin/doas )
+	app-admin/sudo
 	dev-libs/pkcs11-helper
 "
 DEPEND="

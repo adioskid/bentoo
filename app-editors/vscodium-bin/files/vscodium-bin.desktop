@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=VSCodium
+Comment=Community-driven, freely licensed binary distribution  of Microsoft's Visual Studio Code
+Exec=vscodium-bin --unity-launch %F
+Icon=vscodium-bin
+Type=Application
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=text/plain;inode/directory;
+Actions=new-empty-window;
+Keywords=vscodium;vscodium-bin;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=vscodium-bin --new-window %F
+Icon=vscodium-bin
+

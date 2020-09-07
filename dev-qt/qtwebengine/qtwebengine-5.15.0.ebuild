@@ -8,8 +8,11 @@ inherit multiprocessing python-any-r1 qt5-build
 
 DESCRIPTION="Library for rendering dynamic web content in Qt5 C++ and QML applications"
 
+# patchset based on https://github.com/chromium-ppc64le releases
+SRC_URI+=" ppc64? ( https://dev.gentoo.org/~gyakovlev/distfiles/${PN}-5.15.0-ppc64.tar.xz )"
+
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 fi
 
 IUSE="alsa bindist designer geolocation jumbo-build kerberos pulseaudio +system-ffmpeg +system-icu widgets"
@@ -82,9 +85,14 @@ PATCHES=(
 	"${FILESDIR}/${P}-disable-fatal-warnings.patch" # bug 695446
 	"${FILESDIR}/${PN}-5.14.2-icu67.patch" # bug 720054
 	"${FILESDIR}/${P}-gcc-10.patch" # bug 721876
+	"${FILESDIR}/${P}-bison-3.7-build.patch" # bug 734356
 )
 
 src_prepare() {
+	if use ppc64; then
+		eapply "${WORKDIR}/${PN}-ppc64"
+	fi
+
 	if ! use jumbo-build; then
 		sed -i -e 's|use_jumbo_build=true|use_jumbo_build=false|' \
 			src/buildtools/config/common.pri || die

@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christophe Fergeau <cfergeau@redhat.com>
+Date: Wed, 8 Feb 2017 15:23:56 +0100
+Subject: [PATCH] Xspice: Use print("") instead of print ""
+
+This allows Xspice to run when using python3 instead of python2
+---
+ scripts/Xspice | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/scripts/Xspice b/scripts/Xspice
+index ada99d1..30d10fa 100755
+--- a/scripts/Xspice
++++ b/scripts/Xspice
+@@ -34,7 +34,7 @@ def which(x):
+         candidate = os.path.join(p, x)
+         if os.path.exists(candidate):
+             return candidate
+-    print 'Warning: failed to find executable %s' % x
++    print('Warning: failed to find executable %s' % x)
+     return None
+ 
+ if 'XSPICE_ENABLE_GDB' in os.environ:
+@@ -128,10 +128,10 @@ args, xorg_args = parser.parse_known_args(sys.argv[1:])
+ def agents_new_enough(args):
+     for f in [args.vdagent_exec, args.vdagentd_exec]:
+         if not f:
+-            print 'please specify path to vdagent/vdagentd executables'
++            print('please specify path to vdagent/vdagentd executables')
+             return False
+         if not os.path.exists(f):
+-            print 'error: file not found ', f
++            print('error: file not found ', f)
+             return False
+ 
+     for f in [args.vdagent_exec, args.vdagentd_exec]:
+@@ -169,11 +169,11 @@ def tls_files(args):
+ # and it isn't supplied spice will still abort, and Xorg with it.
+ for key, filename in tls_files(args).items():
+     if not os.path.exists(filename):
+-        print "missing %s - %s does not exist" % (key, filename)
++        print("missing %s - %s does not exist" % (key, filename))
+         sys.exit(1)
+ 
+ def error(msg, exit_code=1):
+-    print "Xspice: %s" % msg
++    print("Xspice: %s" % msg)
+     sys.exit(exit_code)
+ 
+ if not args.xorg:
+@@ -319,7 +319,7 @@ for arg in xorg_args:
+     if arg.startswith(":"):
+         display = arg
+ if not display:
+-    print "Error: missing display on line (i.e. :3)"
++    print("Error: missing display on line (i.e. :3)")
+     raise SystemExit
+ os.environ ['DISPLAY'] = display
+ 
+@@ -343,7 +343,7 @@ time.sleep(2)
+ 
+ retpid,rc = os.waitpid(xorg.pid, os.WNOHANG)
+ if retpid != 0:
+-    print "Error: X server is not running"
++    print("Error: X server is not running")
+ else:
+     if args.vdagent_enabled and args.vdagent_launch:
+         # XXX use systemd --user for this?
+@@ -361,4 +361,4 @@ else:
+         xorg.wait()
+     except KeyboardInterrupt:
+         # Catch Ctrl-C as that is the common way of ending this script
+-        print "Keyboard Interrupt"
++        print("Keyboard Interrupt")

@@ -1,0 +1,48 @@
+From 542fa8305a2e48956add10df8c13d348713aee95 Mon Sep 17 00:00:00 2001
+From: Oliver Henshaw <oliver.henshaw@gmail.com>
+Date: Tue, 29 Nov 2016 15:42:06 +0000
+Subject: [PATCH] Avoid crashing xserver on previous active VT when shutting
+ down this xserver
+
+Need to relinquish the DRM master before the xserver calls VT_SETMODE with
+VT.mode=VT_AUTO. Otherwise no other process may claim the drm master until the
+xserver process exits. This can cause a crash if xf86CloseConsole switches to
+the VT that was active when it was started, and a xserver on the old active VT
+tries to call drmSetMaster.
+
+(Cargo cult drmDropMaster call from qxl_enter_vt_kms and qxl_leave_vt_kms.
+
+I don't think there are potential problems from the driver assuming the xserver
+has ownership of the drm master after qxl_close_screen_kms, but I don't know
+the code at all. Possibly something needs to be done to make sure no more DRM
+events are dispatched after this.
+
+So please look at this with a critical eye.
+
+The "#ifdef XF86_PDEV_SERVER_FD" code path is completely untested.)
+---
+ src/qxl_kms.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/qxl_kms.c b/src/qxl_kms.c
+index c31c62d..5fc27ba 100644
+--- a/src/qxl_kms.c
++++ b/src/qxl_kms.c
+@@ -106,6 +106,15 @@ qxl_close_screen_kms (CLOSE_SCREEN_ARGS_DECL)
+     Bool result;
+ 
+     qxl_drmmode_uevent_fini(pScrn, &qxl->drmmode);
++
++#ifdef XF86_PDEV_SERVER_FD
++    if (!(qxl->platform_dev &&
++         (qxl->platform_dev->flags & XF86_PDEV_SERVER_FD)))
++#endif
++    {
++        drmDropMaster(qxl->drm_fd);
++    }
++
+     pScreen->CloseScreen = qxl->close_screen;
+ 
+     result = pScreen->CloseScreen (CLOSE_SCREEN_ARGS);
+-- 
+2.6.6

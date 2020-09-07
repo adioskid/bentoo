@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6..9} )
 
 inherit llvm prefix python-any-r1 toolchain-funcs
 
@@ -14,16 +14,17 @@ SRC_URI="https://dev.gentoo.org/~mgorny/dist/${P}.tar.xz"
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( MIT BSD )"
 SLOT="0"
 KEYWORDS="amd64 x86"
-IUSE_VIDEO_CARDS="video_cards_nvidia video_cards_gallium-r600 video_cards_radeonsi"
+IUSE_VIDEO_CARDS="video_cards_nvidia video_cards_r600 video_cards_radeonsi"
 IUSE="${IUSE_VIDEO_CARDS}"
 REQUIRED_USE="|| ( ${IUSE_VIDEO_CARDS} )"
 
 BDEPEND="
 	|| (
+		sys-devel/clang:12
+		sys-devel/clang:11
 		sys-devel/clang:10
 		sys-devel/clang:9
 		sys-devel/clang:8
-		sys-devel/clang:7
 	)
 	${PYTHON_DEPS}"
 
@@ -47,7 +48,7 @@ src_configure() {
 	local libclc_targets=()
 
 	use video_cards_nvidia && libclc_targets+=("nvptx--" "nvptx64--" "nvptx--nvidiacl" "nvptx64--nvidiacl")
-	use video_cards_gallium-r600 && libclc_targets+=("r600--")
+	use video_cards_r600 && libclc_targets+=("r600--")
 	use video_cards_radeonsi && libclc_targets+=("amdgcn--" "amdgcn-mesa-mesa3d" "amdgcn--amdhsa")
 
 	[[ ${#libclc_targets[@]} ]] || die "libclc target missing!"

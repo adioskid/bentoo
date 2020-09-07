@@ -20,6 +20,13 @@
 # Additionally, the inherited mount-boot eclass exports pkg_pretend.
 # It also stubs out pkg_preinst and pkg_prerm defined by mount-boot.
 
+# @ECLASS-VARIABLE: KV_LOCALVERSION
+# @DEFAULT_UNSET
+# @DESCRIPTION:
+# A string containing the kernel LOCALVERSION, e.g. '-gentoo'.
+# Needs to be set only when installing binary kernels,
+# kernel-build.eclass obtains it from kernel config.
+
 if [[ ! ${_KERNEL_INSTALL_ECLASS} ]]; then
 
 case "${EAPI:-0}" in
@@ -33,22 +40,15 @@ case "${EAPI:-0}" in
 		;;
 esac
 
-inherit mount-boot
-
-TCL_VER=10.1
-SRC_URI+="
-	test? (
-		amd64? (
-			https://dev.gentoo.org/~mgorny/dist/tinycorelinux-${TCL_VER}-amd64.qcow2
-		)
-		x86? (
-				https://dev.gentoo.org/~mgorny/dist/tinycorelinux-${TCL_VER}-x86.qcow2
-		)
-	)"
+inherit mount-boot toolchain-funcs
 
 SLOT="${PV}"
 IUSE="+initramfs test"
-RESTRICT+=" !test? ( test ) test? ( userpriv )"
+RESTRICT+="
+	!test? ( test )
+	test? ( userpriv )
+	arm? ( test )
+"
 
 # install-DEPEND actually
 # note: we need installkernel with initramfs support!
@@ -61,8 +61,12 @@ RDEPEND="
 BDEPEND="
 	test? (
 		dev-tcltk/expect
+		sys-apps/coreutils
 		sys-kernel/dracut
+		sys-fs/e2fsprogs
 		amd64? ( app-emulation/qemu[qemu_softmmu_targets_x86_64] )
+		arm64? ( app-emulation/qemu[qemu_softmmu_targets_aarch64] )
+		ppc64? ( app-emulation/qemu[qemu_softmmu_targets_ppc64] )
 		x86? ( app-emulation/qemu[qemu_softmmu_targets_i386] )
 	)"
 
@@ -97,6 +101,11 @@ kernel-install_get_image_path() {
 			;;
 		arm)
 			echo arch/arm/boot/zImage
+			;;
+		ppc64)
+			# ./ is required because of ${image_path%/*}
+			# substitutions in the code
+			echo ./vmlinux
 			;;
 		*)
 			die "${FUNCNAME}: unsupported ARCH=${ARCH}"
@@ -188,10 +197,66 @@ kernel-install_get_qemu_arch() {
 		arm64)
 			echo aarch64
 			;;
+		ppc64)
+			echo ppc64
+			;;
 		*)
 			die "${FUNCNAME}: unsupported ARCH=${ARCH}"
 			;;
 	esac
+}
+
+# @FUNCTION: kernel-install_create_init
+# @USAGE: <filename>
+# @DESCRIPTION:
+# Create minimal /sbin/init
+kernel-install_create_init() {
+	debug-print-function ${FUNCNAME} "${@}"
+
+	[[ ${#} -eq 1 ]] || die "${FUNCNAME}: invalid arguments"
+	[[ -z ${1} ]] && die "${FUNCNAME}: empty argument specified"
+
+	local output="${1}"
+	[[ -f ${output} ]] && die "${FUNCNAME}: ${output} already exists"
+
+	cat <<-_EOF_ >"${T}/init.c" || die
+		#include <stdio.h>
+		int main() {
+			printf("Hello, World!\n");
+			return 0;
+		}
+	_EOF_
+
+	$(tc-getBUILD_CC) -Os -static "${T}/init.c" -o "${output}" || die 
+	$(tc-getBUILD_STRIP) "${output}" || die
+}
+
+# @FUNCTION: kernel-install_create_qemu_image
+# @USAGE: <filename>
+# @DESCRIPTION:
+# Create minimal qemu raw image
+kernel-install_create_qemu_image() {
+	debug-print-function ${FUNCNAME} "${@}"
+
+	[[ ${#} -eq 1 ]] || die "${FUNCNAME}: invalid arguments"
+	[[ -z ${1} ]] && die "${FUNCNAME}: empty argument specified"
+
+	local image="${1}"
+	[[ -f ${image} ]] && die "${FUNCNAME}: ${image} already exists"
+
+	local imageroot="${T}/imageroot"
+	[[ -d ${imageroot} ]] && die "${FUNCNAME}: ${imageroot} already exists"
+	mkdir "${imageroot}" || die
+
+	# some layout needed to pass dracut's usable_root() validation
+	mkdir -p "${imageroot}"/{bin,dev,etc,lib,proc,root,sbin,sys} || die
+	touch "${imageroot}/lib/ld-fake.so" || die
+
+	kernel-install_create_init "${imageroot}/sbin/init"
+
+	# image may be smaller if needed
+	truncate -s 4M "${image}" || die
+	mkfs.ext4 -v -d "${imageroot}" -L groot "${image}" || die
 }
 
 # @FUNCTION: kernel-install_test
@@ -216,22 +281,43 @@ kernel-install_test() {
 		--no-hostonly \
 		--kmoddir "${modules}" \
 		"${T}/initrd" "${version}" || die
-	# get a read-write copy of the disk image
-	cp "${DISTDIR}/tinycorelinux-${TCL_VER}-${ARCH}.qcow2" \
-		"${T}/fs.qcow2" || die
+
+	kernel-install_create_qemu_image "${T}/fs.img"
 
 	cd "${T}" || die
+
+	local qemu_extra_args=
+	local qemu_extra_append=
+
+	case ${qemu_arch} in
+		aarch64)
+			qemu_extra_args="-M virt -cpu cortex-a57 -smp 1"
+			qemu_extra_append="console=ttyAMA0"
+			;;
+		i386|x86_64)
+			qemu_extra_args="-cpu max"
+			qemu_extra_append="console=ttyS0,115200n8"
+			;;
+		ppc64)
+			qemu_extra_args="-nodefaults"
+			;;
+		*)
+			:
+			;;
+	esac
+
 	cat > run.sh <<-EOF || die
 		#!/bin/sh
 		exec qemu-system-${qemu_arch} \
-			-m 256M \
-			-display none \
+			${qemu_extra_args} \
+			-m 512M \
+			-nographic \
 			-no-reboot \
 			-kernel '${image}' \
 			-initrd '${T}/initrd' \
 			-serial mon:stdio \
-			-hda '${T}/fs.qcow2' \
-			-append 'root=/dev/sda console=ttyS0,115200n8'
+			-drive file=fs.img,format=raw,index=0,media=disk \
+			-append 'root=LABEL=groot ${qemu_extra_append}'
 	EOF
 	chmod +x run.sh || die
 	# TODO: initramfs does not let core finish starting on some systems,
@@ -240,6 +326,14 @@ kernel-install_test() {
 		set timeout 900
 		spawn ./run.sh
 		expect {
+			"terminating on signal" {
+				send_error "\n* Qemu killed"
+				exit 1
+			}
+			"OS terminated" {
+				send_error "\n* Qemu terminated OS"
+				exit 1
+			}
 			"Kernel panic" {
 				send_error "\n* Kernel panic"
 				exit 1
@@ -248,7 +342,7 @@ kernel-install_test() {
 				send_error "\n* Initramfs failed to start the system"
 				exit 1
 			}
-			"Core 10.1" {
+			"Hello, World!" {
 				send_error "\n* Booted successfully"
 				exit 0
 			}
@@ -258,6 +352,29 @@ kernel-install_test() {
 			}
 		}
 	EOF
+}
+
+# @FUNCTION: kernel-install_pkg_pretend
+# @DESCRIPTION:
+# Check for missing optional dependencies and output warnings.
+kernel-install_pkg_pretend() {
+	debug-print-function ${FUNCNAME} "${@}"
+
+	if ! has_version -d sys-kernel/linux-firmware; then
+		ewarn "sys-kernel/linux-firmware not found installed on your system."
+		ewarn "This package provides various firmware files that may be needed"
+		ewarn "for your hardware to work.  If in doubt, it is recommended"
+		ewarn "to pause or abort the build process and install it before"
+		ewarn "resuming."
+
+		if use initramfs; then
+			elog
+			elog "If you decide to install linux-firmware later, you can rebuild"
+			elog "the initramfs via issuing a command equivalent to:"
+			elog
+			elog "    emerge --config ${CATEGORY}/${PN}"
+		fi
+	fi
 }
 
 # @FUNCTION: kernel-install_src_test
@@ -288,21 +405,22 @@ kernel-install_pkg_postinst() {
 	if [[ -z ${ROOT} ]]; then
 		mount-boot_pkg_preinst
 
+		local ver="${PV}${KV_LOCALVERSION}"
 		local image_path=$(kernel-install_get_image_path)
 		if use initramfs; then
 			# putting it alongside kernel image as 'initrd' makes
 			# kernel-install happier
 			kernel-install_build_initramfs \
-				"${EROOT}/usr/src/linux-${PV}/${image_path%/*}/initrd" \
-				"${PV}"
+				"${EROOT}/usr/src/linux-${ver}/${image_path%/*}/initrd" \
+				"${ver}"
 		fi
 
-		kernel-install_install_kernel "${PV}" \
-			"${EROOT}/usr/src/linux-${PV}/${image_path}" \
-			"${EROOT}/usr/src/linux-${PV}/System.map"
+		kernel-install_install_kernel "${ver}" \
+			"${EROOT}/usr/src/linux-${ver}/${image_path}" \
+			"${EROOT}/usr/src/linux-${ver}/System.map"
 	fi
 
-	kernel-install_update_symlink "${EROOT}/usr/src/linux" "${PV}"
+	kernel-install_update_symlink "${EROOT}/usr/src/linux" "${ver}"
 }
 
 # @FUNCTION: kernel-install_pkg_prerm
@@ -322,15 +440,40 @@ kernel-install_pkg_postrm() {
 	debug-print-function ${FUNCNAME} "${@}"
 
 	if [[ -z ${ROOT} ]] && use initramfs; then
+		local ver="${PV}${KV_LOCALVERSION}"
 		local image_path=$(kernel-install_get_image_path)
 		ebegin "Removing initramfs"
-		rm -f "${EROOT}/usr/src/linux-${PV}/${image_path%/*}/initrd" &&
-			find "${EROOT}/usr/src/linux-${PV}" -depth -type d -empty -delete
+		rm -f "${EROOT}/usr/src/linux-${ver}/${image_path%/*}/initrd" &&
+			find "${EROOT}/usr/src/linux-${ver}" -depth -type d -empty -delete
 		eend ${?}
 	fi
+}
+
+# @FUNCTION: kernel-install_pkg_config
+# @DESCRIPTION:
+# Rebuild the initramfs and reinstall the kernel.
+kernel-install_pkg_config() {
+	[[ -z ${ROOT} ]] || die "ROOT!=/ not supported currently"
+
+	mount-boot_pkg_preinst
+
+	local ver="${PV}${KV_LOCALVERSION}"
+	local image_path=$(kernel-install_get_image_path)
+	if use initramfs; then
+		# putting it alongside kernel image as 'initrd' makes
+		# kernel-install happier
+		kernel-install_build_initramfs \
+			"${EROOT}/usr/src/linux-${ver}/${image_path%/*}/initrd" \
+			"${ver}"
+	fi
+
+	kernel-install_install_kernel "${ver}" \
+		"${EROOT}/usr/src/linux-${ver}/${image_path}" \
+		"${EROOT}/usr/src/linux-${ver}/System.map"
 }
 
 _KERNEL_INSTALL_ECLASS=1
 fi
 
 EXPORT_FUNCTIONS src_test pkg_preinst pkg_postinst pkg_prerm pkg_postrm
+EXPORT_FUNCTIONS pkg_config pkg_pretend

@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dave Airlie <airlied@redhat.com>
+Date: Wed, 8 Mar 2017 10:50:56 +1000
+Subject: [PATCH] qxl: call provider init
+
+This prevents crashes when multiple QXL devices are configured in a VM.
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1428340
+---
+ src/qxl_drmmode.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/qxl_drmmode.c b/src/qxl_drmmode.c
+index 3c288f9..41de92f 100644
+--- a/src/qxl_drmmode.c
++++ b/src/qxl_drmmode.c
+@@ -937,6 +937,9 @@ Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp)
+ 	for (i = 0; i < drmmode->mode_res->count_connectors; i++)
+ 	    drmmode_output_init(pScrn, drmmode, i);
+ 
++#if XF86_CRTC_VERSION >= 5
++	xf86ProviderSetup(pScrn, NULL, "qxl");
++#endif
+ 	xf86InitialConfiguration(pScrn, TRUE);
+ 
+ 	return TRUE;

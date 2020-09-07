@@ -1,17 +1,14 @@
-# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
 DESCRIPTION="Meta package containing deps on all xorg drivers"
-HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
+HOMEPAGE="https://www.gentoo.org/"
 SRC_URI=""
 
 LICENSE="metapackage"
 SLOT="0"
-if [[ ${PV} != 9999 ]]; then
-	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86 ~amd64-linux ~x86-linux"
-fi
+KEYWORDS="*"
 
 IUSE_INPUT_DEVICES="
 	input_devices_elographics
@@ -42,6 +39,7 @@ IUSE_VIDEO_CARDS="
 	video_cards_r128
 	video_cards_radeon
 	video_cards_radeonsi
+	video_cards_gallium-iris
 	video_cards_gallium-radeonsi
 	video_cards_siliconmotion
 	video_cards_tegra
@@ -79,8 +77,7 @@ PDEPEND="
 	video_cards_geode?         ( x11-drivers/xf86-video-geode )
 	video_cards_glint?         ( >=x11-drivers/xf86-video-glint-1.2.9 )
 	video_cards_i915?          ( x11-drivers/xf86-video-intel )
-	video_cards_i965?          ( >=x11-base/xorg-server-${PV}[-minimal] )
-	video_cards_intel?         ( !video_cards_i965? ( >=x11-drivers/xf86-video-intel-2.99.917_p20180214-r1 ) )
+	video_cards_i965?          ( >=x11-base/xorg-server-${PV}[glamor] )
 	video_cards_mga?           ( >=x11-drivers/xf86-video-mga-1.6.5 )
 	video_cards_nouveau?       ( >=x11-drivers/xf86-video-nouveau-1.0.13 )
 	video_cards_nv?            ( >=x11-drivers/xf86-video-nv-2.1.21 )
@@ -97,4 +94,5 @@ PDEPEND="
 	video_cards_via?           ( x11-drivers/xf86-video-openchrome )
 	video_cards_virtualbox?    ( x11-drivers/xf86-video-vboxvideo )
 	video_cards_vmware?        ( >=x11-drivers/xf86-video-vmware-13.3.0 )
+	video_cards_gallium-iris?  ( !x11-drivers/xf86-video-intel )
 "

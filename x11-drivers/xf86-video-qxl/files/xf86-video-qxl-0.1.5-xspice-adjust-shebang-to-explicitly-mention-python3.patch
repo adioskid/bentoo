@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christophe Fergeau <cfergeau@redhat.com>
+Date: Thu, 17 May 2018 15:31:05 +0200
+Subject: [PATCH] Xspice: Adjust shebang to explicitly mention python3
+
+---
+ scripts/Xspice | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/Xspice b/scripts/Xspice
+index 927dcb1..78d0794 100755
+--- a/scripts/Xspice
++++ b/scripts/Xspice
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ 
+ """
+ Xspice
