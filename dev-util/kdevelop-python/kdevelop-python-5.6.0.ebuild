@@ -4,9 +4,10 @@
 EAPI=7
 
 ECM_TEST="forceoptional"
+KDE_ORG_CATEGORY="kdevelop"
 KDE_ORG_NAME="kdev-python"
-PYTHON_COMPAT=( python3_{6,7,8} )
-KFMIN=5.60.0
+PYTHON_COMPAT=( python3_{7,8,9} )
+KFMIN=5.70.0
 QTMIN=5.12.3
 inherit ecm kde.org python-single-r1
 
@@ -14,7 +15,7 @@ DESCRIPTION="Python plugin for KDevelop"
 HOMEPAGE="https://www.kdevelop.org/"
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	KEYWORDS="amd64 x86"
+	KEYWORDS="~amd64 ~x86"
 fi
 
 LICENSE="GPL-2" # TODO: CHECK

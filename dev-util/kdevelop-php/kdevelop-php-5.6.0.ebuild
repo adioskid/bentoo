@@ -6,8 +6,9 @@ EAPI=7
 ECM_HANDBOOK="forceoptional"
 ECM_HANDBOOK_DIR="docs"
 ECM_TEST="true"
+KDE_ORG_CATEGORY="kdevelop"
 KDE_ORG_NAME="kdev-php"
-KFMIN=5.60.0
+KFMIN=5.70.0
 QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
@@ -16,7 +17,7 @@ DESCRIPTION="PHP plugin for KDevelop"
 HOMEPAGE="https://www.kdevelop.org/"
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	KEYWORDS="amd64 x86"
+	KEYWORDS="~amd64 ~x86"
 fi
 
 LICENSE="GPL-2 LGPL-2"

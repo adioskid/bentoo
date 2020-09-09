@@ -5,7 +5,8 @@ EAPI=7
 
 ECM_HANDBOOK="forceoptional"
 ECM_TEST="true"
-KFMIN=5.60.0
+KDE_ORG_CATEGORY="kdevelop"
+KFMIN=5.70.0
 QTMIN=5.12.3
 VIRTUALDBUS_TEST="true"
 VIRTUALX_REQUIRED="test"
@@ -15,12 +16,12 @@ DESCRIPTION="Integrated Development Environment, supporting KF5/Qt, C/C++ and mu
 HOMEPAGE="https://www.kdevelop.org/"
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	KEYWORDS="amd64 ~arm64 x86"
+	KEYWORDS="~amd64 ~arm64 ~x86"
 fi
 
 LICENSE="GPL-2 LGPL-2"
 SLOT="5/55" # look at KDEVELOP_SOVERSION inside CMakeLists.txt
-IUSE="+gdbui hex +plasma +qmake reviewboard subversion webkit"
+IUSE="+gdbui hex +plasma +qmake reviewboard subversion"
 
 COMMON_DEPEND="
 	dev-libs/grantlee:5
@@ -30,6 +31,7 @@ COMMON_DEPEND="
 	>=dev-qt/qthelp-${QTMIN}:5
 	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qttest-${QTMIN}:5
+	>=dev-qt/qtwebengine-${QTMIN}:5[widgets]
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
 	>=dev-util/astyle-3.1:=
@@ -77,8 +79,6 @@ COMMON_DEPEND="
 		dev-libs/apr-util:1
 		dev-vcs/subversion
 	)
-	webkit? ( >=dev-qt/qtwebkit-5.212.0_pre20180120:5 )
-	!webkit? ( >=dev-qt/qtwebengine-${QTMIN}:5[widgets] )
 "
 DEPEND="${COMMON_DEPEND}
 	dev-libs/boost
@@ -105,16 +105,16 @@ src_configure() {
 
 	local mycmakeargs=(
 		-DLLVM_ROOT=${llvm_root}
-		$(cmake_use_find_package gdbui KF5SysGuard)
+		$(cmake_use_find_package gdbui KSysGuard)
 		-DBUILD_executeplasmoid=$(usex plasma)
 		$(cmake_use_find_package plasma KF5Plasma)
 		$(cmake_use_find_package hex OktetaKastenControllers)
 		$(cmake_use_find_package qmake KDevelop-PG-Qt)
 		$(cmake_use_find_package reviewboard KF5Purpose)
 		$(cmake_use_find_package subversion SubversionLibrary)
-		$(cmake_use_find_package !webkit Qt5WebEngineWidgets)
 	)
 
+	use gdbui || mycmakeargs+=( -DCMAKE_DISABLE_FIND_PACKAGE_KF5SysGuard=ON )
 	use reviewboard || mycmakeargs+=( -DCMAKE_DISABLE_FIND_PACKAGE_KDEExperimentalPurpose=ON )
 
 	ecm_src_configure
