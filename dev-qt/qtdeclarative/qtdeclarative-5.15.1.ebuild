@@ -29,7 +29,6 @@ RDEPEND="${DEPEND}
 
 PATCHES=(
 	"${FILESDIR}/${PN}-5.14.2-QQuickItemView-fix-maxXY-extent.patch" # QTBUG-83890
-	"${FILESDIR}/${PN}-5.14.2-fix-subpixel-positioned-text.patch" # QTBUG-49646
 )
 
 src_prepare() {

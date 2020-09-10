@@ -11,7 +11,7 @@ if [[ ${QT5_BUILD_TYPE} == release ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
-IUSE="bindist connman gssapi libproxy libressl networkmanager sctp +ssl"
+IUSE="bindist connman gssapi libproxy networkmanager sctp +ssl"
 
 DEPEND="
 	~dev-qt/qtcore-${PV}:5=
@@ -21,10 +21,7 @@ DEPEND="
 	libproxy? ( net-libs/libproxy )
 	networkmanager? ( ~dev-qt/qtdbus-${PV} )
 	sctp? ( kernel_linux? ( net-misc/lksctp-tools ) )
-	ssl? (
-		!libressl? ( dev-libs/openssl:0=[bindist=] )
-		libressl? ( dev-libs/libressl:0= )
-	)
+	ssl? ( dev-libs/openssl:0=[bindist=] )
 "
 RDEPEND="${DEPEND}
 	connman? ( net-misc/connman )
@@ -47,7 +44,7 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 	:network
 )
 
-PATCHES=( "${FILESDIR}"/${PN}-5.15.0-libressl.patch ) # Bug 562050, not upstreamable
+PATCHES=( "${FILESDIR}"/${P}-libressl.patch ) # Bug 562050, not upstreamable
 
 pkg_setup() {
 	use connman && QT5_TARGET_SUBDIRS+=(src/plugins/bearer/connman)

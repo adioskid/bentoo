@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 inherit qt5-build
 
 DESCRIPTION="Qt module for keyframe-based timeline construction"
@@ -13,7 +14,5 @@ fi
 DEPEND="
 	~dev-qt/qtcore-${PV}
 	~dev-qt/qtdeclarative-${PV}
-	~dev-qt/qtgui-${PV}
 "
-
 RDEPEND="${DEPEND}"
