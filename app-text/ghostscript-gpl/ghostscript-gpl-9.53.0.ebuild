@@ -13,7 +13,7 @@ MY_P="${MY_PN}-${PV/_}"
 PVM=$(ver_cut 1-2)
 PVM_S=$(ver_rs 1-2 "")
 
-MY_PATCHSET="ghostscript-gpl-9.52-patchset-01.tar.xz"
+MY_PATCHSET="ghostscript-gpl-9.53-patchset-01.tar.xz"
 
 SRC_URI="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${PVM_S}/${MY_P}.tar.xz"
 
@@ -23,8 +23,8 @@ fi
 
 LICENSE="AGPL-3 CPL-1.0"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 s390 sparc x86"
-IUSE="cups dbus gtk l10n_de static-libs tiff unicode X"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86"
+IUSE="cups dbus gtk l10n_de static-libs unicode X"
 
 LANGS="ja ko zh-CN zh-TW"
 for X in ${LANGS} ; do
@@ -35,17 +35,17 @@ DEPEND="
 	app-text/libpaper
 	media-libs/fontconfig
 	>=media-libs/freetype-2.4.9:2=
-	>=media-libs/jbig2dec-0.16:=
+	>=media-libs/jbig2dec-0.19:=
 	>=media-libs/lcms-2.6:2
 	>=media-libs/libpng-1.6.2:0=
 	>=media-libs/openjpeg-2.1.0:2=
+	>=media-libs/tiff-4.0.1:0=
 	>=sys-libs/zlib-1.2.7
 	virtual/jpeg:0
 	cups? ( >=net-print/cups-1.3.8 )
 	dbus? ( sys-apps/dbus )
 	gtk? ( || ( x11-libs/gtk+:3 x11-libs/gtk+:2 ) )
 	unicode? ( net-dns/libidn:0= )
-	tiff? ( >=media-libs/tiff-4.0.1:0= )
 	X? ( x11-libs/libXt x11-libs/libXext )
 "
 BDEPEND="virtual/pkgconfig"
@@ -144,13 +144,13 @@ src_configure() {
 		--with-ijs \
 		--with-jbig2dec \
 		--with-libpaper \
+		--with-system-libtiff \
 		--without-luratech \
 		$(use_enable cups) \
 		$(use_enable dbus) \
 		$(use_enable gtk) \
 		$(use_with cups pdftoraster) \
 		$(use_with unicode libidn) \
-		$(use_with tiff system-libtiff) \
 		$(use_with X x)
 
 	cd "${S}/ijs" || die
@@ -175,9 +175,6 @@ src_install() {
 
 	cd "${S}/ijs" || die
 	emake DESTDIR="${D}" install
-
-	# rename the original cidfmap to cidfmap.GS
-	mv "${ED}/usr/share/ghostscript/${PVM}/Resource/Init/cidfmap"{,.GS} || die
 
 	# install the CMaps from poppler-data properly, bug #409361
 	dosym ../../../poppler/cMaps "/usr/share/ghostscript/${PVM}/Resource/CMap"
