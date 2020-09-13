@@ -69,11 +69,6 @@ DEPEND="${RDEPEND}
 	virtual/pkgconfig
 	doc? ( app-doc/doxygen[dot] )"
 
-PATCHES=(
-	"${FILESDIR}/${P}-fix-no-nls.patch"
-	"${FILESDIR}/${P}-use-signed-int-for-atomic-operations.patch"
-)
-
 pkg_pretend() {
 	[[ $(tc-getLD) == *gold* ]] && (has_version sci-libs/fftw[openmp] || has_version sci-libs/fftw[threads]) && \
 		ewarn "Linking with gold linker might produce broken executable, see bug #733972"

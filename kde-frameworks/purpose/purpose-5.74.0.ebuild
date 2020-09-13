@@ -7,12 +7,12 @@ ECM_QTHELP="false"
 ECM_TEST="forceoptional"
 PVCUT=$(ver_cut 1-2)
 QTMIN=5.14.2
-inherit ecm kde.org
+inherit ecm kde.org optfeature xdg-utils
 
 DESCRIPTION="Library for providing abstractions to get the developer's purposes fulfilled"
 LICENSE="LGPL-2.1+"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
-IUSE="+dolphin +kaccounts"
+IUSE="bluetooth +dolphin +kaccounts"
 
 DEPEND="
 	>=dev-qt/qtdeclarative-${QTMIN}:5
@@ -33,11 +33,17 @@ RDEPEND="${DEPEND}
 	>=dev-qt/qtquickcontrols-${QTMIN}:5
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
 	>=kde-frameworks/kdeclarative-${PVCUT}:5
+	bluetooth? ( =kde-frameworks/bluez-qt-${PVCUT}*:5 )
 	kaccounts? ( net-libs/accounts-qml )
 "
 
 # requires running environment
 RESTRICT+=" test"
+
+src_prepare() {
+	ecm_src_prepare
+	cmake_run_in src/plugins cmake_comment_add_subdirectory bluetooth
+}
 
 src_configure() {
 	local mycmakeargs=(
@@ -48,11 +54,15 @@ src_configure() {
 	ecm_src_configure
 }
 
-pkg_postinst(){
-	ecm_pkg_postinst
-
-	if ! has_version "kde-misc/kdeconnect[app]" ; then
-		elog "Optional runtime dependency:"
-		elog "kde-misc/kdeconnect[app] (send through KDE Connect)"
+pkg_postinst() {
+	if [[ -z "${REPLACING_VERSIONS}" ]]; then
+		elog "Optional dependencies:"
+		optfeature "Send through KDE Connect" kde-misc/kdeconnect
 	fi
+	ecm_pkg_postinst
+	xdg_icon_cache_update
+}
+
+pkg_postrm() {
+	xdg_icon_cache_update
 }
