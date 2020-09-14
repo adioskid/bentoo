@@ -50,13 +50,13 @@ src_configure() {
 	fi
 
 	local emesonargs=(
+		-Dbash-completion=$(usex bash-completion enabled disabled)
 		-Dintrospection=$(usex introspection enabled disabled)
 		-Dlibunwind=$(usex unwind enabled disabled)
 		-Dlibdw=$(usex unwind enabled disabled)
 		-Dnls=$(usex nls auto false)
 		-Dtests=$(usex test enabled disabled)
 		-Dvalgrind=$(usex valgrind auto false)
-		$(meson_feature bash-completion enabled disabled)
 	)
 
 	if use caps ; then
