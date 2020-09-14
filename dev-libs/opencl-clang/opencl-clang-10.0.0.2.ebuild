@@ -4,6 +4,7 @@
 EAPI=7
 
 CMAKE_ECLASS=cmake
+
 inherit cmake-multilib llvm
 
 MY_PV="$(ver_rs 3 -)"
@@ -21,7 +22,7 @@ S="${WORKDIR}/${MY_P}"
 
 COMMON="sys-devel/clang:10=[static-analyzer,${MULTILIB_USEDEP}]"
 DEPEND="${COMMON}
-	dev-util/spirv-llvm-translator:10=[${MULTILIB_USEDEP}]"
+	>=dev-util/spirv-llvm-translator-10.0.0_p20200909:10=[${MULTILIB_USEDEP}]"
 RDEPEND="${COMMON}"
 
 LLVM_MAX_SLOT=10

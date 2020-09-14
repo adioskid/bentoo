@@ -12,7 +12,7 @@ SRC_URI="https://github.com/mltframework/${PN}/releases/download/v${PV}/${P}.tar
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64 arm64 ~ppc64 x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 IUSE="compressed-lumas cpu_flags_x86_mmx cpu_flags_x86_sse cpu_flags_x86_sse2 debug ffmpeg
 fftw frei0r gtk jack kdenlive kernel_linux libsamplerate lua melt opencv opengl python
 qt5 rtaudio sdl vdpau vidstab xine xml"
@@ -80,18 +80,10 @@ DEPEND="
 #	tcl? ( dev-lang/tcl:0= )
 RDEPEND="${DEPEND}"
 
-DOCS=( AUTHORS ChangeLog NEWS README docs/{framework,melt,mlt{++,-xml}}.txt )
+DOCS=( AUTHORS NEWS README docs/{framework,melt,mlt{++,-xml}}.txt )
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-6.10.0-swig-underlinking.patch
-	"${FILESDIR}"/${P}-qt-5.15.patch
-	"${FILESDIR}"/${P}-no-gtk2.patch
-	"${FILESDIR}"/${P}-opencv4.patch
-	"${FILESDIR}"/${P}-nullpointer-crash.patch
-	"${FILESDIR}"/${P}-crash-w-unsupported-preview-scale.patch
-	"${FILESDIR}"/${P}-crash-in-composite.patch
-	"${FILESDIR}"/${P}-opencv-double-del-crash.patch
-	"${FILESDIR}"/${P}-musl-locale.patch # from Alpine, pending upstream
 )
 
 pkg_setup() {
