@@ -1,7 +1,7 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 inherit bash-completion-r1 meson pax-utils
 
@@ -12,7 +12,7 @@ SRC_URI="https://${PN}.freedesktop.org/src/${PN}/${P}.tar.xz"
 LICENSE="LGPL-2+"
 SLOT="1.0"
 KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 ~sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
-IUSE="+caps +introspection nls +orc test unwind valgrind"
+IUSE="bash-completion +caps +introspection nls +orc test unwind valgrind"
 RESTRICT="!test? ( test )"
 
 RDEPEND="
@@ -49,21 +49,26 @@ src_configure() {
 		export gst_cv_uint128_t=no
 	fi
 
-	local completiondir=$(get_bashcompdir)
-
 	local emesonargs=(
+		-Dintrospection=$(usex introspection enabled disabled)
 		-Dlibunwind=$(usex unwind enabled disabled)
 		-Dlibdw=$(usex unwind enabled disabled)
+		-Dnls=$(usex nls auto false)
 		-Dtests=$(usex test enabled disabled)
 		-Dvalgrind=$(usex valgrind auto false)
-		$(meson_use introspection enabled)
-		$(meson_use nls auto)
-		#$(meson_use check enabled)
-		#$(meson_use benchmarks disabled)
-		#$(meson_use gst_debug disabled)
-		#$(meson_use examples disabled)
-		
+		$(meson_feature bash-completion enabled disabled)
 	)
+
+	if use caps ; then
+		myconf+=( --with-ptp-helper-permissions=capabilities )
+	else
+		myconf+=(
+			--with-ptp-helper-permissions=setuid-root
+			--with-ptp-helper-setuid-user=nobody
+			--with-ptp-helper-setuid-group=nobody
+		)
+	fi
+
   meson_src_configure
 }
 
@@ -73,8 +78,16 @@ src_compile() {
 
 src_install() {
 	meson_src_install
+	
+	# Needed for orc-using gst plugins on hardened/PaX systems, bug #421579
+	use orc && pax-mark -m "${ED}usr/$(get_libdir)/gstreamer-${SLOT}/gst-plugin-scanner"
 }
 
 multilib_src_install_all() {
+	DOCS="AUTHORS ChangeLog NEWS MAINTAINERS README RELEASE"
 	einstalldocs
+	find "${ED}" -name '*.la' -delete || die
+
+	# Needed for orc-using gst plugins on hardened/PaX systems, bug #421579
+	use orc && pax-mark -m "${ED}usr/bin/gst-launch-${SLOT}"
 }
