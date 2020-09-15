@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -11,12 +11,12 @@ SRC_URI="https://i3wm.org/downloads/${P}.tar.bz2"
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="doc debug test"
 
 CDEPEND="dev-libs/libev
 	dev-libs/libpcre
-	>=dev-libs/yajl-2.0.3
+	dev-libs/yajl
 	x11-libs/libxcb[xkb]
 	x11-libs/libxkbcommon[X]
 	x11-libs/startup-notification
@@ -26,19 +26,20 @@ CDEPEND="dev-libs/libev
 	x11-libs/xcb-util-wm
 	x11-libs/xcb-util-xrm
 	x11-misc/xkeyboard-config
-	>=x11-libs/cairo-1.14.4[X,xcb]
-	>=x11-libs/pango-1.30.0[X]"
+	x11-libs/cairo[X,xcb(+)]
+	x11-libs/pango[X]"
 DEPEND="${CDEPEND}
 	test? (
 		dev-perl/AnyEvent
-		>=dev-perl/X11-XCB-0.120.0
+		dev-perl/X11-XCB
 		dev-perl/Inline
 		dev-perl/Inline-C
 		dev-perl/IPC-Run
 		dev-perl/ExtUtils-PkgConfig
 		dev-perl/local-lib
-		>=virtual/perl-Test-Simple-0.940.0
+		virtual/perl-Test-Simple
 		x11-base/xorg-server[xephyr]
+		x11-misc/xvfb-run
 	)"
 RDEPEND="${CDEPEND}
 	dev-lang/perl
@@ -76,15 +77,7 @@ my_src_configure() {
 }
 
 my_src_test() {
-	emake \
-		test.commands_parser \
-		test.config_parser \
-		test.inject_randr15
-
-	virtx perl \
-		-I "${S}/testcases/lib" \
-		-I "${BUILD_DIR}/testcases/lib" \
-		testcases/complete-run.pl
+	emake check
 }
 
 my_src_install_all() {
