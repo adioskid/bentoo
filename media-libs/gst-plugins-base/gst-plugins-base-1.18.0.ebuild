@@ -90,10 +90,6 @@ DEPEND="${RDEPEND}
 	X? ( x11-base/xorg-proto )
 "
 
-PATCHES=(
-	"${FILESDIR}"/${PN}-1.16.2-make43.patch # remove when bumping and switching to Meson
-)
-
 src_prepare() {
 	# Disable GL tests for now; prone to fail with EGL_NOT_INITIALIZED, etc
 	sed -i -e '/^@USE_GL_TRUE@/d' tests/check/Makefile.in
