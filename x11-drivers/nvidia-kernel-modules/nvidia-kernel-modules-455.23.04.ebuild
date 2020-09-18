@@ -22,7 +22,7 @@ elif [ ${PV%%.*} -ge 331 ] ; then
 fi
 
 DEPEND="
-	=x11-drivers/nvidia-drivers-${PV}*
+	x11-drivers/nvidia-drivers
 	kernel_linux? ( virtual/linux-sources )
 "
 NVDRIVERS_DIR="${EPREFIX}/opt/nvidia/nvidia-drivers-${PV}"
