@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 inherit fcaps flag-o-matic multilib python-any-r1 qmake-utils user xdg-utils cmake
 
 DESCRIPTION="A network protocol analyzer formerly known as ethereal"
@@ -11,13 +11,13 @@ SRC_URI="https://www.wireshark.org/download/src/all-versions/${P/_/}.tar.xz"
 LICENSE="GPL-2"
 
 SLOT="0/${PV}"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc64 ~x86"
 IUSE="
 	androiddump bcg729 brotli +capinfos +captype ciscodump +dftest doc dpauxmon
-	+dumpcap +editcap http2 kerberos libxml2 lua lz4 maxminddb +mergecap
-	+minizip +netlink +plugins plugin-ifdemo +pcap +qt5 +randpkt +randpktdump
-	+reordercap sbc selinux +sharkd smi snappy spandsp sshdump ssl sdjournal
-	test +text2pcap tfshark +tshark +udpdump zlib +zstd
+	+dumpcap +editcap http2 ilbc kerberos libxml2 lto lua lz4 maxminddb
+	+mergecap +minizip +netlink +plugins plugin-ifdemo +pcap +qt5 +randpkt
+	+randpktdump +reordercap sbc selinux +sharkd smi snappy spandsp sshdump ssl
+	sdjournal test +text2pcap tfshark +tshark +udpdump zlib +zstd
 "
 S=${WORKDIR}/${P/_/}
 
@@ -30,6 +30,7 @@ CDEPEND="
 	ciscodump? ( >=net-libs/libssh-0.6 )
 	filecaps? ( sys-libs/libcap )
 	http2? ( net-libs/nghttp2 )
+	ilbc? ( media-libs/libilbc )
 	kerberos? ( virtual/krb5 )
 	libxml2? ( dev-libs/libxml2 )
 	lua? ( >=dev-lang/lua-5.1:* )
@@ -89,11 +90,7 @@ REQUIRED_USE="
 "
 RESTRICT="test"
 PATCHES=(
-	"${FILESDIR}"/${PN}-2.4-androiddump.patch
 	"${FILESDIR}"/${PN}-2.6.0-redhat.patch
-	"${FILESDIR}"/${PN}-2.9.0-tfshark-libm.patch
-	"${FILESDIR}"/${PN}-99999999-androiddump-wsutil.patch
-	"${FILESDIR}"/${PN}-99999999-qtsvg.patch
 	"${FILESDIR}"/${PN}-99999999-ui-needs-wiretap.patch
 )
 
@@ -157,8 +154,10 @@ src_configure() {
 		-DENABLE_BROTLI=$(usex brotli)
 		-DENABLE_CAP=$(usex filecaps caps)
 		-DENABLE_GNUTLS=$(usex ssl)
+		-DENABLE_ILBC=$(usex ilbc)
 		-DENABLE_KERBEROS=$(usex kerberos)
 		-DENABLE_LIBXML2=$(usex libxml2)
+		-DENABLE_LTO=$(usex lto)
 		-DENABLE_LUA=$(usex lua)
 		-DENABLE_LZ4=$(usex lz4)
 		-DENABLE_MINIZIP=$(usex minizip)

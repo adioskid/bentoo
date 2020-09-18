@@ -83,7 +83,7 @@ src_install() {
 	use orc && pax-mark -m "${ED}usr/$(get_libdir)/gstreamer-${SLOT}/gst-plugin-scanner"
 }
 
-multilib_src_install_all() {
+src_install_all() {
 	DOCS="AUTHORS ChangeLog NEWS MAINTAINERS README RELEASE"
 	einstalldocs
 	find "${ED}" -name '*.la' -delete || die

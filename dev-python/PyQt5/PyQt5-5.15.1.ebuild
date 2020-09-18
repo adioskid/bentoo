@@ -20,7 +20,7 @@ LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 
-# TODO: QtNfc, QtQuick3D, QtRemoteObjects
+# TODO: QtNfc, QtQuick3D, QtRemoteObjects, QtTextToSpeech
 IUSE="bluetooth dbus debug declarative designer examples gles2-only gui help location
 	multimedia network networkauth opengl positioning printsupport sensors serialport
 	sql +ssl svg testlib webchannel webkit websockets widgets x11extras xmlpatterns"
@@ -52,7 +52,7 @@ REQUIRED_USE="
 "
 
 # Minimal supported version of Qt.
-QT_PV="5.12:5"
+QT_PV="5.14:5"
 
 RDEPEND="${PYTHON_DEPS}
 	>=dev-python/PyQt5-sip-4.19.23:=[${PYTHON_USEDEP}]
@@ -151,10 +151,6 @@ src_configure() {
 		echo "${myconf[@]}"
 		"${myconf[@]}" || die
 
-		# Fix parallel install failure
-		sed -i -e '/INSTALLS += distinfo/i distinfo.depends = install_subtargets install_pep484_stubs install_qscintilla_api' \
-			${PN}.pro || die
-
 		# Run eqmake to respect toolchain and build flags
 		eqmake5 -recursive ${PN}.pro
 	}
@@ -168,7 +164,8 @@ src_compile() {
 src_install() {
 	installation() {
 		local tmp_root=${D}/${PN}_tmp_root
-		emake INSTALL_ROOT="${tmp_root}" install
+		# parallel install fails because mk_distinfo.py runs too early
+		emake -j1 INSTALL_ROOT="${tmp_root}" install
 
 		local bin_dir=${tmp_root}${EPREFIX}/usr/bin
 		local exe

@@ -1,7 +1,7 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 inherit autotools
 
@@ -10,9 +10,8 @@ HOMEPAGE="https://github.com/mypaint/mypaint-brushes"
 SRC_URI="https://github.com/mypaint/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="CC0-1.0"
-SLOT="1.0"  # due to pkgconfig name "mypaint-brushes-1.0"
-KEYWORDS="~alpha amd64 ~arm arm64 ~hppa ~ia64 ~ppc ppc64 x86"
-IUSE=""
+SLOT="2.0" # due to pkgconfig name "mypaint-brushes-2.0"
+KEYWORDS="~alpha ~amd64 ~arm arm64 ~hppa ~ia64 ~ppc ~ppc64 ~x86"
 
 DOCS=( AUTHORS NEWS README.md )  # to exclude README symlink
 

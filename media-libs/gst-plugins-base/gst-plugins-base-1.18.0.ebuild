@@ -4,7 +4,7 @@
 EAPI=6
 GST_ORG_MODULE="gst-plugins-base"
 
-inherit flag-o-matic gstreamer
+inherit flag-o-matic meson gstreamer
 
 DESCRIPTION="Basepack of plugins for gstreamer"
 HOMEPAGE="https://gstreamer.freedesktop.org/"
@@ -43,40 +43,40 @@ REQUIRED_USE="
 # Dependencies needed by opengl library and plugin (enabled via USE gles2 and/or opengl)
 # dmabuf automagic from libdrm headers (drm_fourcc.h) and EGL, so ensure it with USE=egl (platform independent header used only, thus no MULTILIB_USEDEP); provides dmabuf based upload/download/eglimage options
 GL_DEPS="
-	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland?,${MULTILIB_USEDEP}]
+	>=media-libs/mesa-9.0[egl?,gbm?,gles2?,wayland?]
 	egl? (
 		x11-libs/libdrm
 	)
 	gbm? (
-		>=dev-libs/libgudev-147[${MULTILIB_USEDEP}]
-		>=x11-libs/libdrm-2.4.55[${MULTILIB_USEDEP}]
+		>=dev-libs/libgudev-147
+		>=x11-libs/libdrm-2.4.55
 	)
 	wayland? (
-		dev-libs/wayland[${MULTILIB_USEDEP}]
+		dev-libs/wayland
 	)
 
-	>=media-libs/graphene-1.4.0[${MULTILIB_USEDEP}]
-	media-libs/libpng:0[${MULTILIB_USEDEP}]
-	virtual/jpeg:0[${MULTILIB_USEDEP}]
+	>=media-libs/graphene-1.4.0
+	media-libs/libpng:0
+	virtual/jpeg:0
 " # graphene for optional gltransformation and glvideoflip elements and more GLSL Uniforms support in glshader; libpng/jpeg for gloverlay element
 
 RDEPEND="
 	app-text/iso-codes
-	>=dev-libs/glib-2.40.0:2[${MULTILIB_USEDEP}]
-	>=media-libs/gstreamer-${PV}:1.0[introspection?,${MULTILIB_USEDEP}]
-	>=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}]
-	alsa? ( >=media-libs/alsa-lib-1.0.27.2[${MULTILIB_USEDEP}] )
+	>=dev-libs/glib-2.40.0:2
+	>=media-libs/gstreamer-${PV}:1.0[introspection?]
+	>=sys-libs/zlib-1.2.8-r1
+	alsa? ( >=media-libs/alsa-lib-1.0.27.2 )
 	introspection? ( >=dev-libs/gobject-introspection-1.31.1:= )
-	ivorbis? ( >=media-libs/tremor-0_pre20130223[${MULTILIB_USEDEP}] )
-	ogg? ( >=media-libs/libogg-1.3.0[${MULTILIB_USEDEP}] )
-	orc? ( >=dev-lang/orc-0.4.24[${MULTILIB_USEDEP}] )
-	pango? ( >=x11-libs/pango-1.36.3[${MULTILIB_USEDEP}] )
-	theora? ( >=media-libs/libtheora-1.1.1[encode,${MULTILIB_USEDEP}] )
-	vorbis? ( >=media-libs/libvorbis-1.3.3-r1[${MULTILIB_USEDEP}] )
+	ivorbis? ( >=media-libs/tremor-0_pre20130223 )
+	ogg? ( >=media-libs/libogg-1.3.0 )
+	orc? ( >=dev-lang/orc-0.4.24 )
+	pango? ( >=x11-libs/pango-1.36.3 )
+	theora? ( >=media-libs/libtheora-1.1.1[encode] )
+	vorbis? ( >=media-libs/libvorbis-1.3.3-r1 )
 	X? (
-		>=x11-libs/libX11-1.6.2[${MULTILIB_USEDEP}]
-		>=x11-libs/libXext-1.3.2[${MULTILIB_USEDEP}]
-		>=x11-libs/libXv-1.0.10[${MULTILIB_USEDEP}]
+		>=x11-libs/libX11-1.6.2
+		>=x11-libs/libXext-1.3.2
+		>=x11-libs/libXv-1.0.10
 	)
 
 	gles2? ( ${GL_DEPS} )
@@ -96,28 +96,26 @@ src_prepare() {
 	default
 }
 
-multilib_src_configure() {
+src_configure() {
 	filter-flags -mno-sse -mno-sse2 -mno-sse4.1 #610340
 
-	local myconf=()
+	local emesonargs=()
 	# FIXME: Automagic gbm and x11 wsi
 	if use opengl || use gles2; then
-		myconf+=(
-			--enable-gl
-			$(use_enable egl)
-			$(use_enable gles2)
-			$(use_enable opengl)
-			$(use_enable wayland)
-			$(use_enable X x11)
+		emesonargs=(
+			-Degl=$(usex egl auto enabled disabled)
+			-Dgles2=$(usex gles2 auto enabled disabled)
+			-Dopengl=$(usex opengl auto enabled disabled)
+			-Dwayland=$(usex wayland auto enabled disabled)
+			-Dx-11=$(usexX X auto enabled disabled)
 		)
 	else
-		myconf+=(
-			--disable-gl
-			--disable-egl
-			--disable-gles2
-			--disable-opengl
-			--disable-wayland
-			--disable-x11
+		emesonargs=(
+			-Degl=$(usex egl disabled)
+			-Dgles2=$(usex gles2 disabled)
+			-Dopengl=$(usex opengl disabled)
+			-Dwayland=$(usex wayland disabled)
+			-Dx-11=$(usexX X disabled)
 		)
 	fi
 
@@ -169,13 +167,24 @@ multilib_src_configure() {
 	fi
 }
 
-multilib_src_install_all() {
+src_compile() {
+	meson_src_compile
+}
+
+src_install() {
+	meson_src_install
+	
+	# Needed for orc-using gst plugins on hardened/PaX systems, bug #421579
+	use orc && pax-mark -m "${ED}usr/$(get_libdir)/gstreamer-${SLOT}/gst-plugin-scanner"
+}
+
+src_install_all() {
 	DOCS="AUTHORS NEWS README RELEASE"
 	einstalldocs
 	find "${ED}" -name '*.la' -delete || die
 }
 
-multilib_src_test() {
+src_test() {
 	unset GSETTINGS_BACKEND
 	emake check
 }
