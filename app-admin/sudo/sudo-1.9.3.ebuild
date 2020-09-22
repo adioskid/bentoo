@@ -76,8 +76,6 @@ REQUIRED_USE="?? ( gcrypt ssl )"
 
 MAKEOPTS+=" SAMPLES="
 
-PATCHES=( "${FILESDIR}/${P}-glibc-2.32.patch" )  # drop for releases after 1.9.2
-
 src_prepare() {
 	default
 	elibtoolize
