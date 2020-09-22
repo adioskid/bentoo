@@ -23,7 +23,7 @@ if [[ ${PV} = *9999* ]]; then
 	SRC_URI=""
 else
 	SRC_URI="https://download.qemu.org/${P}.tar.xz"
-	KEYWORDS="amd64 arm64 ~ppc ~ppc64 x86"
+	KEYWORDS="~amd64 ~arm64 ~ppc ~ppc64 ~x86"
 fi
 
 DESCRIPTION="QEMU + Kernel-based Virtual Machine userland tools"
@@ -226,6 +226,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
 	"${FILESDIR}"/${PN}-4.2.0-cflags.patch
 	"${FILESDIR}"/${PN}-5.1.0-pixman-for-vhost-user-gpu.patch
+	"${FILESDIR}"/${PN}-5.1.0-usb-oob-CVE-2020-14364.patch #743649
 )
 
 QA_PREBUILT="
