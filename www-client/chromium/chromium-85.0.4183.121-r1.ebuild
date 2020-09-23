@@ -1,4 +1,3 @@
-# Copyright 2009-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -12,21 +11,24 @@ inherit check-reqs chromium-2 desktop flag-o-matic multilib ninja-utils pax-util
 
 DESCRIPTION="Open-source version of Google Chrome web browser"
 HOMEPAGE="https://chromium.org/"
+XCB_PROTO_VERSION="1.14"
 PATCHSET="2"
 PATCHSET_NAME="chromium-$(ver_cut 1)-patchset-${PATCHSET}"
 SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}.tar.xz
 	https://files.pythonhosted.org/packages/ed/7b/bbf89ca71e722b7f9464ebffe4b5ee20a9e5c9a555a56e2d3914bb9119a6/setuptools-44.1.0.zip
+	https://www.x.org/releases/individual/proto/xcb-proto-${XCB_PROTO_VERSION}.tar.xz
 	https://github.com/stha09/chromium-patches/releases/download/${PATCHSET_NAME}/${PATCHSET_NAME}.tar.xz"
 
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="amd64 arm64 ~x86"
-IUSE="component-build cups cpu_flags_arm_neon +hangouts headless +js-type-check kerberos ozone ozone-wayland pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc widevine"
+IUSE="component-build cups cpu_flags_arm_neon +hangouts headless +js-type-check kerberos ozone ozone-wayland pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc vaapi widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="
 	component-build? ( !suid )
 	headless? ( ozone )
 	ozone-wayland? ( ozone )
+	vaapi? ( !ozone )
 "
 
 COMMON_X_DEPEND="
@@ -79,6 +81,7 @@ COMMON_DEPEND="
 	>=media-libs/libwebp-0.4.0:=
 	sys-libs/zlib:=[minizip]
 	kerberos? ( virtual/krb5 )
+	vaapi? ( x11-libs/libva:= )
 	ozone? (
 		!headless? (
 			${COMMON_X_DEPEND}
@@ -185,6 +188,7 @@ in /etc/chromium/default.
 
 PATCHES=(
 	"${FILESDIR}/chromium-84-mediaalloc.patch"
+	"${FILESDIR}/chromium-83-vaapi.patch"
 )
 
 pre_build_checks() {
@@ -582,6 +586,7 @@ src_configure() {
 	myconf_gn+=" use_cups=$(usex cups true false)"
 	myconf_gn+=" use_kerberos=$(usex kerberos true false)"
 	myconf_gn+=" use_pulseaudio=$(usex pulseaudio true false)"
+	myconf_gn+=" use_vaapi=$(usex vaapi true false)"
 
 	# TODO: link_pulseaudio=true for GN.
 
@@ -699,6 +704,9 @@ src_configure() {
 		myconf_gn+=" icu_use_data_file=false"
 	fi
 
+	# Use bundled xcb-proto, bug #727000
+	myconf_gn+=" xcbproto_path=\"${WORKDIR}/xcb-proto-${XCB_PROTO_VERSION}/src\""
+
 	# Enable ozone support
 	if use ozone; then
 		myconf_gn+=" use_ozone=true ozone_auto_platforms=false"
@@ -733,7 +741,8 @@ src_compile() {
 	python_setup
 
 	# https://bugs.gentoo.org/717456
-	local -x PYTHONPATH="${WORKDIR}/setuptools-44.1.0:${PYTHONPATH+:}${PYTHONPATH}"
+	# Use bundled xcb-proto, because system xcb-proto doesn't have Python 2.7 support
+	local -x PYTHONPATH="${WORKDIR}/setuptools-44.1.0:${WORKDIR}/xcb-proto-${XCB_PROTO_VERSION}${PYTHONPATH+:}${PYTHONPATH}"
 
 	#"${EPYTHON}" tools/clang/scripts/update.py --force-local-build --gcc-toolchain /usr --skip-checkout --use-system-cmake --without-android || die
 
@@ -792,6 +801,11 @@ src_install() {
 	)
 	sed "${sedargs[@]}" "${FILESDIR}/chromium-launcher-r5.sh" > chromium-launcher.sh || die
 	doexe chromium-launcher.sh
+
+	if use vaapi; then
+		insinto /usr/share/drirc.d
+		newins "${FILESDIR}"/01-chromium.conf 01-chromium.conf
+	fi
 
 	# It is important that we name the target "chromium-browser",
 	# xdg-utils expect it; bug #355517.

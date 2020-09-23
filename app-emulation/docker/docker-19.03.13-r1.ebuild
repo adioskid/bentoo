@@ -11,10 +11,10 @@ if [[ ${PV} = *9999* ]]; then
 	EGIT_CHECKOUT_DIR="${WORKDIR}/${P}/src/${EGO_PN}"
 	inherit git-r3
 else
-	DOCKER_GITCOMMIT=48a66213fe
+	DOCKER_GITCOMMIT=4484c46d9d
 	MY_PV=${PV/_/-}
 	SRC_URI="https://${EGO_PN}/archive/v${MY_PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="amd64 ~arm ~arm64 ~ppc64 ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 	[ "$DOCKER_GITCOMMIT" ] || die "DOCKER_GITCOMMIT must be added manually for each bump!"
 	inherit golang-vcs-snapshot
 fi
@@ -24,42 +24,37 @@ DESCRIPTION="The core functions you need to create Docker images and run Docker 
 HOMEPAGE="https://www.docker.com/"
 LICENSE="Apache-2.0"
 SLOT="0"
-IUSE="apparmor aufs btrfs +container-init device-mapper hardened +overlay seccomp"
+IUSE="apparmor aufs btrfs +container-init device-mapper hardened overlay seccomp selinux"
 
 # https://github.com/docker/docker/blob/master/project/PACKAGERS.md#build-dependencies
-COMMON_DEPEND="
-	acct-group/docker
-	>=dev-db/sqlite-3.7.9:3
-	device-mapper? (
-		>=sys-fs/lvm2-2.02.89[thin]
-	)
-	seccomp? ( >=sys-libs/libseccomp-2.2.1 )
-	apparmor? ( sys-libs/libapparmor )
+BDEPEND="
+	>=dev-lang/go-1.13.12
+	dev-go/go-md2man
+	virtual/pkgconfig
 "
 
 DEPEND="
-	${COMMON_DEPEND}
-
-	>=dev-lang/go-1.13.12
-	dev-go/go-md2man
-
-	btrfs? (
-		>=sys-fs/btrfs-progs-3.16.1
-	)
+	acct-group/docker
+	>=dev-db/sqlite-3.7.9:3
+	apparmor? ( sys-libs/libapparmor )
+	btrfs? ( >=sys-fs/btrfs-progs-3.16.1 )
+	device-mapper? ( >=sys-fs/lvm2-2.02.89[thin] )
+	seccomp? ( >=sys-libs/libseccomp-2.2.1 )
 "
 
 # https://github.com/docker/docker/blob/master/project/PACKAGERS.md#runtime-dependencies
 # https://github.com/docker/docker/blob/master/project/PACKAGERS.md#optional-dependencies
+# also look at components/*/vendor.conf for exact version of ~pinned dependencies
 RDEPEND="
-	${COMMON_DEPEND}
+	${DEPEND}
 	!sys-apps/systemd[-cgroup-hybrid(+)]
 	>=net-firewall/iptables-1.4
 	sys-process/procps
 	>=dev-vcs/git-1.7
 	>=app-arch/xz-utils-4.9
 	dev-libs/libltdl
-	~app-emulation/containerd-1.2.13
-	~app-emulation/runc-1.0.0_rc10[apparmor?,seccomp?]
+	~app-emulation/containerd-1.4.1[apparmor?,btrfs?,device-mapper?,seccomp?,selinux?]
+	~app-emulation/runc-1.0.0_rc92[apparmor?,seccomp?,selinux?]
 	~app-emulation/docker-proxy-0.8.0_p20191011
 	container-init? ( >=sys-process/tini-0.18.0[static] )
 "
@@ -95,6 +90,10 @@ CONFIG_CHECK="
 	~CRYPTO ~CRYPTO_AEAD ~CRYPTO_GCM ~CRYPTO_SEQIV ~CRYPTO_GHASH ~XFRM_ALGO ~XFRM_USER
 	~IPVLAN
 	~MACVLAN ~DUMMY
+
+	~OVERLAY_FS
+	~EXT4_FS_SECURITY
+	~EXT4_FS_POSIX_ACL
 "
 
 ERROR_KEYS="CONFIG_KEYS: is mandatory"
@@ -185,12 +184,6 @@ pkg_setup() {
 		"
 	fi
 
-	if use overlay; then
-		CONFIG_CHECK+="
-			~OVERLAY_FS ~EXT4_FS_SECURITY ~EXT4_FS_POSIX_ACL
-		"
-	fi
-
 	linux-info_pkg_setup
 }
 
@@ -217,7 +210,7 @@ src_compile() {
 		fi
 	done
 
-	for tag in apparmor seccomp; do
+	for tag in apparmor seccomp selinux; do
 		if use $tag; then
 			DOCKER_BUILDTAGS+=" $tag"
 		fi
@@ -242,11 +235,10 @@ src_compile() {
 	pushd components/cli || die
 
 	# build cli
-	emake \
+	DISABLE_WARN_OUTSIDE_CONTAINER=1 emake \
 		LDFLAGS="$(usex hardened '-extldflags -fno-PIC' '')" \
 		VERSION="$(cat ../../VERSION)" \
 		GITCOMMIT="${DOCKER_GITCOMMIT}" \
-		DISABLE_WARN_OUTSIDE_CONTAINER=1 \
 		dynbinary
 
 	# build man pages
@@ -262,7 +254,7 @@ src_compile() {
 src_install() {
 	dosym containerd /usr/bin/docker-containerd
 	dosym containerd-shim /usr/bin/docker-containerd-shim
-	dosym runc /usr/bin/docker-runc
+	dosym ../sbin/runc /usr/bin/docker-runc
 	use container-init && dosym tini /usr/bin/docker-init
 
 	pushd components/engine || die
@@ -293,7 +285,9 @@ src_install() {
 
 	doman man/man*/*
 
+	sed -i 's@dockerd\?\.exe@@g' contrib/completion/bash/docker || die
 	dobashcomp contrib/completion/bash/*
+	bashcomp_alias docker dockerd
 	insinto /usr/share/fish/vendor_completions.d/
 	doins contrib/completion/fish/docker.fish
 	insinto /usr/share/zsh/site-functions

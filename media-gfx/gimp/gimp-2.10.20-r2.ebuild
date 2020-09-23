@@ -2,21 +2,19 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-PYTHON_COMPAT=( python2_7 )
 GNOME2_EAUTORECONF=yes
 WANT_AUTOMAKE=
 
-inherit autotools gnome2 python-single-r1 toolchain-funcs virtualx
+inherit autotools gnome2 toolchain-funcs virtualx
 
 DESCRIPTION="GNU Image Manipulation Program"
 HOMEPAGE="https://www.gimp.org/"
 SRC_URI="mirror://gimp/v2.10/${P}.tar.bz2"
 LICENSE="GPL-3 LGPL-3"
 SLOT="2"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc ~ppc64 ~x86"
+KEYWORDS="~alpha ~amd64 ~arm arm64 ~hppa ~ia64 ~ppc ~ppc64 x86"
 
-IUSE="aalib alsa aqua debug doc gnome heif jpeg2k mng openexr postscript python udev unwind vector-icons webp wmf xpm cpu_flags_ppc_altivec cpu_flags_x86_mmx cpu_flags_x86_sse"
-REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
+IUSE="aalib alsa aqua debug doc gnome heif jpeg2k mng openexr postscript udev unwind vector-icons webp wmf xpm cpu_flags_ppc_altivec cpu_flags_x86_mmx cpu_flags_x86_sse"
 
 RESTRICT="!test? ( test )"
 
@@ -56,13 +54,6 @@ COMMON_DEPEND="
 	mng? ( media-libs/libmng:= )
 	openexr? ( >=media-libs/openexr-1.6.1:= )
 	postscript? ( app-text/ghostscript-gpl )
-	python?	(
-		${PYTHON_DEPS}
-		$(python_gen_cond_dep '
-			>=dev-python/pycairo-1.0.2[${PYTHON_MULTI_USEDEP}]
-			>=dev-python/pygtk-2.10.4:2[${PYTHON_MULTI_USEDEP}]
-		')
-	)
 	udev? ( dev-libs/libgudev:= )
 	unwind? ( >=sys-libs/libunwind-1.1.0:= )
 	webp? ( >=media-libs/libwebp-0.6.0:= )
@@ -94,10 +85,6 @@ DOCS=( "AUTHORS" "ChangeLog" "HACKING" "NEWS" "README" "README.i18n" )
 PATCHES=(
 	"${FILESDIR}/${PN}-2.10_fix_test-appdata.patch"
 )
-
-pkg_setup() {
-	use python && python-single-r1_pkg_setup
-}
 
 src_prepare() {
 	if has_version "media-gfx/mypaint-brushes:2.0" ; then
@@ -139,6 +126,7 @@ src_configure() {
 		--enable-default-binary
 
 		--disable-check-update
+		--disable-python
 		--enable-mp
 		--with-appdata-test
 		--with-bug-report-url=https://bugs.gentoo.org/
@@ -149,7 +137,6 @@ src_configure() {
 		$(use_enable cpu_flags_ppc_altivec altivec)
 		$(use_enable cpu_flags_x86_mmx mmx)
 		$(use_enable cpu_flags_x86_sse sse)
-		$(use_enable python)
 		$(use_enable vector-icons)
 		$(use_with aalib aa)
 		$(use_with alsa)
@@ -198,8 +185,6 @@ src_test() {
 
 src_install() {
 	gnome2_src_install
-
-	use python && python_optimize
 
 	# Workaround for bug #321111 to give GIMP the least
 	# precedence on PDF documents by default
