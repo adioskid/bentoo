@@ -20,10 +20,12 @@ KEYWORDS="~amd64"
 
 S="${WORKDIR}/${MY_P}"
 
-COMMON="sys-devel/clang:10=[static-analyzer,${MULTILIB_USEDEP}]"
-DEPEND="${COMMON}
+# Force a rebuild of this package once clang has been updated from 10.0.0 to 10.0.1
+# in order to work around Bug #743992. Hopefully a one-time thing.
+DEPEND="~sys-devel/clang-10.0.1:10=[static-analyzer,${MULTILIB_USEDEP}]
+	sys-devel/llvm:10=[${MULTILIB_USEDEP}]
 	>=dev-util/spirv-llvm-translator-10.0.0_p20200909:10=[${MULTILIB_USEDEP}]"
-RDEPEND="${COMMON}"
+RDEPEND="${DEPEND}"
 
 LLVM_MAX_SLOT=10
 
