@@ -53,7 +53,6 @@ DEPEND="${RDEPEND}
 
 PATCHES=(
 	"${FILESDIR}/${PN}-5.16.0-no-detailed-mem-message.patch"
-	"${FILESDIR}/${PN}-5.18.90-unused-dep.patch"
 )
 
 src_configure() {
