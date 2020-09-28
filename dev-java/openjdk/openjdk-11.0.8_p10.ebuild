@@ -17,7 +17,7 @@ SRC_URI="https://hg.${PN}.java.net/jdk-updates/jdk${SLOT}u/archive/jdk-${MY_PV}.
 LICENSE="GPL-2"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64"
 
-IUSE="alsa cups debug doc examples gentoo-vm headless-awt javafx +jbootstrap nsplugin +pch selinux source systemtap webstart"
+IUSE="alsa cups debug doc examples gentoo-vm headless-awt javafx +jbootstrap +pch selinux source systemtap"
 
 COMMON_DEPEND="
 	media-libs/freetype:2=
@@ -68,11 +68,6 @@ DEPEND="
 	)
 "
 
-PDEPEND="
-	webstart? ( >=dev-java/icedtea-web-1.6.1:0 )
-	nsplugin? ( >=dev-java/icedtea-web-1.6.1:0[nsplugin] )
-"
-
 REQUIRED_USE="javafx? ( alsa !headless-awt )"
 
 S="${WORKDIR}/jdk${SLOT}u-jdk-${MY_PV}"
@@ -93,7 +88,7 @@ openjdk_check_requirements() {
 pkg_pretend() {
 	openjdk_check_requirements
 	if [[ ${MERGE_TYPE} != binary ]]; then
-		has ccache ${FEATURES} && die "FEATURES=ccache doesn't work with ${PN}"
+		has ccache ${FEATURES} && die "FEATURES=ccache doesn't work with ${PN}, bug #677876"
 	fi
 }
 

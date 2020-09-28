@@ -25,7 +25,7 @@ X509_VER="12.5.1" X509_PATCH="${PARCH}+x509-${X509_VER}.diff.gz"
 
 DESCRIPTION="Port of OpenBSD's free SSH release"
 HOMEPAGE="https://www.openssh.com/"
-SRC_URI="mirror://openbsd/OpenSSH/portable/${PARCH}.tar.gz
+SRC_URI="https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${PARCH}.tar.gz
 	${SCTP_PATCH:+sctp? ( https://dev.gentoo.org/~chutzpah/dist/openssh/${SCTP_PATCH} )}
 	${HPN_VER:+hpn? ( $(printf "mirror://sourceforge/hpnssh/HPN-SSH%%20${HPN_VER/./v}%%20${HPN_PV/_P/p}/%s\n" "${HPN_PATCHES[@]}") )}
 	${X509_PATCH:+X509? ( https://roumenpetrov.info/openssh/x509-${X509_VER}/${X509_PATCH} )}
@@ -289,6 +289,13 @@ src_configure() {
 	use debug && append-cppflags -DSANDBOX_SECCOMP_FILTER_DEBUG
 	use static && append-ldflags -static
 	use xmss && append-cflags -DWITH_XMSS
+
+	if [[ ${CHOST} == *-solaris* ]] ; then
+		# Solaris' glob.h doesn't have things like GLOB_TILDE, configure
+		# doesn't check for this, so force the replacement to be put in
+		# place
+		append-cppflags -DBROKEN_GLOB
+	fi
 
 	local myconf=(
 		--with-ldflags="${LDFLAGS}"

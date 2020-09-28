@@ -10,7 +10,7 @@
 EAPI="6"
 SLOT="8"
 
-inherit check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils prefix versionator xdg-utils
+inherit check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils prefix toolchain-funcs versionator xdg-utils
 
 ICEDTEA_VER=$(get_version_component_range 1-3)
 ICEDTEA_BRANCH=$(get_version_component_range 1-2)
@@ -70,8 +70,8 @@ LICENSE="Apache-1.1 Apache-2.0 GPL-1 GPL-2 GPL-2-with-linking-exception LGPL-2 M
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 
 IUSE="+alsa cacao +cups doc examples +gtk headless-awt
-	jamvm +jbootstrap kerberos libressl nsplugin pax_kernel +pch
-	pulseaudio sctp selinux shenandoah smartcard +source +system-lcms test webstart zero"
+	jamvm +jbootstrap kerberos libressl pax_kernel +pch
+	pulseaudio sctp selinux shenandoah smartcard +source +system-lcms test zero"
 
 RESTRICT="!test? ( test )"
 REQUIRED_USE="gtk? ( !headless-awt )"
@@ -155,9 +155,7 @@ DEPEND="${COMMON_DEP} ${ALSA_COMMON_DEP} ${CUPS_COMMON_DEP} ${X_COMMON_DEP} ${X_
 	virtual/pkgconfig
 	pax_kernel? ( sys-apps/elfix )"
 
-PDEPEND="webstart? ( >=dev-java/icedtea-web-1.6.1:0 )
-	nsplugin? ( >=dev-java/icedtea-web-1.6.1:0[nsplugin] )
-	pulseaudio? ( dev-java/icedtea-sound )"
+PDEPEND="pulseaudio? ( dev-java/icedtea-sound )"
 
 S="${WORKDIR}"/${ICEDTEA_PKG}
 
@@ -195,8 +193,11 @@ src_unpack() {
 }
 
 src_configure() {
-	# GCC10/-fno-common handling
-	append-flags -fcommon
+	# GCC10/-fno-common handling, #723102
+	if [[ $(gcc-major-version) -ge 10 ]]; then
+		append-flags -fcommon
+		append-flags -fno-delete-null-pointer-checks -fno-lifetime-dse
+	fi
 
 	# For bootstrap builds as the sandbox control file might not yet exist.
 	addpredict /proc/self/coredump_filter #nowarn
@@ -368,6 +369,7 @@ src_install() {
 pkg_postinst() {
 	xdg_icon_cache_update
 	java-vm-2_pkg_postinst
+	einfo "JavaWebStart functionality provided by icedtea-web package"
 }
 
 pkg_postrm() {

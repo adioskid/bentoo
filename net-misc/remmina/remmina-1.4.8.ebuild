@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit cmake eutils xdg
+inherit cmake optfeature xdg
 
 MY_P="${PN^}-v${PV}"
 
@@ -40,7 +40,7 @@ DEPEND="
 	telepathy? ( net-libs/telepathy-glib )
 	vnc? ( net-libs/libvncserver[jpeg] )
 	webkit? ( net-libs/webkit-gtk:4 )
-	zeroconf? ( || ( >=net-dns/avahi-0.8-r2[dbus,gtk] ) )
+	zeroconf? ( || ( >=net-dns/avahi-0.8-r2[dbus,gtk] <net-dns/avahi-0.8-r2[dbus,gtk3] ) )
 "
 BDEPEND="
 	dev-util/intltool

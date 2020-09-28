@@ -13,7 +13,7 @@ if [[ ${PV} == "9999" ]]; then
 	EGIT_REPO_URI="https://github.com/openzfs/zfs.git"
 else
 	SRC_URI="https://github.com/openzfs/zfs/releases/download/zfs-${PV}/zfs-${PV}.tar.gz"
-	KEYWORDS="amd64 ~arm64 ~ppc64"
+	KEYWORDS="amd64 arm64 ppc64"
 	S="${WORKDIR}/zfs-${PV}"
 	ZFS_KERNEL_COMPAT="5.6"
 fi
@@ -36,6 +36,8 @@ BDEPEND="
 RESTRICT="debug? ( strip ) test"
 
 DOCS=( AUTHORS COPYRIGHT META README.md )
+
+PATCHES=( "${FILESDIR}/${PV}-powerpc_jmp_weak.patch" )
 
 pkg_setup() {
 	CONFIG_CHECK="
@@ -104,6 +106,8 @@ src_configure() {
 	filter-ldflags -Wl,*
 
 	local myconf=(
+		CROSS_COMPILE="${CHOST}-"
+		HOSTCC="$(tc-getBUILD_CC)"
 		--bindir="${EPREFIX}/bin"
 		--sbindir="${EPREFIX}/sbin"
 		--with-config=kernel
@@ -112,13 +116,17 @@ src_configure() {
 		$(use_enable debug)
 	)
 
-	econf "${myconf[@]}"
+	CONFIG_SHELL="${EPREFIX}/bin/bash" econf "${myconf[@]}"
 }
 
 src_compile() {
 	set_arch_to_kernel
 
-	myemakeargs=( V=1 )
+	myemakeargs=(
+		CROSS_COMPILE="${CHOST}-"
+		HOSTCC="$(tc-getBUILD_CC)"
+		V=1
+	)
 
 	emake "${myemakeargs[@]}"
 }
