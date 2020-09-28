@@ -2,10 +2,7 @@
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
 	<maintainer type="person">
-		<email>ultrabug@gentoo.org</email>
-		<name>Alexys Jacob</name>
+		<email>bkohler@gentoo.org</email>
+		<name>Ben Kohler</name>
 	</maintainer>
-	<upstream>
-		<remote-id type="github">mongodb/mongo-tools</remote-id>
-	</upstream>
 </pkgmetadata>
