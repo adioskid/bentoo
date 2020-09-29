@@ -4,18 +4,17 @@
 EAPI=7
 
 ECM_HANDBOOK="forceoptional"
-KFMIN=5.63.0
+KFMIN=5.70.0
 QTMIN=5.12.3
 inherit ecm kde.org
 
 DESCRIPTION="User friendly IRC Client"
-HOMEPAGE="https://konversation.kde.org
-https://kde.org/applications/internet/org.kde.konversation"
+HOMEPAGE="https://konversation.kde.org"
 SRC_URI="mirror://kde/stable/${PN}/${PV/_/-}/src/${P/_/-}.tar.xz"
 
 LICENSE="GPL-2"
 SLOT="5"
-KEYWORDS="amd64 ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 IUSE="+crypt"
 
 BDEPEND="sys-devel/gettext"
@@ -26,7 +25,7 @@ DEPEND="
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
 	>=kde-frameworks/karchive-${KFMIN}:5
-	>=kde-frameworks/kbookmarks-${KFMIN}:5=
+	>=kde-frameworks/kbookmarks-${KFMIN}:5
 	>=kde-frameworks/kcodecs-${KFMIN}:5
 	>=kde-frameworks/kcompletion-${KFMIN}:5
 	>=kde-frameworks/kconfig-${KFMIN}:5
@@ -36,7 +35,6 @@ DEPEND="
 	>=kde-frameworks/kdbusaddons-${KFMIN}:5
 	>=kde-frameworks/kglobalaccel-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
-	>=kde-frameworks/kiconthemes-${KFMIN}:5
 	>=kde-frameworks/kidletime-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=kde-frameworks/kitemviews-${KFMIN}:5
@@ -49,23 +47,18 @@ DEPEND="
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kwindowsystem-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
-	media-libs/phonon[qt5(+)]
-	crypt? ( app-crypt/qca:2[qt5(+)] )
+	>=media-libs/phonon-4.11.0
+	crypt? ( >=app-crypt/qca-2.3.0:2 )
 "
 RDEPEND="${DEPEND}
-	crypt? ( app-crypt/qca:2[ssl] )
+	crypt? ( >=app-crypt/qca-2.3.0:2[ssl] )
 "
 
 PATCHES=(
-	# 1.7 branch
-	"${FILESDIR}"/${P}-fix-regex-for-cap-ack.patch
-	"${FILESDIR}"/${P}-missing-header.patch
-	"${FILESDIR}"/${P}-QElapsedTimer.patch
-	"${FILESDIR}"/${P}-kf5windowsystem-5.63.patch
 	# git master
-	"${FILESDIR}"/${P}-kf5bookmarks-5.69.patch
-	"${FILESDIR}"/${P}-unused-kemoticons.patch
-	"${FILESDIR}"/${P}-qt-5.15.patch
+	"${FILESDIR}"/${PN}-1.7.5-kf5bookmarks-5.69.patch
+	"${FILESDIR}"/${PN}-1.7.5-unused-kemoticons.patch
+	"${FILESDIR}"/${P}-no-kiconthemes.patch
 )
 
 src_configure() {

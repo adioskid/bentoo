@@ -13,7 +13,7 @@ SRC_URI="https://netfilter.org/projects/nftables/files/${P}.tar.bz2"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ~ia64 ~ppc64 ~sparc x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ia64 ~ppc64 ~sparc ~x86"
 IUSE="debug doc +gmp json +modern-kernel python +readline static-libs xtables"
 
 RDEPEND="
@@ -111,7 +111,7 @@ src_install() {
 	exeinto /usr/libexec/${PN}
 	newexe "${FILESDIR}"/libexec/${PN}${mksuffix}.sh ${PN}.sh
 	newconfd "${FILESDIR}"/${PN}${mksuffix}.confd ${PN}
-	newinitd "${FILESDIR}"/${PN}${mksuffix}.init ${PN}
+	newinitd "${FILESDIR}"/${PN}${mksuffix}.init-r1 ${PN}
 	keepdir /var/lib/nftables
 
 	systemd_dounit "${FILESDIR}"/systemd/${PN}-restore.service

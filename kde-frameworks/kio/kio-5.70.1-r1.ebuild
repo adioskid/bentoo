@@ -6,13 +6,13 @@ EAPI=7
 ECM_DESIGNERPLUGIN="true"
 ECM_TEST="forceoptional"
 PVCUT=$(ver_cut 1-2)
-QTMIN=5.14.2
+QTMIN=5.12.3
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org xdg-utils
 
 DESCRIPTION="Framework providing transparent file and data management"
 LICENSE="LGPL-2+"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 IUSE="acl +handbook kerberos +kwallet X"
 
 # drop qtnetwork subslot operator when QT_MINIMAL >= 5.15.0
@@ -70,6 +70,8 @@ PDEPEND="
 
 # tests hang
 RESTRICT+=" test"
+
+PATCHES=( "${FILESDIR}"/${PN}-5.70.0-fix-run-in-terminal.patch )
 
 src_configure() {
 	local mycmakeargs=(
