@@ -86,7 +86,7 @@ src_install() {
 	systemd_dounit "${FILESDIR}/${PN}d.service"
 
 	insinto /etc/varnish/
-	doins lib/libvmod_std/vmod.vcc
+	doins lib/libvmod_std/vmod_std.vcc
 	doins etc/example.vcl
 
 	dodoc README.rst

@@ -4,7 +4,7 @@
 EAPI=7
 
 DISTUTILS_OPTIONAL=1
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{6,7,8,9} )
 
 inherit autotools bash-completion-r1 distutils-r1 flag-o-matic linux-info pam systemd toolchain-funcs udev usr-ldscript
 
@@ -76,10 +76,7 @@ REQUIRED_USE="
 
 RESTRICT="test"
 
-PATCHES=(
-	"${FILESDIR}/bash-completion-sudo.patch"
-	"${FILESDIR}/${PV}-exports-d-permissions.patch"
-)
+PATCHES=( "${FILESDIR}/bash-completion-sudo.patch" )
 
 pkg_setup() {
 	if use kernel_linux && use test-suite; then

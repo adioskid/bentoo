@@ -62,7 +62,9 @@ DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
 	virtual/pkgconfig
 	!sys-devel/gcc[libffi(-)]"
-RDEPEND+=" !build? ( app-misc/mime-types )"
+RDEPEND+="
+	!build? ( app-misc/mime-types )
+	!<=dev-lang/python-exec-2.4.6-r1"
 PDEPEND=">=app-eselect/eselect-python-20140125-r1"
 
 pkg_setup() {
@@ -320,17 +322,13 @@ src_install() {
 	python_domodule epython.py
 
 	# python-exec wrapping support
-	local pymajor=${PYVER%.*}
 	local scriptdir=${D}$(python_get_scriptdir)
 	mkdir -p "${scriptdir}" || die
-	# python and pythonX
+	# python
 	ln -s "../../../bin/python${PYVER}" \
-		"${scriptdir}/python${pymajor}" || die
-	ln -s "python${pymajor}" "${scriptdir}/python" || die
-	# python-config and pythonX-config
+		"${scriptdir}/python" || die
+	# python-config
 	ln -s "../../../bin/python${PYVER}-config" \
-		"${scriptdir}/python${pymajor}-config" || die
-	ln -s "python${pymajor}-config" \
 		"${scriptdir}/python-config" || die
 	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
@@ -342,6 +340,11 @@ src_install() {
 		ln -s "../../../bin/idle${PYVER}" \
 			"${scriptdir}/idle" || die
 	fi
+
+	# python2* is no longer wrapped, so just symlink it
+	local pymajor=${PYVER%.*}
+	dosym "python${PYVER}" "/usr/bin/python${pymajor}"
+	dosym "python${PYVER}-config" "/usr/bin/python${pymajor}-config"
 }
 
 eselect_python_update() {
