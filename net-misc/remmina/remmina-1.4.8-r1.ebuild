@@ -27,8 +27,8 @@ DEPEND="
 	x11-libs/libxkbfile
 	appindicator? ( dev-libs/libappindicator:3 )
 	crypt? ( dev-libs/libgcrypt:0= )
-	rdp? ( >=net-misc/freerdp-2.0.0_rc4_p1129
-		<net-misc/freerdp-3
+	rdp? ( >=net-misc/freerdp-2.0.0_rc4_p1129[X]
+		<net-misc/freerdp-3[X]
 		cups? ( net-print/cups:= ) )
 	gnome-keyring? ( app-crypt/libsecret )
 	kwallet? ( kde-frameworks/kwallet )
@@ -40,7 +40,7 @@ DEPEND="
 	telepathy? ( net-libs/telepathy-glib )
 	vnc? ( net-libs/libvncserver[jpeg] )
 	webkit? ( net-libs/webkit-gtk:4 )
-	zeroconf? ( || ( >=net-dns/avahi-0.8-r2[dbus,gtk] <net-dns/avahi-0.8-r2[dbus,gtk3] ) )
+	zeroconf? ( >=net-dns/avahi-0.8-r2[dbus,gtk] )
 "
 BDEPEND="
 	dev-util/intltool

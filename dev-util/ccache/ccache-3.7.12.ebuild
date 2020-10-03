@@ -11,7 +11,7 @@ SRC_URI="https://github.com/ccache/ccache/releases/download/v${PV}/ccache-${PV}.
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86"
 IUSE="test"
 
 DEPEND="app-arch/xz-utils
@@ -28,7 +28,7 @@ RESTRICT="!test? ( test )"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-3.5-nvcc-test.patch
-	"${FILESDIR}"/${PN}-3.7.10-objdump.patch
+	"${FILESDIR}"/${PN}-3.7.12-objdump.patch
 )
 
 src_prepare() {
