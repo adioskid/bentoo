@@ -1,0 +1,49 @@
+Index: gcc/ChangeLog
+===================================================================
+diff --git a/gcc/ChangeLog b/gcc/ChangeLog
+--- a/gcc/ChangeLog	(revision 270854)
++++ b/gcc/ChangeLog	(revision 270854)
+@@ -1,3 +1,13 @@
++2019-05-03  Richard Biener  <rguenther@suse.de>
++
++	PR tree-optimization/90316
++	* tree-ssa-pre.c (pass_pre::execute): Re-compute DOM fast queries
++	before running VN.
++
++2019-05-03  Jakub Jelinek  <jakub@redhat.com>
++
++	* BASE-VER: Set to 9.1.1.
++
+ 2019-05-03  Release Manager
+ 
+ 	* GCC 9.1.0 released.
+@@ -8,7 +18,7 @@
+ 	2019-04-30  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+ 	PR target/86538
+ 	* config/aarch64/aarch64-c.c (aarch64_update_cpp_builtins):
+-	Define __ARM_FEATURE_ATOMICS
++	Define __ARM_FEATURE_ATOMICS.
+ 
+ 2019-04-30  Martin Liska  <mliska@suse.cz>
+ 
+Index: gcc/BASE-VER
+===================================================================
+diff --git a/gcc/BASE-VER b/gcc/BASE-VER
+--- a/gcc/BASE-VER	(revision 270854)
++++ b/gcc/BASE-VER	(revision 270854)
+@@ -1 +1 @@
+-9.1.0
++9.1.1
+Index: gcc/tree-ssa-pre.c
+===================================================================
+diff --git a/gcc/tree-ssa-pre.c b/gcc/tree-ssa-pre.c
+--- a/gcc/tree-ssa-pre.c	(revision 270854)
++++ b/gcc/tree-ssa-pre.c	(revision 270854)
+@@ -4197,6 +4197,7 @@
+   loop_optimizer_init (LOOPS_NORMAL);
+   split_critical_edges ();
+   scev_initialize ();
++  calculate_dominance_info (CDI_DOMINATORS);
+ 
+   run_rpo_vn (VN_WALK);
+ 

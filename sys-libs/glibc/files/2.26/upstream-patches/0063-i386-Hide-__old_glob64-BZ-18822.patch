@@ -1,0 +1,55 @@
+From c96d7a646b52e8d50e7ca98e0a60af5f24e4b441 Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Sun, 20 Aug 2017 10:46:47 -0700
+Subject: [PATCH 063/146] i386: Hide __old_glob64 [BZ #18822]
+
+Hide internal __old_glob64 function to allow direct access within
+libc.so and libc.a without using GOT nor PLT.
+
+	[BZ #18822]
+	* sysdeps/unix/sysv/linux/i386/glob64.c (__old_glob64): Add
+	libc_hidden_proto and libc_hidden_def.
+
+(cherry picked from commit 2585d7b839559e665d5723734862fbe62264b25d)
+---
+ ChangeLog                             | 6 ++++++
+ sysdeps/unix/sysv/linux/i386/glob64.c | 3 +++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index a1fd1e8a3e..1ed253214c 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-08-20  H.J. Lu  <hongjiu.lu@intel.com>
++
++	[BZ #18822]
++	* sysdeps/unix/sysv/linux/i386/glob64.c (__old_glob64): Add
++	libc_hidden_proto and libc_hidden_def.
++
+ 2017-10-20  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #22321]
+diff --git a/sysdeps/unix/sysv/linux/i386/glob64.c b/sysdeps/unix/sysv/linux/i386/glob64.c
+index f68195137e..956cb0474a 100644
+--- a/sysdeps/unix/sysv/linux/i386/glob64.c
++++ b/sysdeps/unix/sysv/linux/i386/glob64.c
+@@ -53,6 +53,7 @@ libc_hidden_ver (__glob64, glob64)
+ int __old_glob64 (const char *__pattern, int __flags,
+ 		  int (*__errfunc) (const char *, int),
+ 		  glob64_t *__pglob);
++libc_hidden_proto (__old_glob64);
+ 
+ #undef dirent
+ #define dirent __old_dirent64
+@@ -72,5 +73,7 @@ int __old_glob64 (const char *__pattern, int __flags,
+ 
+ #include <posix/glob.c>
+ 
++libc_hidden_def (__old_glob64);
++
+ compat_symbol (libc, __old_glob64, glob64, GLIBC_2_1);
+ #endif
+-- 
+2.15.1
+

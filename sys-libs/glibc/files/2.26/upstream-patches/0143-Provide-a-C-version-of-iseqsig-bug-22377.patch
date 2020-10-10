@@ -1,0 +1,309 @@
+From 38e08dc3e00fc27d127701175018cac4ddaf998e Mon Sep 17 00:00:00 2001
+From: "Gabriel F. T. Gomes" <gabriel@inconstante.eti.br>
+Date: Fri, 3 Nov 2017 10:44:36 -0200
+Subject: [PATCH 143/146] Provide a C++ version of iseqsig (bug 22377)
+
+In C++ mode, __MATH_TG cannot be used for defining iseqsig, because
+__MATH_TG relies on __builtin_types_compatible_p, which is a C-only
+builtin.  This is true when float128 is provided as an ABI-distinct type
+from long double.
+
+Moreover, the comparison macros from ISO C take two floating-point
+arguments, which need not have the same type.  Choosing what underlying
+function to call requires evaluating the formats of the arguments, then
+selecting which is wider.  The macro __MATH_EVAL_FMT2 provides this
+information, however, only the type of the macro expansion is relevant
+(actually evaluating the expression would be incorrect).
+
+This patch provides a C++ version of iseqsig, in which only the type of
+__MATH_EVAL_FMT2 (__typeof or decltype) is used as a template parameter
+for __iseqsig_type.  This function calls the appropriate underlying
+function.
+
+Tested for powerpc64le and x86_64.
+
+	[BZ #22377]
+	* math/Makefile [C++] (tests): Add test for iseqsig.
+	* math/math.h [C++] (iseqsig): New implementation, which does
+	not rely on __MATH_TG/__builtin_types_compatible_p.
+	* math/test-math-iseqsig.cc: New file.
+	* sysdeps/powerpc/powerpc64le/Makefile
+	(CFLAGS-test-math-iseqsig.cc): New variable.
+
+(cherry picked from commit c85e54ac6cef0faed7b7ffc722f52523dec59bf5)
+---
+ ChangeLog                            |  10 ++++
+ NEWS                                 |   1 +
+ math/Makefile                        |   2 +-
+ math/math.h                          |  72 ++++++++++++++++++++++-
+ math/test-math-iseqsig.cc            | 111 +++++++++++++++++++++++++++++++++++
+ sysdeps/powerpc/powerpc64le/Makefile |   7 ++-
+ 6 files changed, 199 insertions(+), 4 deletions(-)
+ create mode 100644 math/test-math-iseqsig.cc
+
+diff --git a/ChangeLog b/ChangeLog
+index 9f65a5cca1..6b4d908253 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,13 @@
++2017-12-19  Gabriel F. T. Gomes  <gabriel@inconstante.eti.br>
++
++	[BZ #22377]
++	* math/Makefile [C++] (tests): Add test for iseqsig.
++	* math/math.h [C++] (iseqsig): New implementation, which does
++	not rely on __MATH_TG/__builtin_types_compatible_p.
++	* math/test-math-iseqsig.cc: New file.
++	* sysdeps/powerpc/powerpc64le/Makefile
++	(CFLAGS-test-math-iseqsig.cc): New variable.
++
+ 2017-10-18  Renlin Li  <renlin.li@arm.com>
+ 
+ 	* sysdeps/aarch64/dl-machine.h (elf_machine_load_address): Use
+diff --git a/NEWS b/NEWS
+index d4af1653f2..00945ced72 100644
+--- a/NEWS
++++ b/NEWS
+@@ -100,6 +100,7 @@ The following bugs are resolved with this release:
+   [22322] libc: [mips64] wrong bits/long-double.h installed
+   [22325] glibc: Memory leak in glob with GLOB_TILDE (CVE-2017-15671)
+   [22375] malloc returns pointer from tcache instead of NULL (CVE-2017-17426)
++  [22377] Provide a C++ version of iseqsig
+   [22636] PTHREAD_STACK_MIN is too small on x86-64
+   [22627] $ORIGIN in $LD_LIBRARY_PATH is substituted twice
+   [22637] nptl: Fix stack guard size accounting
+diff --git a/math/Makefile b/math/Makefile
+index 2c17c68eda..1039985ea6 100644
+--- a/math/Makefile
++++ b/math/Makefile
+@@ -204,7 +204,7 @@ tests-static = test-fpucw-static test-fpucw-ieee-static \
+ 
+ ifneq (,$(CXX))
+ tests += test-math-isinff test-math-iszero test-math-issignaling \
+-	 test-math-iscanonical
++	 test-math-iscanonical test-math-iseqsig
+ endif
+ 
+ ifneq (no,$(PERL))
+diff --git a/math/math.h b/math/math.h
+index ba26624835..5a282b8c6b 100644
+--- a/math/math.h
++++ b/math/math.h
+@@ -845,8 +845,76 @@ extern int matherr (struct exception *__exc);
+ 
+ /* Return X == Y but raising "invalid" and setting errno if X or Y is
+    a NaN.  */
+-# define iseqsig(x, y) \
+-  __MATH_TG (__MATH_EVAL_FMT2 (x, y), __iseqsig, ((x), (y)))
++# if !defined __cplusplus || (__cplusplus < 201103L && !defined __GNUC__)
++#  define iseqsig(x, y) \
++   __MATH_TG (__MATH_EVAL_FMT2 (x, y), __iseqsig, ((x), (y)))
++# else
++/* In C++ mode, __MATH_TG cannot be used, because it relies on
++   __builtin_types_compatible_p, which is a C-only builtin.  Moreover,
++   the comparison macros from ISO C take two floating-point arguments,
++   which need not have the same type.  Choosing what underlying function
++   to call requires evaluating the formats of the arguments, then
++   selecting which is wider.  The macro __MATH_EVAL_FMT2 provides this
++   information, however, only the type of the macro expansion is
++   relevant (actually evaluating the expression would be incorrect).
++   Thus, the type is used as a template parameter for __iseqsig_type,
++   which calls the appropriate underlying function.  */
++extern "C++" {
++template<typename> struct __iseqsig_type;
++
++template<> struct __iseqsig_type<float>
++{
++  static int __call (float __x, float __y) throw ()
++  {
++    return __iseqsigf (__x, __y);
++  }
++};
++
++template<> struct __iseqsig_type<double>
++{
++  static int __call (double __x, double __y) throw ()
++  {
++    return __iseqsig (__x, __y);
++  }
++};
++
++template<> struct __iseqsig_type<long double>
++{
++  static int __call (double __x, double __y) throw ()
++  {
++#  ifndef __NO_LONG_DOUBLE_MATH
++    return __iseqsigl (__x, __y);
++#  else
++    return __iseqsig (__x, __y);
++#  endif
++  }
++};
++
++#  if __HAVE_DISTINCT_FLOAT128
++template<> struct __iseqsig_type<_Float128>
++{
++  static int __call (_Float128 __x, _Float128 __y) throw ()
++  {
++    return __iseqsigf128 (__x, __y);
++  }
++};
++#  endif
++
++template<typename _T1, typename _T2>
++inline int
++iseqsig (_T1 __x, _T2 __y) throw ()
++{
++#  if __cplusplus >= 201103L
++  typedef decltype (__MATH_EVAL_FMT2 (__x, __y)) _T3;
++#  else
++  typedef __typeof (__MATH_EVAL_FMT2 (__x, __y)) _T3;
++#  endif
++  return __iseqsig_type<_T3>::__call (__x, __y);
++}
++
++} /* extern "C++" */
++# endif /* __cplusplus */
++
+ #endif
+ 
+ __END_DECLS
+diff --git a/math/test-math-iseqsig.cc b/math/test-math-iseqsig.cc
+new file mode 100644
+index 0000000000..48e8f1e799
+--- /dev/null
++++ b/math/test-math-iseqsig.cc
+@@ -0,0 +1,111 @@
++/* Test for the C++ implementation of iseqsig.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#define _GNU_SOURCE 1
++#include <math.h>
++#include <stdio.h>
++
++#include <limits>
++
++/* There is no NaN for _Float128 in std::numeric_limits.
++   Include ieee754_float128.h and use the bitfields in the union
++   ieee854_float128.ieee_nan to build a NaN.  */
++#if __HAVE_DISTINCT_FLOAT128
++# include <ieee754_float128.h>
++#endif
++
++#include <support/check.h>
++
++static void
++check (int actual, int expected, const char *actual_expr, int line)
++{
++  if (actual != expected)
++    {
++      support_record_failure ();
++      printf ("%s:%d: error: %s\n", __FILE__, line, actual_expr);
++      printf ("%s:%d:   expected: %d\n", __FILE__, line, expected);
++      printf ("%s:%d:   actual: %d\n", __FILE__, line, actual);
++    }
++}
++
++#define CHECK(actual, expected) \
++  check ((actual), (expected), #actual, __LINE__)
++
++template <class T1, class T2>
++static void
++check_type ()
++{
++  T1 t1 = 0;
++  T2 t2 = 0;
++  CHECK (iseqsig (t1, t2), 1);
++
++  t2 = 1;
++  CHECK (iseqsig (t1, t2), 0);
++
++  if (std::numeric_limits<T1>::has_quiet_NaN
++      && std::numeric_limits<T2>::has_quiet_NaN)
++    {
++      CHECK (iseqsig (std::numeric_limits<T1>::quiet_NaN (), t2), 0);
++      CHECK (iseqsig (t1, std::numeric_limits<T2>::quiet_NaN ()), 0);
++      CHECK (iseqsig (std::numeric_limits<T1>::quiet_NaN (),
++		      std::numeric_limits<T2>::quiet_NaN ()), 0);
++    }
++}
++
++#if __HAVE_DISTINCT_FLOAT128
++static void
++check_float128 ()
++{
++  ieee854_float128 q1, q2, q3_nan;
++
++  q1.d = 0;
++  q2.d = 1;
++  q3_nan.ieee_nan.negative = 0;
++  q3_nan.ieee_nan.exponent = 0x7FFF;
++  q3_nan.ieee_nan.quiet_nan = 1;
++  q3_nan.ieee_nan.mantissa0 = 0x0000;
++  q3_nan.ieee_nan.mantissa1 = 0x00000000;
++  q3_nan.ieee_nan.mantissa2 = 0x00000000;
++  q3_nan.ieee_nan.mantissa3 = 0x00000000;
++
++  CHECK (iseqsig (q1.d, q1.d), 1);
++  CHECK (iseqsig (q1.d, q2.d), 0);
++  CHECK (iseqsig (q1.d, q3_nan.d), 0);
++  CHECK (iseqsig (q3_nan.d, q3_nan.d), 0);
++}
++#endif
++
++static int
++do_test (void)
++{
++  check_type<float, float> ();
++  check_type<float, double> ();
++  check_type<float, long double> ();
++  check_type<double, float> ();
++  check_type<double, double> ();
++  check_type<double, long double> ();
++  check_type<long double, float> ();
++  check_type<long double, double> ();
++  check_type<long double, long double> ();
++#if __HAVE_DISTINCT_FLOAT128
++  check_float128 ();
++#endif
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/powerpc/powerpc64le/Makefile b/sysdeps/powerpc/powerpc64le/Makefile
+index f554a791b7..7f83a19b9a 100644
+--- a/sysdeps/powerpc/powerpc64le/Makefile
++++ b/sysdeps/powerpc/powerpc64le/Makefile
+@@ -17,9 +17,14 @@ $(foreach suf,$(all-object-suffixes),$(objpfx)test-float128%$(suf)): CFLAGS += -
+ $(foreach suf,$(all-object-suffixes),$(objpfx)test-ifloat128%$(suf)): CFLAGS += -mfloat128
+ CFLAGS-libm-test-support-float128.c += -mfloat128
+ CFLAGS-test-math-iscanonical.cc += -mfloat128
++CFLAGS-test-math-iseqsig.cc += -mfloat128
+ CFLAGS-test-math-issignaling.cc += -mfloat128
+ CFLAGS-test-math-iszero.cc += -mfloat128
+-$(objpfx)test-float128% $(objpfx)test-ifloat128% $(objpfx)test-math-iszero: \
++$(foreach test, \
++	  test-float128% test-ifloat128% \
++	  test-math-iscanonical test-math-iseqsig test-math-issignaling \
++	  test-math-iszero, \
++	  $(objpfx)$(test)): \
+   gnulib-tests += $(f128-loader-link)
+ endif
+ 
+-- 
+2.15.1
+

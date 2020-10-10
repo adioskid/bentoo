@@ -1,0 +1,65 @@
+From caa6857ec1087c705b11d8000716fbc67152e428 Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Tue, 12 Sep 2017 18:52:05 -0300
+Subject: [PATCH 075/146] posix: Fix compat glob code on s390 and alpha
+
+This patch fixes the compat glob implementation consolidation from
+commit 116f1c64d with the following changes:
+
+  - Add a compat implementation on s390 to avoid the architecture
+    to build the symbols on default linux oldglob.c by setting
+    GLOB_NO_OLD_VERSION.
+
+  - Remove the duplicate rule to build oldglob on alpha.
+
+Checked on s390-linux-gnu and alpha-linux-gnu using build-many-glibc.py.
+
+	* sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c: New file.
+	* sysdeps/unix/sysv/linux/alpha/Makefile
+	[$(subdir) = csu] (sysdep_routines): Remove rule.
+
+(cherry picked from commit 3ca622e4d6054c0b99b2df36580462663edc8d12)
+---
+ ChangeLog                                      | 6 ++++++
+ sysdeps/unix/sysv/linux/alpha/Makefile         | 4 ----
+ sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c | 2 ++
+ 3 files changed, 8 insertions(+), 4 deletions(-)
+ create mode 100644 sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c
+
+diff --git a/ChangeLog b/ChangeLog
+index c9b900f4a0..c36ef25b53 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-09-13  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++
++	* sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c: New file.
++	* sysdeps/unix/sysv/linux/alpha/Makefile
++	[$(subdir) = csu] (sysdep_routines): Remove rule.
++
+ 2017-09-08  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 
+ 	* sysdeps/unix/sysv/linux/arm/glob64.c: Remove file.
+diff --git a/sysdeps/unix/sysv/linux/alpha/Makefile b/sysdeps/unix/sysv/linux/alpha/Makefile
+index 47bd189f94..50f4fb1183 100644
+--- a/sysdeps/unix/sysv/linux/alpha/Makefile
++++ b/sysdeps/unix/sysv/linux/alpha/Makefile
+@@ -1,7 +1,3 @@
+-ifeq ($(subdir),posix)
+-sysdep_routines += oldglob
+-endif
+-
+ ifeq ($(subdir),stdlib)
+ gen-as-const-headers += ucontext-offsets.sym
+ endif
+diff --git a/sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c b/sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c
+new file mode 100644
+index 0000000000..56d7d12ea6
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c
+@@ -0,0 +1,2 @@
++#define GLOB_NO_OLD_VERSION
++#include <sysdeps/unix/sysv/linux/oldglob.c>
+-- 
+2.15.1
+

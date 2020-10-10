@@ -1,0 +1,24 @@
+From 51600b0fd76ce1d4a0eb1159087cab4fc3937dd6 Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Fri, 19 Jan 2018 09:46:16 -0800
+Subject: [PATCH 141/146] NEWS: Add an entry for [BZ #22715]
+
+---
+ NEWS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/NEWS b/NEWS
+index afa170f86e..d4af1653f2 100644
+--- a/NEWS
++++ b/NEWS
+@@ -105,6 +105,7 @@ The following bugs are resolved with this release:
+   [22637] nptl: Fix stack guard size accounting
+   [22679] getcwd(3) can succeed without returning an absolute path
+     (CVE-2018-1000001)
++  [22715] x86-64: Properly align La_x86_64_retval to VEC_SIZE
+ 
+ Version 2.26
+ 
+-- 
+2.15.1
+

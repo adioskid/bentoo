@@ -1,0 +1,17 @@
+libbacktrace does not respect --disable-werror
+
+https://bugs.gentoo.org/667104
+--- a/libbacktrace/configure
++++ b/libbacktrace/configure
+@@ -11634,3 +11634,3 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ if test -n "${with_target_subdir}"; then
+-  WARN_FLAGS="$WARN_FLAGS -Werror"
++  WARN_FLAGS="$WARN_FLAGS"
+ fi
+--- a/libbacktrace/configure.ac
++++ b/libbacktrace/configure.ac
+@@ -138,3 +138,3 @@ ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
+ if test -n "${with_target_subdir}"; then
+-  WARN_FLAGS="$WARN_FLAGS -Werror"
++  WARN_FLAGS="$WARN_FLAGS"
+ fi

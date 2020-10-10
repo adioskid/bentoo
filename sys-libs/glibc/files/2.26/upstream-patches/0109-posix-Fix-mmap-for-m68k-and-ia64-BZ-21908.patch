@@ -1,0 +1,150 @@
+From d8b79b0eb1f8ab69333e47f432c8174dde508d2b Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Tue, 12 Dec 2017 21:16:53 +0100
+Subject: [PATCH 109/146] posix: Fix mmap for m68k and ia64 (BZ#21908)
+
+Default semantic for mmap2 syscall is to take the offset in 4096-byte
+units.  However m68k and ia64 mmap2 implementation take in the
+configured pageunit units and for both architecture it can be
+different values.
+
+This patch fixes the m68k runtime discover of mmap2 offset unit
+and adds the ia64 definition to find it at runtime.
+
+Checked the basic tst-mmap and tst-mmap-offset on m68k (the system
+is configured with 4k, so current code is already passing on this
+system) and a sanity check on x86_64-linux-gnu (which should not be
+affected by this change).  Sergei also states that ia64 loader now
+work correctly with this change.
+
+	Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+	Sergei Trofimovich  <slyfox@inbox.ru>
+
+	* sysdeps/unix/sysv/linux/m68k/mmap_internal.h (MMAP2_PAGE_SHIFT):
+	Rename to MMAP2_PAGE_UNIT.
+	* sysdeps/unix/sysv/linux/mmap.c: Include mmap_internal iff
+	__OFF_T_MATCHES_OFF64_T is not defined.
+	* sysdeps/unix/sysv/linux/mmap_internal.h (page_unit): Declare as
+	uint64_t.
+	(MMAP2_PAGE_UNIT) [MMAP2_PAGE_UNIT == -1]: Redefine to page_unit.
+	(page_unit) [MMAP2_PAGE_UNIT != -1]: Remove definition.
+
+(cherry picked from commit 1f14d0c3ddce47f7021bbc0862fdb207891345dc)
+---
+ ChangeLog                                    | 14 ++++++++++++++
+ sysdeps/unix/sysv/linux/ia64/mmap_internal.h | 29 ++++++++++++++++++++++++++++
+ sysdeps/unix/sysv/linux/m68k/mmap_internal.h |  2 +-
+ sysdeps/unix/sysv/linux/mmap.c               |  2 +-
+ sysdeps/unix/sysv/linux/mmap_internal.h      |  6 +++---
+ 5 files changed, 48 insertions(+), 5 deletions(-)
+ create mode 100644 sysdeps/unix/sysv/linux/ia64/mmap_internal.h
+
+diff --git a/ChangeLog b/ChangeLog
+index 4fb30a1d8f..fb40c4c5dc 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,17 @@
++2017-12-12  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++	    Sergei Trofimovich  <slyfox@inbox.ru>
++
++	[BZ #21908]
++	* sysdeps/unix/sysv/linux/m68k/mmap_internal.h (MMAP2_PAGE_SHIFT):
++	Rename to MMAP2_PAGE_UNIT.
++	* sysdeps/unix/sysv/linux/ia64/mmap_internal.h: New file.
++	* sysdeps/unix/sysv/linux/mmap.c: Include mmap_internal iff
++	__OFF_T_MATCHES_OFF64_T is not defined.
++	* sysdeps/unix/sysv/linux/mmap_internal.h (page_unit): Declare as
++	uint64_t.
++	(MMAP2_PAGE_UNIT) [MMAP2_PAGE_UNIT == -1]: Redefine to page_unit.
++	(page_unit) [MMAP2_PAGE_UNIT != -1]: Remove definition.
++
+ 2017-12-12  James Clarke <jrtc27@jrtc27.com>
+ 
+ 	* sysdeps/unix/sysv/linux/ia64/ipc_priv.h: New file defining
+diff --git a/sysdeps/unix/sysv/linux/ia64/mmap_internal.h b/sysdeps/unix/sysv/linux/ia64/mmap_internal.h
+new file mode 100644
+index 0000000000..dbaaa3f904
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/ia64/mmap_internal.h
+@@ -0,0 +1,29 @@
++/* Common mmap definition for Linux implementation.  Linux/ia64 version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef MMAP_IA64_INTERNAL_LINUX_H
++#define MMAP_IA64_INTERNAL_LINUX_H
++
++/* Linux allows PAGE_SHIFT in range of [12-16] and expect
++   mmap2 offset to be provided in based on the configured pagesize.
++   Determine the shift dynamically with getpagesize.  */
++#define MMAP2_PAGE_UNIT -1
++
++#include_next <mmap_internal.h>
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/m68k/mmap_internal.h b/sysdeps/unix/sysv/linux/m68k/mmap_internal.h
+index bd8bd3843b..9fe9d9127d 100644
+--- a/sysdeps/unix/sysv/linux/m68k/mmap_internal.h
++++ b/sysdeps/unix/sysv/linux/m68k/mmap_internal.h
+@@ -22,7 +22,7 @@
+ /* ColdFire and Sun 3 kernels have PAGE_SHIFT set to 13 and expect
+    mmap2 offset to be provided in 8K pages.  Determine the shift
+    dynamically with getpagesize.  */
+-#define MMAP2_PAGE_SHIFT -1
++#define MMAP2_PAGE_UNIT -1
+ 
+ #include_next <mmap_internal.h>
+ 
+diff --git a/sysdeps/unix/sysv/linux/mmap.c b/sysdeps/unix/sysv/linux/mmap.c
+index 98c2f88eb8..59292b6d79 100644
+--- a/sysdeps/unix/sysv/linux/mmap.c
++++ b/sysdeps/unix/sysv/linux/mmap.c
+@@ -21,9 +21,9 @@
+ #include <sys/mman.h>
+ #include <sysdep.h>
+ #include <stdint.h>
+-#include <mmap_internal.h>
+ 
+ #ifndef __OFF_T_MATCHES_OFF64_T
++# include <mmap_internal.h>
+ 
+ /* An architecture may override this.  */
+ # ifndef MMAP_ADJUST_OFFSET
+diff --git a/sysdeps/unix/sysv/linux/mmap_internal.h b/sysdeps/unix/sysv/linux/mmap_internal.h
+index 499e389605..47c099183c 100644
+--- a/sysdeps/unix/sysv/linux/mmap_internal.h
++++ b/sysdeps/unix/sysv/linux/mmap_internal.h
+@@ -27,13 +27,13 @@
+ #endif
+ 
+ #if MMAP2_PAGE_UNIT == -1
+-static int page_unit;
+-
++static uint64_t page_unit;
+ # define MMAP_CHECK_PAGE_UNIT()			\
+   if (page_unit == 0)				\
+     page_unit = __getpagesize ();
++# undef MMAP2_PAGE_UNIT
++# define MMAP2_PAGE_UNIT page_unit
+ #else
+-# define page_unit MMAP2_PAGE_UNIT
+ # define MMAP_CHECK_PAGE_UNIT()
+ #endif
+ 
+-- 
+2.15.1
+

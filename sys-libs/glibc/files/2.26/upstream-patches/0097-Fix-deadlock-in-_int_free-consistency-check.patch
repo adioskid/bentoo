@@ -1,0 +1,68 @@
+From 0e24837040c724b067ea95e978139f5df562067b Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Thu, 19 Oct 2017 18:19:55 +0100
+Subject: [PATCH 097/146] Fix deadlock in _int_free consistency check
+
+This patch fixes a deadlock in the fastbin consistency check.
+If we fail the fast check due to concurrent modifications to
+the next chunk or system_mem, we should not lock if we already
+have the arena lock.  Simplify the check to make it obviously
+correct.
+
+	* malloc/malloc.c (_int_free): Fix deadlock bug in consistency check.
+
+(cherry-pick d74e6f6c0de55fc588b1ac09c88eb0fb8b8600af)
+---
+ ChangeLog       |  4 ++++
+ malloc/malloc.c | 21 ++++++++++++---------
+ 2 files changed, 16 insertions(+), 9 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index d536c9a832..49b720fdbb 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,7 @@
++2017-10-19  Wilco Dijkstra  <wdijkstr@arm.com>
++
++	* malloc/malloc.c (_int_free): Fix deadlock bug in consistency check.
++
+ 2017-08-31  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* malloc/malloc.c (_int_free): Remove locked variable and related
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 3608b34b89..44996e020a 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -4148,17 +4148,20 @@ _int_free (mstate av, mchunkptr p, int have_lock)
+ 	|| __builtin_expect (chunksize (chunk_at_offset (p, size))
+ 			     >= av->system_mem, 0))
+       {
++	bool fail = true;
+ 	/* We might not have a lock at this point and concurrent modifications
+-	   of system_mem might have let to a false positive.  Redo the test
+-	   after getting the lock.  */
+-	if (!have_lock
+-	    || ({ __libc_lock_lock (av->mutex);
+-		  chunksize_nomask (chunk_at_offset (p, size)) <= 2 * SIZE_SZ
+-		  || chunksize (chunk_at_offset (p, size)) >= av->system_mem;
+-	        }))
++	   of system_mem might result in a false positive.  Redo the test after
++	   getting the lock.  */
++	if (!have_lock)
++	  {
++	    __libc_lock_lock (av->mutex);
++	    fail = (chunksize_nomask (chunk_at_offset (p, size)) <= 2 * SIZE_SZ
++		    || chunksize (chunk_at_offset (p, size)) >= av->system_mem);
++	    __libc_lock_unlock (av->mutex);
++	  }
++
++	if (fail)
+ 	  malloc_printerr ("free(): invalid next size (fast)");
+-	if (! have_lock)
+-	  __libc_lock_unlock (av->mutex);
+       }
+ 
+     free_perturb (chunk2mem(p), size - 2 * SIZE_SZ);
+-- 
+2.15.1
+

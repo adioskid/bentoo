@@ -1,0 +1,41 @@
+From 2767ebd8bc34c8b632ea737296200a86f57289ad Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Wed, 4 Oct 2017 15:49:06 +0200
+Subject: [PATCH 086/146] crypt: Adjust check-local-headers.sh for nspr4
+ include directory [BZ #17956]
+
+(cherry picked from commit 11c4f5010c58029e73e656d5df4f8f42c9b8e877)
+---
+ ChangeLog                      | 5 +++++
+ scripts/check-local-headers.sh | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 0693e834dd..eb9204d972 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-10-04  Florian Weimer  <fweimer@redhat.com>
++
++	* scripts/check-local-headers.sh: Ignore nspr4 header file
++	directory in addition to nspr.
++
+ 2017-10-04  Guido Trentalancia  <guido@trentalancia.net>
+ 
+ 	[BZ #17956]
+diff --git a/scripts/check-local-headers.sh b/scripts/check-local-headers.sh
+index 4692361686..0cde6e8e92 100755
+--- a/scripts/check-local-headers.sh
++++ b/scripts/check-local-headers.sh
+@@ -33,7 +33,7 @@ exec ${AWK} -v includedir="$includedir" '
+ BEGIN {
+   status = 0
+   exclude = "^" includedir \
+-    "/(.*-.*-.*/|.*-.*/|)(asm[-/]|arch|linux/|selinux/|mach/|mach_debug/|device/|hurd/(((hurd|ioctl)_types|paths)\\.h|ioctls\\.defs|ihash\\.h)|cthreads\\.h|gd|nss3/|nspr/|c\\+\\+/|sys/(capability|sdt(|-config))\\.h|libaudit\\.h)"
++    "/(.*-.*-.*/|.*-.*/|)(asm[-/]|arch|linux/|selinux/|mach/|mach_debug/|device/|hurd/(((hurd|ioctl)_types|paths)\\.h|ioctls\\.defs|ihash\\.h)|cthreads\\.h|gd|nss3/|nspr4?/|c\\+\\+/|sys/(capability|sdt(|-config))\\.h|libaudit\\.h)"
+ }
+ /^[^ ]/ && $1 ~ /.*:/ { obj = $1 }
+ {
+-- 
+2.15.1
+

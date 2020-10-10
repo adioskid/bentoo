@@ -1,0 +1,417 @@
+From 290ba1089ecdca306cb2a0fbf3c7dc9cc29bc56f Mon Sep 17 00:00:00 2001
+From: Siddhesh Poyarekar <siddhesh@sourceware.org>
+Date: Thu, 5 Oct 2017 21:55:31 +0530
+Subject: [PATCH 052/146] aarch64: Optimized implementation of memmove for
+ Qualcomm Falkor
+
+This is an optimized memmove implementation for the Qualcomm Falkor
+processor core.  Due to the way the falkor memcpy needs to be written,
+code cannot be easily shared between memmove and memcpy like in case
+of other aarch64 memcpy implementations due to which this routine is
+separate.  The underlying principle is the same as that of memcpy
+where it tries to use registers with the same lower 4 bits for
+fetching the same stream, thus optimizing hardware prefetcher
+performance.
+
+The memcpy copy loop copies 64 bytes at a time using the same register
+pair since that's the way to train the hardware prefetcher on the
+falkor core.  memmove cannot quite do that since it needs to avoid
+overlaps, so it does the next best thing, i.e. has a 32 byte loop with
+a 32 byte end (prefetch a loop ahead to account for overlapping
+locations) with register pairs that alias so that they hit the same
+prefetcher.  Due to this difference in loop size, they have to
+currently be separate implementations but efforts are on to try and
+get memmove to fall back into memcpy whenever it can without simply
+duplicating all of the code.
+
+Performance:
+
+The routine fares around 20-25% better than the generic memmove for
+most medium to large sizes (i.e. > 128 bytes) for the new walking
+memmove benchmark (memmove-walk) with an unexplained regression
+between 1K and 2K.  The minor regression is something worth looking
+into for us, but the remaining gains are significant enough that we
+would like this included upstream as we looking into the cause for the
+regression.  Here is a snippet of the numbers as generated from the
+microbenchmark by the compare_strings script.  Comparisons are against
+__memmove_generic:
+
+Function: memmove
+Variant: walk
+                                    __memmove_thunderx	__memmove_falkor	__memmove_generic
+========================================================================================================================
+<snip>
+                        length=16384:  12508800.00 (  6.09%)	 11486800.00 ( 13.76%)	 13319600.00
+                        length=16400:  13614200.00 ( -0.67%)	 11585000.00 ( 14.33%)	 13523600.00
+                        length=16385:  13448400.00 (  0.10%)	 11732700.00 ( 12.84%)	 13461200.00
+                        length=16399:  13594100.00 ( -0.22%)	 11859600.00 ( 12.57%)	 13564400.00
+                        length=16386:  13211600.00 (  1.13%)	 11503800.00 ( 13.91%)	 13362400.00
+                        length=16398:  13218600.00 (  2.12%)	 11573200.00 ( 14.30%)	 13504700.00
+                        length=16387:  13510900.00 ( -0.37%)	 11744200.00 ( 12.76%)	 13461300.00
+                        length=16397:  13603700.00 ( -0.15%)	 11878200.00 ( 12.55%)	 13583200.00
+                        length=16388:  13461700.00 ( -0.13%)	 11558000.00 ( 14.03%)	 13444100.00
+                        length=16396:  13517500.00 ( -0.03%)	 11561300.00 ( 14.45%)	 13513900.00
+                        length=16389:  13534100.00 (  0.17%)	 11756800.00 ( 13.28%)	 13556900.00
+                        length=16395:  13585600.00 (  0.11%)	 11791800.00 ( 13.30%)	 13601200.00
+                        length=16390:  13480100.00 ( -0.13%)	 11685500.00 ( 13.20%)	 13462100.00
+                        length=16394:  13529900.00 ( -0.23%)	 11549800.00 ( 14.43%)	 13498200.00
+                        length=16391:  13595400.00 ( -0.26%)	 11768200.00 ( 13.22%)	 13560600.00
+                        length=16393:  13567000.00 (  0.20%)	 11779700.00 ( 13.35%)	 13594700.00
+                        length=32768:  71308800.00 ( -6.53%)	 50220800.00 ( 24.98%)	 66939200.00
+                        length=32784:  72100800.00 (-11.55%)	 50114100.00 ( 22.47%)	 64636300.00
+                        length=32769:  71767000.00 ( -7.10%)	 51238400.00 ( 23.54%)	 67010000.00
+                        length=32783:  70113700.00 (-40.95%)	 51129000.00 ( -2.78%)	 49744400.00
+                        length=32770:  71367600.00 ( -6.52%)	 50244700.00 ( 25.01%)	 67000900.00
+                        length=32782:  64366700.00 (  4.71%)	 50101400.00 ( 25.83%)	 67545600.00
+                        length=32771:  71440100.00 ( -6.51%)	 51263900.00 ( 23.57%)	 67074900.00
+                        length=32781:  66993000.00 (  0.34%)	 51108300.00 ( 23.97%)	 67220300.00
+                        length=32772:  71443900.00 (-60.50%)	 50062100.00 (-12.47%)	 44512600.00
+                        length=32780:  71759100.00 ( -6.58%)	 50263200.00 ( 25.35%)	 67328600.00
+                        length=32773:  71714900.00 (-33.21%)	 51076600.00 (  5.12%)	 53835400.00
+                        length=32779:  71756900.00 ( -6.56%)	 51290800.00 ( 23.83%)	 67337800.00
+                        length=32774:  59689300.00 (-34.55%)	 50068400.00 (-12.86%)	 44363300.00
+                        length=32778:  71847500.00 (-18.20%)	 50084100.00 ( 17.61%)	 60786500.00
+                        length=32775:  71599300.00 ( -6.54%)	 51278200.00 ( 23.70%)	 67204800.00
+                        length=32777:  71862900.00 (-60.85%)	 51094000.00 (-14.36%)	 44677900.00
+                        length=65536: 282848000.00 ( -6.60%)	199187000.00 ( 24.93%)	265325000.00
+                        length=65552: 243285000.00 (-41.61%)	198512000.00 (-15.54%)	171805000.00
+                        length=65537: 255415000.00 (-23.47%)	202499000.00 (  2.11%)	206858000.00
+                        length=65551: 280122000.00 (-62.95%)	203349000.00 (-18.29%)	171911000.00
+                        length=65538: 283676000.00 (-14.46%)	198368000.00 ( 19.96%)	247848000.00
+                        length=65550: 275566000.00 (-51.76%)	198494000.00 ( -9.31%)	181581000.00
+                        length=65539: 283699000.00 ( -6.58%)	203453000.00 ( 23.57%)	266195000.00
+                        length=65549: 286572000.00 ( -6.65%)	202607000.00 ( 24.60%)	268712000.00
+                        length=65540: 283710000.00 ( -6.59%)	199161000.00 ( 25.17%)	266160000.00
+                        length=65548: 237573000.00 ( 11.48%)	198462000.00 ( 26.06%)	268395000.00
+                        length=65541: 284150000.00 ( -6.58%)	203273000.00 ( 23.75%)	266600000.00
+                        length=65547: 286250000.00 ( -6.70%)	202594000.00 ( 24.48%)	268263000.00
+                        length=65542: 284167000.00 ( -6.60%)	199122000.00 ( 25.31%)	266584000.00
+                        length=65546: 285656000.00 ( -6.59%)	198443000.00 ( 25.95%)	268002000.00
+                        length=65543: 284600000.00 ( -6.58%)	203247000.00 ( 23.89%)	267030000.00
+                        length=65545: 285665000.00 ( -6.40%)	202575000.00 ( 24.55%)	268472000.00
+<snip>
+
+	* sysdeps/aarch64/multiarch/Makefile (sysdep_routines): Add
+	memmove_falkor.
+	* sysdeps/aarch64/multiarch/ifunc-impl-list.c
+	(__libc_ifunc_impl_list): Likewise.
+	* sysdeps/aarch64/multiarch/memmove.c: Likewise.
+	* sysdeps/aarch64/multiarch/memmove_falkor.S: New file.
+---
+ ChangeLog                                   |  16 ++
+ sysdeps/aarch64/multiarch/Makefile          |   3 +-
+ sysdeps/aarch64/multiarch/ifunc-impl-list.c |   1 +
+ sysdeps/aarch64/multiarch/memmove.c         |   7 +-
+ sysdeps/aarch64/multiarch/memmove_falkor.S  | 232 ++++++++++++++++++++++++++++
+ 5 files changed, 257 insertions(+), 2 deletions(-)
+ create mode 100644 sysdeps/aarch64/multiarch/memmove_falkor.S
+
+diff --git a/ChangeLog b/ChangeLog
+index 2aa1711834..d478f5d8e4 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,5 +1,21 @@
+ 2017-10-10  Siddhesh Poyarekar  <siddhesh@sourceware.org>
+ 
++	* sysdeps/aarch64/multiarch/Makefile (sysdep_routines): Add
++	memmove_falkor.
++	* sysdeps/aarch64/multiarch/ifunc-impl-list.c
++	(__libc_ifunc_impl_list): Likewise.
++	* sysdeps/aarch64/multiarch/memmove.c: Likewise.
++	* sysdeps/aarch64/multiarch/memmove_falkor.S: New file.
++
++	* benchtests/bench-memmove-walk.c: New file.
++	* benchtests/Makefile (string-benchset): Add it.
++
++	* benchtests/bench-memset-walk.c: New file.
++	* benchtests/Makefile (string-benchset): Add it.
++
++	* benchtests/bench-memcpy-walk.c: New file.
++	* benchtests/Makefile (string-benchset): Add it.
++
+ 	* po/sv.po: Update translations.
+ 	* po/fr.po: Likewise.
+ 
+diff --git a/sysdeps/aarch64/multiarch/Makefile b/sysdeps/aarch64/multiarch/Makefile
+index 164ba1ae4b..9aa1e79a80 100644
+--- a/sysdeps/aarch64/multiarch/Makefile
++++ b/sysdeps/aarch64/multiarch/Makefile
+@@ -1,3 +1,4 @@
+ ifeq ($(subdir),string)
+-sysdep_routines += memcpy_generic memcpy_thunderx memcpy_falkor
++sysdep_routines += memcpy_generic memcpy_thunderx memcpy_falkor \
++		   memmove_falkor
+ endif
+diff --git a/sysdeps/aarch64/multiarch/ifunc-impl-list.c b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+index 8e873b3d9f..2cb74d5b43 100644
+--- a/sysdeps/aarch64/multiarch/ifunc-impl-list.c
++++ b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+@@ -44,6 +44,7 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+ 	      IFUNC_IMPL_ADD (array, i, memcpy, 1, __memcpy_generic))
+   IFUNC_IMPL (i, name, memmove,
+ 	      IFUNC_IMPL_ADD (array, i, memmove, 1, __memmove_thunderx)
++	      IFUNC_IMPL_ADD (array, i, memmove, 1, __memmove_falkor)
+ 	      IFUNC_IMPL_ADD (array, i, memmove, 1, __memmove_generic))
+ 
+   return i;
+diff --git a/sysdeps/aarch64/multiarch/memmove.c b/sysdeps/aarch64/multiarch/memmove.c
+index 34c6b29bd5..016f03ee50 100644
+--- a/sysdeps/aarch64/multiarch/memmove.c
++++ b/sysdeps/aarch64/multiarch/memmove.c
+@@ -30,9 +30,14 @@ extern __typeof (__redirect_memmove) __libc_memmove;
+ 
+ extern __typeof (__redirect_memmove) __memmove_generic attribute_hidden;
+ extern __typeof (__redirect_memmove) __memmove_thunderx attribute_hidden;
++extern __typeof (__redirect_memmove) __memmove_falkor attribute_hidden;
+ 
+ libc_ifunc (__libc_memmove,
+-            IS_THUNDERX (midr) ? __memmove_thunderx : __memmove_generic);
++            (IS_THUNDERX (midr)
++	     ? __memmove_thunderx
++	     : (IS_FALKOR (midr)
++		? __memmove_falkor
++		: __memmove_generic)));
+ 
+ # undef memmove
+ strong_alias (__libc_memmove, memmove);
+diff --git a/sysdeps/aarch64/multiarch/memmove_falkor.S b/sysdeps/aarch64/multiarch/memmove_falkor.S
+new file mode 100644
+index 0000000000..3a4e6a2a8e
+--- /dev/null
++++ b/sysdeps/aarch64/multiarch/memmove_falkor.S
+@@ -0,0 +1,232 @@
++/* Copyright (C) 2017 Free Software Foundation, Inc.
++
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sysdep.h>
++
++/* Assumptions: ARMv8-a, AArch64, falkor, unaligned accesses.  */
++
++#define dstin	x0
++#define src	x1
++#define count	x2
++#define dstlen	x3
++#define dst	x3
++#define srcend	x4
++#define dstend	x5
++#define A_l	x6
++#define A_lw	w6
++#define A_h	x7
++#define A_hw	w7
++#define B_l	x8
++#define B_lw	w8
++#define B_h	x9
++#define C_l	x10
++#define C_h	x11
++#define D_l	x12
++#define D_h	x13
++#define E_l	src
++#define E_h	count
++#define F_l	srcend
++#define F_h	dst
++#define tmp1	x14
++
++/* Alias with A_l and A_h to train the prefetcher.  */
++#define Q_l	x22
++#define Q_h	x23
++
++/* RATIONALE:
++
++   The copy has 4 distinct parts:
++   * Small copies of 16 bytes and under
++   * Medium sized copies of 17-96 bytes
++   * Large copies where the source address is higher than the destination
++     (forward copies)
++   * Large copies where the destination address is higher than the source
++     (copy backward, or move).
++
++   We use only two registerpairs x6,x7 and x22,x23 for the copies and copy 32
++   bytes at a time to correctly train the hardware prefetcher for better
++   throughput.  */
++ENTRY_ALIGN (__memmove_falkor, 6)
++
++	sub	tmp1, dstin, src
++	add	srcend, src, count
++	add	dstend, dstin, count
++	cmp	count, 96
++	ccmp	tmp1, count, 2, hi
++	b.lo	L(move_long)
++
++	cmp	count, 16
++	b.ls	L(copy16)
++	cmp	count, 96
++	b.hi	L(copy_long)
++
++	/* Medium copies: 17..96 bytes.  */
++	sub	tmp1, count, 1
++	ldp	A_l, A_h, [src]
++	tbnz	tmp1, 6, L(copy96)
++	ldp	D_l, D_h, [srcend, -16]
++	tbz	tmp1, 5, 1f
++	ldp	B_l, B_h, [src, 16]
++	ldp	C_l, C_h, [srcend, -32]
++	stp	B_l, B_h, [dstin, 16]
++	stp	C_l, C_h, [dstend, -32]
++1:
++	stp	A_l, A_h, [dstin]
++	stp	D_l, D_h, [dstend, -16]
++	ret
++
++	.p2align 4
++	/* Small copies: 0..16 bytes.  */
++L(copy16):
++	cmp	count, 8
++	b.lo	1f
++	ldr	A_l, [src]
++	ldr	A_h, [srcend, -8]
++	str	A_l, [dstin]
++	str	A_h, [dstend, -8]
++	ret
++	.p2align 4
++1:
++	/* 4-7 */
++	tbz	count, 2, 1f
++	ldr	A_lw, [src]
++	ldr	A_hw, [srcend, -4]
++	str	A_lw, [dstin]
++	str	A_hw, [dstend, -4]
++	ret
++	.p2align 4
++1:
++	/* 2-3 */
++	tbz	count, 1, 1f
++	ldrh	A_lw, [src]
++	ldrh	A_hw, [srcend, -2]
++	strh	A_lw, [dstin]
++	strh	A_hw, [dstend, -2]
++	ret
++	.p2align 4
++1:
++	/* 0-1 */
++	tbz	count, 0, 1f
++	ldrb	A_lw, [src]
++	strb	A_lw, [dstin]
++1:	ret
++
++	.p2align 4
++	/* Copy 64..96 bytes.  Copy 64 bytes from the start and
++	   32 bytes from the end.  */
++L(copy96):
++	ldp	B_l, B_h, [src, 16]
++	ldp	C_l, C_h, [src, 32]
++	ldp	D_l, D_h, [src, 48]
++	ldp	E_l, E_h, [srcend, -32]
++	ldp	F_l, F_h, [srcend, -16]
++	stp	A_l, A_h, [dstin]
++	stp	B_l, B_h, [dstin, 16]
++	stp	C_l, C_h, [dstin, 32]
++	stp	D_l, D_h, [dstin, 48]
++	stp	E_l, E_h, [dstend, -32]
++	stp	F_l, F_h, [dstend, -16]
++	ret
++
++	/* Align SRC to 16 byte alignment so that we don't cross cache line
++	   boundaries on both loads and stores.  There are at least 96 bytes
++	   to copy, so copy 16 bytes unaligned and then align.  The loop
++	   copies 32 bytes per iteration and prefetches one iteration ahead.  */
++
++	.p2align 4
++L(copy_long):
++	sub	count, count, 64 + 16	/* Test and readjust count.  */
++	mov	B_l, Q_l
++	mov	B_h, Q_h
++	ldp	A_l, A_h, [src]
++	and	tmp1, src, 15
++	bic	src, src, 15
++	sub	dst, dstin, tmp1
++	add	count, count, tmp1	/* Count is now 16 too large.  */
++	ldp	Q_l, Q_h, [src, 16]!
++	stp	A_l, A_h, [dstin]
++	ldp	A_l, A_h, [src, 16]!
++
++L(loop64):
++	subs	count, count, 32
++	stp	Q_l, Q_h, [dst, 16]
++	ldp	Q_l, Q_h, [src, 16]!
++	stp	A_l, A_h, [dst, 32]!
++	ldp	A_l, A_h, [src, 16]!
++	b.hi	L(loop64)
++
++	/* Write the last full set of 32 bytes.  The remainder is at most 32
++	   bytes, so it is safe to always copy 32 bytes from the end even if
++	   there is just 1 byte left.  */
++L(last64):
++	ldp	C_l, C_h, [srcend, -32]
++	stp	Q_l, Q_h, [dst, 16]
++	ldp	Q_l, Q_h, [srcend, -16]
++	stp	A_l, A_h, [dst, 32]
++	stp	C_l, C_h, [dstend, -32]
++	stp	Q_l, Q_h, [dstend, -16]
++	mov	Q_l, B_l
++	mov	Q_h, B_h
++	ret
++
++	.p2align 4
++L(move_long):
++	cbz	tmp1, 3f
++
++	mov	B_l, Q_l
++	mov	B_h, Q_h
++
++	/* Align SRCEND to 16 byte alignment so that we don't cross cache line
++	   boundaries on both loads and stores.  There are at least 96 bytes
++	   to copy, so copy 16 bytes unaligned and then align.  The loop
++	   copies 32 bytes per iteration and prefetches one iteration ahead.  */
++
++	ldp	A_l, A_h, [srcend, -16]
++	and	tmp1, srcend, 15
++	sub	srcend, srcend, tmp1
++	ldp	Q_l, Q_h, [srcend, -16]!
++	stp	A_l, A_h, [dstend, -16]
++	sub	count, count, tmp1
++	ldp	A_l, A_h, [srcend, -16]!
++	sub	dstend, dstend, tmp1
++	sub	count, count, 64
++
++1:
++	subs	count, count, 32
++	stp	Q_l, Q_h, [dstend, -16]
++	ldp	Q_l, Q_h, [srcend, -16]!
++	stp	A_l, A_h, [dstend, -32]!
++	ldp	A_l, A_h, [srcend, -16]!
++	b.hi	1b
++
++	/* Write the last full set of 32 bytes.  The remainder is at most 32
++	   bytes, so it is safe to always copy 32 bytes from the start even if
++	   there is just 1 byte left.  */
++2:
++	ldp	C_l, C_h, [src, 16]
++	stp	Q_l, Q_h, [dstend, -16]
++	ldp	Q_l, Q_h, [src]
++	stp	A_l, A_h, [dstend, -32]
++	stp	C_l, C_h, [dstin, 16]
++	stp	Q_l, Q_h, [dstin]
++	mov	Q_l, B_l
++	mov	Q_h, B_h
++3:	ret
++
++END (__memmove_falkor)
++libc_hidden_builtin_def (__memmove_falkor)
+-- 
+2.15.1
+

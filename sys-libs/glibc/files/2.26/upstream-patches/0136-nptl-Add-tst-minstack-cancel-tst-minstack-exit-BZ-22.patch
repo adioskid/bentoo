@@ -1,0 +1,162 @@
+From 3feefa1cc80140693581b0ae825dabd145b3cd9a Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 11 Jan 2018 13:13:14 +0100
+Subject: [PATCH 136/146] nptl: Add tst-minstack-cancel, tst-minstack-exit [BZ
+ #22636]
+
+I verified that without the guard accounting change in commit
+630f4cc3aa019ede55976ea561f1a7af2f068639 (Fix stack guard size
+accounting) and RTLD_NOW for libgcc_s introduced by commit
+f993b8754080ac7572b692870e926d8b493db16c (nptl: Open libgcc.so with
+RTLD_NOW during pthread_cancel), the tst-minstack-cancel test fails on
+an AVX-512F machine.  tst-minstack-exit still passes, and either of
+the mentioned commit by itself frees sufficient stack space to make
+tst-minstack-cancel pass, too.
+
+Reviewed-by: Carlos O'Donell <carlos@redhat.com>
+(cherry picked from commit d8b778907e5270fdeb70459842ffbc20bd2ca5e1)
+---
+ ChangeLog                  |  6 ++++++
+ nptl/Makefile              |  2 +-
+ nptl/tst-minstack-cancel.c | 48 ++++++++++++++++++++++++++++++++++++++++++++++
+ nptl/tst-minstack-exit.c   | 46 ++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 101 insertions(+), 1 deletion(-)
+ create mode 100644 nptl/tst-minstack-cancel.c
+ create mode 100644 nptl/tst-minstack-exit.c
+
+diff --git a/ChangeLog b/ChangeLog
+index e4b6cdecee..a67b98cdc9 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2018-01-11  Florian Weimer  <fweimer@redhat.com>
++
++	[BZ #22636]
++	* nptl/Makefile (tests): Add tst-minstack-cancel, tst-minstack-exit.
++	* nptl/tst-minstack-cancel.c, nptl/tst-minstack-exit.c: New files.
++
+ 2018-01-10  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #22636]
+diff --git a/nptl/Makefile b/nptl/Makefile
+index 4acbb47a63..4ab513b6c3 100644
+--- a/nptl/Makefile
++++ b/nptl/Makefile
+@@ -305,7 +305,7 @@ tests = tst-attr1 tst-attr2 tst-attr3 tst-default-attr \
+ 	tst-bad-schedattr \
+ 	tst-thread_local1 tst-mutex-errorcheck tst-robust10 \
+ 	tst-robust-fork tst-create-detached tst-memstream \
+-	tst-thread-exit-clobber
++	tst-thread-exit-clobber tst-minstack-cancel tst-minstack-exit
+ 
+ tests-internal := tst-typesizes \
+ 		  tst-rwlock19 tst-rwlock20 \
+diff --git a/nptl/tst-minstack-cancel.c b/nptl/tst-minstack-cancel.c
+new file mode 100644
+index 0000000000..a306320e88
+--- /dev/null
++++ b/nptl/tst-minstack-cancel.c
+@@ -0,0 +1,48 @@
++/* Test cancellation with a minimal stack size.
++   Copyright (C) 2018 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Note: This test is similar to tst-minstack-exit, but is separate to
++   avoid spurious test passes due to warm-up effects.  */
++
++#include <limits.h>
++#include <unistd.h>
++#include <support/check.h>
++#include <support/xthread.h>
++
++static void *
++threadfunc (void *closure)
++{
++  while (1)
++    pause ();
++  return NULL;
++}
++
++static int
++do_test (void)
++{
++  pthread_attr_t attr;
++  xpthread_attr_init (&attr);
++  xpthread_attr_setstacksize (&attr, PTHREAD_STACK_MIN);
++  pthread_t thr = xpthread_create (&attr, threadfunc, NULL);
++  xpthread_cancel (thr);
++  TEST_VERIFY (xpthread_join (thr) == PTHREAD_CANCELED);
++  xpthread_attr_destroy (&attr);
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/nptl/tst-minstack-exit.c b/nptl/tst-minstack-exit.c
+new file mode 100644
+index 0000000000..9c7e9a4dfe
+--- /dev/null
++++ b/nptl/tst-minstack-exit.c
+@@ -0,0 +1,46 @@
++/* Test that pthread_exit works with the minimum stack size.
++   Copyright (C) 2018 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Note: This test is similar to tst-minstack-cancel, but is separate
++   to avoid spurious test passes due to warm-up effects.  */
++
++#include <limits.h>
++#include <unistd.h>
++#include <support/check.h>
++#include <support/xthread.h>
++
++static void *
++threadfunc (void *closure)
++{
++  pthread_exit (threadfunc);
++  return NULL;
++}
++
++static int
++do_test (void)
++{
++  pthread_attr_t attr;
++  xpthread_attr_init (&attr);
++  xpthread_attr_setstacksize (&attr, PTHREAD_STACK_MIN);
++  pthread_t thr = xpthread_create (&attr, threadfunc, NULL);
++  TEST_VERIFY (xpthread_join (thr) == threadfunc);
++  xpthread_attr_destroy (&attr);
++  return 0;
++}
++
++#include <support/test-driver.c>
+-- 
+2.15.1
+

@@ -1,0 +1,101 @@
+From 73a92363619e52c458146e903dfb9b1ba823aa40 Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Wed, 6 Dec 2017 16:15:47 +0100
+Subject: [PATCH 107/146] Silence -O3 -Wall warning in malloc/hooks.c with GCC
+ 7 [BZ #22052]
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+realloc_check has
+
+  unsigned char *magic_p;
+...
+  __libc_lock_lock (main_arena.mutex);
+  const mchunkptr oldp = mem2chunk_check (oldmem, &magic_p);
+  __libc_lock_unlock (main_arena.mutex);
+  if (!oldp)
+    malloc_printerr ("realloc(): invalid pointer");
+...
+  if (newmem == NULL)
+    *magic_p ^= 0xFF;
+
+with
+
+static void malloc_printerr(const char *str) __attribute__ ((noreturn));
+
+GCC 7 -O3 warns
+
+hooks.c: In function ‘realloc_check’:
+hooks.c:352:14: error: ‘magic_p’ may be used uninitialized in this function [-Werror=maybe-uninitialized]
+     *magic_p ^= 0xFF;
+
+due to the GCC bug:
+
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82090
+
+This patch silences GCC 7 by using DIAG_IGNORE_NEEDS_COMMENT.
+
+	[BZ #22052]
+	* malloc/hooks.c (realloc_check): Use DIAG_IGNORE_NEEDS_COMMENT
+	to silence -O3 -Wall warning with GCC 7.
+
+(cherry picked from commit 8e57c9432a2b68c8a1e7f4df28f0e8c7acc04753)
+---
+ ChangeLog      | 6 ++++++
+ NEWS           | 1 +
+ malloc/hooks.c | 7 +++++++
+ 3 files changed, 14 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index 29bd704bda..42224c0a2f 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-10-15  H.J. Lu  <hongjiu.lu@intel.com>
++
++	[BZ #22052]
++	* malloc/hooks.c (realloc_check): Use DIAG_IGNORE_NEEDS_COMMENT
++	to silence -O3 -Wall warning with GCC 7.
++
+ 2017-11-30  Arjun Shankar  <arjun@redhat.com>
+ 
+ 	[BZ #22375]
+diff --git a/NEWS b/NEWS
+index 895e2bcbf3..8810b57cd9 100644
+--- a/NEWS
++++ b/NEWS
+@@ -63,6 +63,7 @@ The following bugs are resolved with this release:
+     occur with -O3
+   [21987] Fix sparc32 bits/long-double.h
+   [22051] libc: zero terminator in the middle of glibc's .eh_frame
++  [22052] malloc failed to compile with GCC 7 and -O3
+   [22078] nss_files performance issue in hosts multi mode
+   [22093] x86: Add x86_64 to x86-64 HWCAP
+   [22095] resolv: Fix memory leak with OOM during resolv.conf parsing
+diff --git a/malloc/hooks.c b/malloc/hooks.c
+index 4398c0a017..2c6cebc889 100644
+--- a/malloc/hooks.c
++++ b/malloc/hooks.c
+@@ -347,11 +347,18 @@ realloc_check (void *oldmem, size_t bytes, const void *caller)
+       newmem = _int_realloc (&main_arena, oldp, oldsize, nb);
+     }
+ 
++  DIAG_PUSH_NEEDS_COMMENT;
++#if __GNUC_PREREQ (7, 0)
++  /* GCC 7 warns about magic_p may be used uninitialized.  But we never
++     reach here if magic_p is uninitialized.  */
++  DIAG_IGNORE_NEEDS_COMMENT (7, "-Wmaybe-uninitialized");
++#endif
+   /* mem2chunk_check changed the magic byte in the old chunk.
+      If newmem is NULL, then the old chunk will still be used though,
+      so we need to invert that change here.  */
+   if (newmem == NULL)
+     *magic_p ^= 0xFF;
++  DIAG_POP_NEEDS_COMMENT;
+ 
+   __libc_lock_unlock (main_arena.mutex);
+ 
+-- 
+2.15.1
+

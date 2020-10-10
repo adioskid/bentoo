@@ -1,0 +1,64 @@
+From 268bd5f053204b80e771169e55b45704c04d77ad Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Thu, 14 Dec 2017 09:05:46 -0200
+Subject: [PATCH 129/146] ia64: Fix memchr for large input sizes (BZ #22603)
+
+Current optimized ia64 memchr uses a strategy to check for last address
+by adding the input one with expected size.  However it does not take
+care for possible overflow.
+
+It was triggered by 3038145ca23 where default rawmemchr now uses memchr
+(p, c, (size_t)-1).
+
+This patch fixes it by implement a satured addition where overflows
+sets the maximum pointer size to UINTPTR_MAX.
+
+Checked on ia64-linux-gnu where it fixes both stratcliff and
+test-rawmemchr failures.
+
+	Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+	James Clarke <jrtc27@jrtc27.com>
+
+	[BZ #22603]
+	* sysdeps/ia64/memchr.S (__memchr): Avoid overflow in pointer
+	addition.
+
+(cherry picked from commit 3bb1ef58b989012f8199b82af6ec136da2f9fda3)
+---
+ ChangeLog             | 7 +++++++
+ sysdeps/ia64/memchr.S | 4 ++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index f9212518d4..efc8395ebb 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-12-19  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++	    James Clarke <jrtc27@jrtc27.com>
++
++	[BZ #22603]
++	* sysdeps/ia64/memchr.S (__memchr): Avoid overflow in pointer
++	addition.
++
+ 2018-01-08  Dmitry V. Levin  <ldv@altlinux.org>
+ 
+ 	* sysdeps/unix/sysv/linux/tst-ttyname.c (do_in_chroot_1): Skip the
+diff --git a/sysdeps/ia64/memchr.S b/sysdeps/ia64/memchr.S
+index d60cf7bd87..9a0abc6f0a 100644
+--- a/sysdeps/ia64/memchr.S
++++ b/sysdeps/ia64/memchr.S
+@@ -67,6 +67,10 @@ ENTRY(__memchr)
+ 	.body
+ 	mov	ret0 = str
+ 	add	last = str, in2		// last byte
++	;;
++	cmp.ltu	p6, p0 = last, str
++	;;
++(p6)	mov	last = -1
+ 	and	tmp = 7, str		// tmp = str % 8
+ 	cmp.ne	p7, p0 = r0, r0		// clear p7
+ 	extr.u	chr = in1, 0, 8		// chr = (unsigned char) in1
+-- 
+2.15.1
+

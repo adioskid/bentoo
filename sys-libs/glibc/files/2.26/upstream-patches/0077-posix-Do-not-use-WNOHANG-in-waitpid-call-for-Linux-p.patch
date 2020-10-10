@@ -1,0 +1,68 @@
+From bfdb34f2f26933a831684c09cadc2b782f7fbd7a Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Sat, 21 Oct 2017 11:33:27 -0200
+Subject: [PATCH 077/146] posix: Do not use WNOHANG in waitpid call for Linux
+ posix_spawn
+
+As shown in some buildbot issues on aarch64 and powerpc, calling
+clone (VFORK) and waitpid (WNOHANG) does not guarantee the child
+is ready to be collected.  This patch changes the call back to 0
+as before fe05e1cb6d64 fix.
+
+This change can lead to the scenario 4.3 described in the commit,
+where the waitpid call can hang undefinitely on the call.  However
+this is also a very unlikely and also undefinied situation where
+both the caller is trying to terminate a pid before posix_spawn
+returns and the race pid reuse is triggered.  I don't see how to
+correct handle this specific situation within posix_spawn.
+
+Checked on x86_64-linux-gnu, aarch64-linux-gnu and
+powerpc64-linux-gnu.
+
+	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Use 0 instead of
+	WNOHANG in waitpid call.
+
+(cherry picked from commit aa95a2414e4f664ca740ad5f4a72d9145abbd426)
+---
+ ChangeLog                        |  3 +++
+ sysdeps/unix/sysv/linux/spawni.c | 10 +++++-----
+ 2 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 34709f792e..c3418c3277 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,5 +1,8 @@
+ 2017-11-07  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 
++	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Use 0 instead of
++	WNOHANG in waitpid call.
++
+ 	[BZ #22273]
+ 	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Handle the case where
+ 	the auxiliary process is terminated by a signal before calling _exit
+diff --git a/sysdeps/unix/sysv/linux/spawni.c b/sysdeps/unix/sysv/linux/spawni.c
+index 76001b6624..7d23df84d2 100644
+--- a/sysdeps/unix/sysv/linux/spawni.c
++++ b/sysdeps/unix/sysv/linux/spawni.c
+@@ -374,12 +374,12 @@ __spawnix (pid_t * pid, const char *file,
+       ec = args.err;
+       if (ec > 0)
+ 	/* There still an unlikely case where the child is cancelled after
+-	   setting args.err, due to a positive error value.  Also due a
++	   setting args.err, due to a positive error value.  Also there is
+ 	   possible pid reuse race (where the kernel allocated the same pid
+-	   to unrelated process) we need not to undefinitely hang expecting
+-	   an invalid pid.  In both cases an error is returned to the
+-	   caller.  */
+-	__waitpid (new_pid, NULL, WNOHANG);
++	   to an unrelated process).  Unfortunately due synchronization
++	   issues where the kernel might not have the process collected
++	   the waitpid below can not use WNOHANG.  */
++	__waitpid (new_pid, NULL, 0);
+     }
+   else
+     ec = -new_pid;
+-- 
+2.15.1
+

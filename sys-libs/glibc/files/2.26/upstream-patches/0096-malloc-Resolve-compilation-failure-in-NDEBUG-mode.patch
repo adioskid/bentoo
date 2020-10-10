@@ -1,0 +1,91 @@
+From 590b24e6e066cbb7d3e5befbb665ed844fbca083 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 31 Aug 2017 14:55:11 +0200
+Subject: [PATCH 096/146] malloc: Resolve compilation failure in NDEBUG mode
+
+In _int_free, the locked variable is not used if NDEBUG is defined.
+
+(cherry-picked from 24cffce7366c4070d8f823702a4fcec2cb732595)
+---
+ ChangeLog       |  5 +++++
+ malloc/malloc.c | 25 +++++++------------------
+ 2 files changed, 12 insertions(+), 18 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 519db42d51..d536c9a832 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-08-31  Florian Weimer  <fweimer@redhat.com>
++
++	* malloc/malloc.c (_int_free): Remove locked variable and related
++	asserts.
++
+ 2017-08-31  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* malloc/malloc.c (top_check): Change return type to void.  Remove
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 417ffbba5f..3608b34b89 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -4097,8 +4097,6 @@ _int_free (mstate av, mchunkptr p, int have_lock)
+   mchunkptr bck;               /* misc temp for linking */
+   mchunkptr fwd;               /* misc temp for linking */
+ 
+-  int locked = 0;
+-
+   size = chunksize (p);
+ 
+   /* Little security check which won't hurt performance: the
+@@ -4153,19 +4151,14 @@ _int_free (mstate av, mchunkptr p, int have_lock)
+ 	/* We might not have a lock at this point and concurrent modifications
+ 	   of system_mem might have let to a false positive.  Redo the test
+ 	   after getting the lock.  */
+-	if (have_lock
+-	    || ({ assert (locked == 0);
+-		  __libc_lock_lock (av->mutex);
+-		  locked = 1;
++	if (!have_lock
++	    || ({ __libc_lock_lock (av->mutex);
+ 		  chunksize_nomask (chunk_at_offset (p, size)) <= 2 * SIZE_SZ
+-		    || chunksize (chunk_at_offset (p, size)) >= av->system_mem;
+-	      }))
++		  || chunksize (chunk_at_offset (p, size)) >= av->system_mem;
++	        }))
+ 	  malloc_printerr ("free(): invalid next size (fast)");
+ 	if (! have_lock)
+-	  {
+-	    __libc_lock_unlock (av->mutex);
+-	    locked = 0;
+-	  }
++	  __libc_lock_unlock (av->mutex);
+       }
+ 
+     free_perturb (chunk2mem(p), size - 2 * SIZE_SZ);
+@@ -4202,10 +4195,8 @@ _int_free (mstate av, mchunkptr p, int have_lock)
+   */
+ 
+   else if (!chunk_is_mmapped(p)) {
+-    if (! have_lock) {
++    if (!have_lock)
+       __libc_lock_lock (av->mutex);
+-      locked = 1;
+-    }
+ 
+     nextchunk = chunk_at_offset(p, size);
+ 
+@@ -4319,10 +4310,8 @@ _int_free (mstate av, mchunkptr p, int have_lock)
+       }
+     }
+ 
+-    if (! have_lock) {
+-      assert (locked);
++    if (!have_lock)
+       __libc_lock_unlock (av->mutex);
+-    }
+   }
+   /*
+     If the chunk was allocated via mmap, release via munmap().
+-- 
+2.15.1
+

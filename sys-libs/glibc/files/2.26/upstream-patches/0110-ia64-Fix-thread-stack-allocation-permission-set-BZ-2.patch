@@ -1,0 +1,138 @@
+From 3a0b7d09dbbf2493b54aacdbf462987892f8a6cd Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Mon, 28 Aug 2017 11:24:35 -0300
+Subject: [PATCH 110/146] ia64: Fix thread stack allocation permission set (BZ
+ #21672)
+
+This patch fixes ia64 failures on thread exit by madvise the required
+area taking in consideration its disjoing stacks
+(NEED_SEPARATE_REGISTER_STACK).  Also the snippet that setup the
+madvise call to advertise kernel the area won't be used anymore in
+near future is reallocated in allocatestack.c (for consistency to
+put all stack management function in one place).
+
+Checked on x86_64-linux-gnu and i686-linux-gnu for sanity (since
+it is not expected code changes for architecture that do not
+define NEED_SEPARATE_REGISTER_STACK) and also got a report that
+it fixes ia64-linux-gnu failures from Sergei Trofimovich
+<slyfox@gentoo.org>.
+
+	[BZ #21672]
+	* nptl/allocatestack.c [_STACK_GROWS_DOWN] (setup_stack_prot):
+	Set to use !NEED_SEPARATE_REGISTER_STACK as well.
+	(advise_stack_range): New function.
+	* nptl/pthread_create.c (START_THREAD_DEFN): Move logic to mark
+	stack non required to advise_stack_range at allocatestack.c
+
+(cherry pick from commit 01b87c656f670863ce437421b8e9278200965d38)
+---
+ ChangeLog             |  9 +++++++++
+ nptl/allocatestack.c  | 29 ++++++++++++++++++++++++++++-
+ nptl/pthread_create.c | 27 ++-------------------------
+ 3 files changed, 39 insertions(+), 26 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index fb40c4c5dc..922f2d6ac5 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,12 @@
++2017-12-12  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++
++	[BZ #21672]
++	* nptl/allocatestack.c [_STACK_GROWS_DOWN] (setup_stack_prot):
++	Set to use !NEED_SEPARATE_REGISTER_STACK as well.
++	(advise_stack_range): New function.
++	* nptl/pthread_create.c (START_THREAD_DEFN): Move logic to mark
++	stack non required to advise_stack_range at allocatestack.c
++
+ 2017-12-12  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 	    Sergei Trofimovich  <slyfox@inbox.ru>
+ 
+diff --git a/nptl/allocatestack.c b/nptl/allocatestack.c
+index dff5d3469e..1a760e92e5 100644
+--- a/nptl/allocatestack.c
++++ b/nptl/allocatestack.c
+@@ -356,7 +356,7 @@ setup_stack_prot (char *mem, size_t size, char *guard, size_t guardsize,
+ 		  const int prot)
+ {
+   char *guardend = guard + guardsize;
+-#if _STACK_GROWS_DOWN
++#if _STACK_GROWS_DOWN && !defined(NEED_SEPARATE_REGISTER_STACK)
+   /* As defined at guard_position, for architectures with downward stack
+      the guard page is always at start of the allocated area.  */
+   if (__mprotect (guardend, size - guardsize, prot) != 0)
+@@ -372,6 +372,33 @@ setup_stack_prot (char *mem, size_t size, char *guard, size_t guardsize,
+   return 0;
+ }
+ 
++/* Mark the memory of the stack as usable to the kernel.  It frees everything
++   except for the space used for the TCB itself.  */
++static inline void
++__always_inline
++advise_stack_range (void *mem, size_t size, uintptr_t pd, size_t guardsize)
++{
++  uintptr_t sp = (uintptr_t) CURRENT_STACK_FRAME;
++  size_t pagesize_m1 = __getpagesize () - 1;
++#if _STACK_GROWS_DOWN && !defined(NEED_SEPARATE_REGISTER_STACK)
++  size_t freesize = (sp - (uintptr_t) mem) & ~pagesize_m1;
++  assert (freesize < size);
++  if (freesize > PTHREAD_STACK_MIN)
++    __madvise (mem, freesize - PTHREAD_STACK_MIN, MADV_DONTNEED);
++#else
++  /* Page aligned start of memory to free (higher than or equal
++     to current sp plus the minimum stack size).  */
++  uintptr_t freeblock = (sp + PTHREAD_STACK_MIN + pagesize_m1) & ~pagesize_m1;
++  uintptr_t free_end = (pd - guardsize) & ~pagesize_m1;
++  if (free_end > freeblock)
++    {
++      size_t freesize = free_end - freeblock;
++      assert (freesize < size);
++      __madvise ((void*) freeblock, freesize, MADV_DONTNEED);
++    }
++#endif
++}
++
+ /* Returns a usable stack for a new thread either by allocating a
+    new stack or reusing a cached stack of sufficient size.
+    ATTR must be non-NULL and point to a valid pthread_attr.
+diff --git a/nptl/pthread_create.c b/nptl/pthread_create.c
+index 16c05c3a58..791587218b 100644
+--- a/nptl/pthread_create.c
++++ b/nptl/pthread_create.c
+@@ -551,31 +551,8 @@ START_THREAD_DEFN
+     }
+ #endif
+ 
+-  /* Mark the memory of the stack as usable to the kernel.  We free
+-     everything except for the space used for the TCB itself.  */
+-  size_t pagesize_m1 = __getpagesize () - 1;
+-#ifdef _STACK_GROWS_DOWN
+-  char *sp = CURRENT_STACK_FRAME;
+-  size_t freesize = (sp - (char *) pd->stackblock) & ~pagesize_m1;
+-  assert (freesize < pd->stackblock_size);
+-  if (freesize > PTHREAD_STACK_MIN)
+-    __madvise (pd->stackblock, freesize - PTHREAD_STACK_MIN, MADV_DONTNEED);
+-#else
+-  /* Page aligned start of memory to free (higher than or equal
+-     to current sp plus the minimum stack size).  */
+-  void *freeblock = (void*)((size_t)(CURRENT_STACK_FRAME
+-				     + PTHREAD_STACK_MIN
+-				     + pagesize_m1)
+-				    & ~pagesize_m1);
+-  char *free_end = (char *) (((uintptr_t) pd - pd->guardsize) & ~pagesize_m1);
+-  /* Is there any space to free?  */
+-  if (free_end > (char *)freeblock)
+-    {
+-      size_t freesize = (size_t)(free_end - (char *)freeblock);
+-      assert (freesize < pd->stackblock_size);
+-      __madvise (freeblock, freesize, MADV_DONTNEED);
+-    }
+-#endif
++  advise_stack_range (pd->stackblock, pd->stackblock_size, (uintptr_t) pd,
++		      pd->guardsize);
+ 
+   /* If the thread is detached free the TCB.  */
+   if (IS_DETACHED (pd))
+-- 
+2.15.1
+

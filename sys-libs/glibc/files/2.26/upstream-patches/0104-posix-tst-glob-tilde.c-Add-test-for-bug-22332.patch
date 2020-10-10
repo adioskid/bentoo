@@ -1,0 +1,111 @@
+From a9f35ac127e2244185d0a80ed91fa629f9d19dcf Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 2 Nov 2017 11:06:45 +0100
+Subject: [PATCH 104/146] posix/tst-glob-tilde.c: Add test for bug 22332
+
+(cherry picked from commit 2fac6a6cd50c22ac28c97d0864306594807ade3e)
+---
+ ChangeLog              |  7 +++++++
+ posix/tst-glob-tilde.c | 53 ++++++++++++++++++++++++++++----------------------
+ 2 files changed, 37 insertions(+), 23 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 0ab08782b4..fab886ab01 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-11-02  Florian Weimer  <fweimer@redhat.com>
++
++	[BZ #22332]
++	* posix/tst-glob-tilde.c (do_noescape): New variable.
++	(one_test): Process it.
++	(do_test): Set do_noescape.  Add unescaping test case.
++
+ 2017-10-22  Paul Eggert <eggert@cs.ucla.edu>
+ 
+ 	[BZ #22332]
+diff --git a/posix/tst-glob-tilde.c b/posix/tst-glob-tilde.c
+index 9518b4a6f8..6886f4371f 100644
+--- a/posix/tst-glob-tilde.c
++++ b/posix/tst-glob-tilde.c
+@@ -1,4 +1,4 @@
+-/* Check for GLOB_TIDLE heap allocation issues (bug 22320, bug 22325).
++/* Check for GLOB_TIDLE heap allocation issues (bugs 22320, 22325, 22332).
+    Copyright (C) 2017 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+ 
+@@ -34,6 +34,9 @@ static int do_nocheck;
+ /* Flag which indicates whether to pass the GLOB_MARK flag.  */
+ static int do_mark;
+ 
++/* Flag which indicates whether to pass the GLOB_NOESCAPE flag.  */
++static int do_noescape;
++
+ static void
+ one_test (const char *prefix, const char *middle, const char *suffix)
+ {
+@@ -45,6 +48,8 @@ one_test (const char *prefix, const char *middle, const char *suffix)
+     flags |= GLOB_NOCHECK;
+   if (do_mark)
+     flags |= GLOB_MARK;
++  if (do_noescape)
++    flags |= GLOB_NOESCAPE;
+   glob_t gl;
+   /* This glob call might result in crashes or memory leaks.  */
+   if (glob (pattern, flags, NULL, &gl) == 0)
+@@ -105,28 +110,30 @@ do_test (void)
+   for (do_onlydir = 0; do_onlydir < 2; ++do_onlydir)
+     for (do_nocheck = 0; do_nocheck < 2; ++do_nocheck)
+       for (do_mark = 0; do_mark < 2; ++do_mark)
+-        for (int base_idx = 0; base_sizes[base_idx] >= 0; ++base_idx)
+-          {
+-            for (int size_skew = -max_size_skew; size_skew <= max_size_skew;
+-                 ++size_skew)
+-              {
+-                int size = base_sizes[base_idx] + size_skew;
+-                if (size < 0)
+-                  continue;
+-
+-                const char *user_name = repeating_string (size);
+-                one_test ("~", user_name, "/a/b");
+-              }
+-
+-            const char *user_name = repeating_string (base_sizes[base_idx]);
+-            one_test ("~", user_name, "");
+-            one_test ("~", user_name, "/");
+-            one_test ("~", user_name, "/a");
+-            one_test ("~", user_name, "/*/*");
+-            one_test ("~", user_name, "\\/");
+-            one_test ("/~", user_name, "");
+-            one_test ("*/~", user_name, "/a/b");
+-          }
++	for (do_noescape = 0; do_noescape < 2; ++do_noescape)
++	  for (int base_idx = 0; base_sizes[base_idx] >= 0; ++base_idx)
++	    {
++	      for (int size_skew = -max_size_skew; size_skew <= max_size_skew;
++		   ++size_skew)
++		{
++		  int size = base_sizes[base_idx] + size_skew;
++		  if (size < 0)
++		    continue;
++
++		  const char *user_name = repeating_string (size);
++		  one_test ("~", user_name, "/a/b");
++		  one_test ("~", user_name, "x\\x\\x////x\\a");
++		}
++
++	      const char *user_name = repeating_string (base_sizes[base_idx]);
++	      one_test ("~", user_name, "");
++	      one_test ("~", user_name, "/");
++	      one_test ("~", user_name, "/a");
++	      one_test ("~", user_name, "/*/*");
++	      one_test ("~", user_name, "\\/");
++	      one_test ("/~", user_name, "");
++	      one_test ("*/~", user_name, "/a/b");
++	    }
+ 
+   free (repeat);
+ 
+-- 
+2.15.1
+

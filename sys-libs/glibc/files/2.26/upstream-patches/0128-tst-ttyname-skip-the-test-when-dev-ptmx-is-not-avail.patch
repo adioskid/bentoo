@@ -1,0 +1,51 @@
+From 989f59db3940ab4b76176af9a62b6980eafb7a22 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Mon, 25 Dec 2017 02:30:32 +0000
+Subject: [PATCH 128/146] tst-ttyname: skip the test when /dev/ptmx is not
+ available
+
+* sysdeps/unix/sysv/linux/tst-ttyname.c (do_in_chroot_1): Skip the
+test instead of failing in case of ENOENT returned by posix_openpt.
+
+(cherry picked from commit d7ff3f11b64a28273285d341f795217bbf18ac9c)
+---
+ ChangeLog                             | 5 +++++
+ sysdeps/unix/sysv/linux/tst-ttyname.c | 9 ++++++++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 929f846be8..f9212518d4 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2018-01-08  Dmitry V. Levin  <ldv@altlinux.org>
++
++	* sysdeps/unix/sysv/linux/tst-ttyname.c (do_in_chroot_1): Skip the
++	test instead of failing in case of ENOENT returned by posix_openpt.
++
+ 2017-12-29  Aurelien Jarno  <aurelien@aurel32.net>
+ 
+ 	[BZ #22611]
+diff --git a/sysdeps/unix/sysv/linux/tst-ttyname.c b/sysdeps/unix/sysv/linux/tst-ttyname.c
+index 0fdf1a8ccb..6848a6d3e2 100644
+--- a/sysdeps/unix/sysv/linux/tst-ttyname.c
++++ b/sysdeps/unix/sysv/linux/tst-ttyname.c
+@@ -253,7 +253,14 @@ do_in_chroot_1 (int (*cb)(const char *, int))
+   /* Open the PTS that we'll be testing on.  */
+   int master;
+   char *slavename;
+-  VERIFY ((master = posix_openpt (O_RDWR|O_NOCTTY|O_NONBLOCK)) >= 0);
++  master = posix_openpt (O_RDWR|O_NOCTTY|O_NONBLOCK);
++  if (master < 0)
++    {
++      if (errno == ENOENT)
++	FAIL_UNSUPPORTED ("posix_openpt: %m");
++      else
++	FAIL_EXIT1 ("posix_openpt: %m");
++    }
+   VERIFY ((slavename = ptsname (master)));
+   VERIFY (unlockpt (master) == 0);
+   if (strncmp (slavename, "/dev/pts/", 9) != 0)
+-- 
+2.15.1
+

@@ -1,0 +1,86 @@
+https://bugs.gentoo.org/668044
+https://gcc.gnu.org/PR87099
+
+From e24ceb4802f0cc1bb9e498af6f5bdd29e556c34b Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Tue, 28 Aug 2018 11:43:22 +0000
+Subject: [PATCH] 	PR middle-end/87099 	* calls.c
+ (maybe_warn_nonstring_arg): Punt early if 	warn_stringop_overflow is
+ zero.  Don't call get_range_strlen 	on 3rd argument, keep iterating until
+ lenrng[1] is INTEGER_CST. 	Only use lenrng[1] if non-NULL and
+ INTEGER_CST.  Don't uselessly 	increment lenrng[0].
+
+	* gcc.dg/pr87099.c: New test.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-8-branch@263917 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/calls.c                    | 12 ++++++++----
+ gcc/testsuite/gcc.dg/pr87099.c | 21 +++++++++++++++++++++
+ 4 files changed, 43 insertions(+), 4 deletions(-)
+ create mode 100644 gcc/testsuite/gcc.dg/pr87099.c
+
+--- a/gcc/calls.c
++++ b/gcc/calls.c
+@@ -1627,6 +1627,9 @@ maybe_warn_nonstring_arg (tree fndecl, tree exp)
+   if (!fndecl || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
+     return;
+ 
++  if (!warn_stringop_overflow)
++    return;
++
+   bool with_bounds = CALL_WITH_BOUNDS_P (exp);
+ 
+   unsigned nargs = call_expr_nargs (exp);
+@@ -1655,7 +1658,10 @@ maybe_warn_nonstring_arg (tree fndecl, tree exp)
+ 	   conservatively as the bound for the unbounded function,
+ 	   and to adjust the range of the bound of the bounded ones.  */
+ 	unsigned stride = with_bounds ? 2 : 1;
+-	for (unsigned argno = 0; argno < nargs && !*lenrng; argno += stride)
++	for (unsigned argno = 0;
++	     argno < MIN (nargs, 2 * stride)
++	     && !(lenrng[1] && TREE_CODE (lenrng[1]) == INTEGER_CST);
++	     argno += stride)
+ 	  {
+ 	    tree arg = CALL_EXPR_ARG (exp, argno);
+ 	    if (!get_attr_nonstring_decl (arg))
+@@ -1693,11 +1699,9 @@ maybe_warn_nonstring_arg (tree fndecl, tree exp)
+   if (bound)
+     get_size_range (bound, bndrng);
+ 
+-  if (*lenrng)
++  if (lenrng[1] && TREE_CODE (lenrng[1]) == INTEGER_CST)
+     {
+       /* Add one for the nul.  */
+-      lenrng[0] = const_binop (PLUS_EXPR, TREE_TYPE (lenrng[0]),
+-			       lenrng[0], size_one_node);
+       lenrng[1] = const_binop (PLUS_EXPR, TREE_TYPE (lenrng[1]),
+ 			       lenrng[1], size_one_node);
+ 
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/pr87099.c
+@@ -0,0 +1,21 @@
++/* PR middle-end/87099 */
++/* { dg-do compile } */
++/* { dg-options "-Wstringop-overflow" } */
++
++void bar (char *);
++
++int
++foo (int n)
++{
++  char v[n];
++  bar (v);
++  return __builtin_strncmp (&v[1], "aaa", 3);
++}
++
++int
++baz (int n, char *s)
++{
++  char v[n];
++  bar (v);
++  return __builtin_strncmp (&v[1], s, 3);
++}
+-- 
+2.19.1
+

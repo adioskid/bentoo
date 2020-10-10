@@ -1,0 +1,74 @@
+From 0bd4b39247e0cb72c8706e7fff31d00b7178a0d6 Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Fri, 19 Jan 2018 09:41:12 -0800
+Subject: [PATCH 140/146] x86-64: Properly align La_x86_64_retval to VEC_SIZE
+ [BZ #22715]
+
+_dl_runtime_profile calls _dl_call_pltexit, passing a pointer to
+La_x86_64_retval which is allocated on stack.  The lrv_vector0
+field in La_x86_64_retval must be aligned to size of vector register.
+When allocating stack space for La_x86_64_retval, we need to make sure
+that the address of La_x86_64_retval + RV_VECTOR0_OFFSET is aligned to
+VEC_SIZE.  This patch checks the alignment of the lrv_vector0 field
+and pads the stack space if needed.
+
+Tested with x32 and x86-64 on SSE4, AVX and AVX512 machines.  It fixed
+
+FAIL: elf/tst-audit10
+FAIL: elf/tst-audit4
+FAIL: elf/tst-audit5
+FAIL: elf/tst-audit6
+FAIL: elf/tst-audit7
+
+on x32 AVX512 machine.
+
+(cherry picked from commit 207a72e2988c6d6343f50fe0128eb4fc4edfdd15)
+
+	[BZ #22715]
+	* sysdeps/x86_64/dl-trampoline.h (_dl_runtime_profile): Properly
+	align La_x86_64_retval to VEC_SIZE.
+---
+ ChangeLog                      |  6 ++++++
+ sysdeps/x86_64/dl-trampoline.h | 12 ++++++++++--
+ 2 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 73777b3b86..d1a23a4f1b 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2018-01-19  H.J. Lu  <hongjiu.lu@intel.com>
++
++	[BZ #22715]
++	* sysdeps/x86_64/dl-trampoline.h (_dl_runtime_profile): Properly
++	align La_x86_64_retval to VEC_SIZE.
++
+ 2018-01-16  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* nptl/Makefile [$(have-cxx-thread_local)] (tests-unsupported):
+diff --git a/sysdeps/x86_64/dl-trampoline.h b/sysdeps/x86_64/dl-trampoline.h
+index 9ddaafee17..5fdc391d08 100644
+--- a/sysdeps/x86_64/dl-trampoline.h
++++ b/sysdeps/x86_64/dl-trampoline.h
+@@ -440,8 +440,16 @@ _dl_runtime_profile:
+ # ifdef RESTORE_AVX
+ 	/* sizeof(La_x86_64_retval).  Need extra space for 2 SSE
+ 	   registers to detect if xmm0/xmm1 registers are changed
+-	   by audit module.  */
+-	sub $(LRV_SIZE + XMM_SIZE*2), %RSP_LP
++	   by audit module.  Since rsp is aligned to VEC_SIZE, we
++	   need to make sure that the address of La_x86_64_retval +
++	   LRV_VECTOR0_OFFSET is aligned to VEC_SIZE.  */
++#  define LRV_SPACE (LRV_SIZE + XMM_SIZE*2)
++#  define LRV_MISALIGNED ((LRV_SIZE + LRV_VECTOR0_OFFSET) & (VEC_SIZE - 1))
++#  if LRV_MISALIGNED == 0
++	sub $LRV_SPACE, %RSP_LP
++#  else
++	sub $(LRV_SPACE + VEC_SIZE - LRV_MISALIGNED), %RSP_LP
++#  endif
+ # else
+ 	sub $LRV_SIZE, %RSP_LP	# sizeof(La_x86_64_retval)
+ # endif
+-- 
+2.15.1
+

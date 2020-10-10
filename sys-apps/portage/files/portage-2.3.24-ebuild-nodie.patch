@@ -1,0 +1,43 @@
+diff --git a/bin/ebuild.sh b/bin/ebuild.sh
+index 9995a2f99..39de3727b 100755
+--- a/bin/ebuild.sh
++++ b/bin/ebuild.sh
+@@ -55,38 +55,6 @@ if [[ $EBUILD_PHASE != depend ]] ; then
+ 	source "${PORTAGE_BIN_PATH}/save-ebuild-env.sh" || die
+ 	source "${PORTAGE_BIN_PATH}/phase-helpers.sh" || die
+ 	source "${PORTAGE_BIN_PATH}/bashrc-functions.sh" || die
+-else
+-	# These dummy functions are for things that are likely to be called
+-	# in global scope, even though they are completely useless during
+-	# the "depend" phase.
+-	funcs="diropts docompress exeopts get_KV insopts
+-		KV_major KV_micro KV_minor KV_to_int
+-		libopts register_die_hook register_success_hook
+-		__strip_duplicate_slashes
+-		use useq usev use_with use_enable"
+-	___eapi_has_usex && funcs+=" usex"
+-	___eapi_has_in_iuse && funcs+=" in_iuse"
+-	___eapi_has_get_libdir && funcs+=" get_libdir"
+-	# These functions die because calls to them during the "depend" phase
+-	# are considered to be severe QA violations.
+-	funcs+=" best_version has_version portageq"
+-	___eapi_has_master_repositories && funcs+=" master_repositories"
+-	___eapi_has_repository_path && funcs+=" repository_path"
+-	___eapi_has_available_eclasses && funcs+=" available_eclasses"
+-	___eapi_has_eclass_path && funcs+=" eclass_path"
+-	___eapi_has_license_path && funcs+=" license_path"
+-	for x in ${funcs} ; do
+-		eval "${x}() { die \"\${FUNCNAME}() calls are not allowed in global scope\"; }"
+-	done
+-	unset funcs x
+-
+-	# prevent the shell from finding external executables
+-	# note: we can't use empty because it implies current directory
+-	_PORTAGE_ORIG_PATH=${PATH}
+-	export PATH=/dev/null
+-	command_not_found_handle() {
+-		die "External commands disallowed while sourcing ebuild: ${*}"
+-	}
+ fi
+ 
+ # Don't use sandbox's BASH_ENV for new shells because it does

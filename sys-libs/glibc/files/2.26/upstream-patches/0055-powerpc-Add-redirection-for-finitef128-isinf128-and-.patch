@@ -1,0 +1,166 @@
+From c9163eeb6e10c6559796b283702b04eed5349fd3 Mon Sep 17 00:00:00 2001
+From: "Gabriel F. T. Gomes" <gabriel@inconstante.eti.br>
+Date: Mon, 4 Sep 2017 13:07:18 -0300
+Subject: [PATCH 055/146] powerpc: Add redirection for finitef128, isinf128,
+ and isnanf128
+
+On powerpc64le, compiler support for float128 is not enabled by default
+on gcc.  To enable it, the flag -mfloat128 must be passed as a command
+line option to the compiler.  This means that only the few files that
+actively have -mfloat128 passed as an argument get compiler support for
+float128, whereas all other files don't.
+
+When -mfloat128 becomes enabled by default on powerpc [1], all the files
+that do not currently have compiler support for float128 enabled during
+their compilation, will start to have it.  This will lead to build
+errors in s_finite.c, s_isinf.c, and s_isnan.c.
+
+The errors are due to the unintended macro expansion of __finitef128 to
+__redirect_finitef128 in math/bits/mathcalls-helper-functions.h.  In
+that header, __MATHDECL_1 takes '__finite' and 'f128' as arguments and
+concatenates them.  However, since '__finite' has been redefined in
+s_finite.c, the function declaration becomes __redirect_finitef128:
+
+    extern int __redirect___finitef128 (_Float128 __value) __attribute__ ((__nothrow__ )) __attribute__ ((__const__));
+
+This declaration itself is OK.  The problem arises when include/math.h
+creates the hidden prototype ('hidden_proto (__finitef128)'), which
+expands to:
+
+    extern __typeof (__finitef128) __finitef128 __attribute__ ((visibility ("hidden")));
+
+Since __finitef128 is not declared, __typeof fails.  This effect was
+already true for the 'float' and 'long double' versions and is now true
+for float128.  Likewise for isinsff128 and isnanf128.
+
+This patch defines __finitef128 as __redirect___finitef128 in
+sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c, similarly to what's
+done for the float and long double versions of these functions, to get
+rid of the build error.  Likewise for isinff128 and isnanf128.
+
+[1] https://gcc.gnu.org/ml/gcc-patches/2017-08/msg01028.html
+
+Tested for powerpc64 and powerpc64le.
+
+	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c
+	(__finitef128): Define to __redirect___finitef128.
+	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c
+	(__isinff128): Define to __redirect___isinff128.
+	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c
+	(__isnanf128): Define to __redirect___isnanf128.
+
+(cherry picked from commit e010deb231113e92f5f351315645a8197857dffd)
+---
+ ChangeLog                                          | 9 +++++++++
+ sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c | 9 +++++++++
+ sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c  | 9 +++++++++
+ sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c  | 9 +++++++++
+ 4 files changed, 36 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index 60a1554fac..9ecf757e81 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,12 @@
++2017-09-21  Gabriel F. T. Gomes  <gabriel@inconstante.eti.br>
++
++	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c
++	(__finitef128): Define to __redirect___finitef128.
++	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c
++	(__isinff128): Define to __redirect___isinff128.
++	* sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c
++	(__isnanf128): Define to __redirect___isnanf128.
++
+ 2017-09-21  Gabriel F. T. Gomes  <gabriel@inconstante.eti.br>
+ 
+ 	* sysdeps/powerpc/powerpc64le/Makefile
+diff --git a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c
+index a5ec36b72f..7efc84b56a 100644
+--- a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c
++++ b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_finite.c
+@@ -17,8 +17,16 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ #define __finite __redirect___finite
++
++/* The following definitions, although not related to the 'double'
++   version of 'finite', are required to guarantee macro expansions
++   (e.g.: from __finitef to __redirect_finitef) in include/math.h, thus
++   compensating for the unintended macro expansions in
++   math/bits/mathcalls-helper-functions.h.  */
+ #define __finitef __redirect___finitef
+ #define __finitel __redirect___finitel
++#define __finitef128 __redirect___finitef128
++
+ #include <math.h>
+ #include <math_ldbl_opt.h>
+ #include <shlib-compat.h>
+@@ -30,6 +38,7 @@ extern __typeof (__finite) __finite_power8 attribute_hidden;
+ #undef __finite
+ #undef __finitef
+ #undef __finitel
++#undef __finitef128
+ 
+ libc_ifunc_redirected (__redirect___finite, __finite,
+ 		       (hwcap2 & PPC_FEATURE2_ARCH_2_07)
+diff --git a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c
+index 9c6789c7bd..b79bdd5edd 100644
+--- a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c
++++ b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isinf.c
+@@ -17,8 +17,16 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ #define __isinf __redirect___isinf
++
++/* The following definitions, although not related to the 'double'
++   version of 'isinf', are required to guarantee macro expansions
++   (e.g.: from __isinff to __redirect_isinff) in include/math.h, thus
++   compensating for the unintended macro expansions in
++   math/bits/mathcalls-helper-functions.h.  */
+ #define __isinff __redirect___isinff
+ #define __isinfl __redirect___isinfl
++#define __isinff128 __redirect___isinff128
++
+ #include <math.h>
+ #include <math_ldbl_opt.h>
+ #include <shlib-compat.h>
+@@ -30,6 +38,7 @@ extern __typeof (__isinf) __isinf_power8 attribute_hidden;
+ #undef __isinf
+ #undef __isinff
+ #undef __isinfl
++#undef __isinff128
+ 
+ libc_ifunc_redirected (__redirect___isinf, __isinf,
+ 		       (hwcap2 & PPC_FEATURE2_ARCH_2_07)
+diff --git a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c
+index 3cfe1793da..a8127e89f7 100644
+--- a/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c
++++ b/sysdeps/powerpc/powerpc64/fpu/multiarch/s_isnan.c
+@@ -17,8 +17,16 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ #define __isnan __redirect___isnan
++
++/* The following definitions, although not related to the 'double'
++   version of 'isnan', are required to guarantee macro expansions
++   (e.g.: from __isnanf to __redirect_isnanf) in include/math.h, thus
++   compensating for the unintended macro expansions in
++   math/bits/mathcalls-helper-functions.h.  */
+ #define __isnanf __redirect___isnanf
+ #define __isnanl __redirect___isnanl
++#define __isnanf128 __redirect___isnanf128
++
+ #include <math.h>
+ #include <math_ldbl_opt.h>
+ #include <shlib-compat.h>
+@@ -33,6 +41,7 @@ extern __typeof (__isnan) __isnan_power8 attribute_hidden;
+ #undef __isnan
+ #undef __isnanf
+ #undef __isnanl
++#undef __isnanf128
+ 
+ libc_ifunc_redirected (__redirect___isnan, __isnan,
+ 		       (hwcap2 & PPC_FEATURE2_ARCH_2_07)
+-- 
+2.15.1
+

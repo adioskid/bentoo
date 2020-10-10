@@ -1,0 +1,42 @@
+From 4db8f362c13c7239311db95bd7f96d4bce0769f3 Mon Sep 17 00:00:00 2001
+From: Andreas Schwab <schwab@suse.de>
+Date: Wed, 9 Aug 2017 10:36:08 +0200
+Subject: [PATCH 089/146] Fix s390 version of pt-longjmp.c
+
+(cherry picked from commit 5797b410a87f6f6f6d3661d730fac320cbd5f270)
+---
+ ChangeLog                                 | 5 +++++
+ sysdeps/unix/sysv/linux/s390/pt-longjmp.c | 4 ++--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index e4b1d02672..4c6f0d0aa2 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-08-09  Andreas Schwab  <schwab@suse.de>
++
++	* sysdeps/unix/sysv/linux/s390/pt-longjmp.c: Update reference to
++	renamed alias.
++
+ 2017-08-08  Andreas Schwab  <schwab@suse.de>
+ 
+ 	[BZ #21041]
+diff --git a/sysdeps/unix/sysv/linux/s390/pt-longjmp.c b/sysdeps/unix/sysv/linux/s390/pt-longjmp.c
+index d324237edd..0221ac2cf5 100644
+--- a/sysdeps/unix/sysv/linux/s390/pt-longjmp.c
++++ b/sysdeps/unix/sysv/linux/s390/pt-longjmp.c
+@@ -26,8 +26,8 @@
+ /* In glibc release 2.19 new versions of longjmp-functions were introduced,
+    but were reverted before 2.20. Thus both versions are the same function.  */
+ 
+-strong_alias (longjmp_ifunc, __v2longjmp)
++strong_alias (longjmp_alias, __v2longjmp)
+ compat_symbol (libpthread, __v2longjmp, longjmp, GLIBC_2_19);
+-strong_alias (siglongjmp_ifunc, __v2siglongjmp)
++strong_alias (siglongjmp_alias, __v2siglongjmp)
+ compat_symbol (libpthread, __v2siglongjmp, siglongjmp, GLIBC_2_19);
+ #endif /* SHLIB_COMPAT (libpthread, GLIBC_2_19, GLIBC_2_20))  */
+-- 
+2.15.1
+

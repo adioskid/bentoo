@@ -1,0 +1,58 @@
+From ade53e0df7a1257c54ce96e01fa659b374db2117 Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Tue, 17 Oct 2017 18:25:43 +0100
+Subject: [PATCH 082/146] Inline tcache functions
+
+The functions tcache_get and tcache_put show up in profiles as they
+are a critical part of the tcache code.  Inline them to give tcache
+a 16% performance gain.  Since this improves multi-threaded cases
+as well, it helps offset any potential performance loss due to adding
+single-threaded fast paths.
+
+	* malloc/malloc.c (tcache_put): Inline.
+	(tcache_get): Inline.
+
+(cherry-picked from commit e4dd4ace56880d2f1064cd787e2bdb96ddacc3c4)
+---
+ ChangeLog       | 5 +++++
+ malloc/malloc.c | 4 ++--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index e17a716e53..192acbf7d5 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-10-17  Wilco Dijkstra  <wdijkstr@arm.com>
++
++	* malloc/malloc.c (tcache_put): Inline.
++	(tcache_get): Inline.
++
+ 2017-10-13  James Clarke  <jrtc27@jrtc27.com>
+ 
+ 	* sysdeps/powerpc/powerpc32/dl-machine.h (elf_machine_rela):
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 01ec1571b9..546579bce4 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -2957,7 +2957,7 @@ static __thread tcache_perthread_struct *tcache = NULL;
+ 
+ /* Caller must ensure that we know tc_idx is valid and there's room
+    for more chunks.  */
+-static void
++static __always_inline void
+ tcache_put (mchunkptr chunk, size_t tc_idx)
+ {
+   tcache_entry *e = (tcache_entry *) chunk2mem (chunk);
+@@ -2969,7 +2969,7 @@ tcache_put (mchunkptr chunk, size_t tc_idx)
+ 
+ /* Caller must ensure that we know tc_idx is valid and there's
+    available chunks to remove.  */
+-static void *
++static __always_inline void *
+ tcache_get (size_t tc_idx)
+ {
+   tcache_entry *e = tcache->entries[tc_idx];
+-- 
+2.15.1
+

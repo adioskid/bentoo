@@ -1,0 +1,135 @@
+From 3664f34346f26cd40f11ede0440af7b915d1086f Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Tue, 24 Oct 2017 12:39:24 +0100
+Subject: [PATCH 100/146] Add single-threaded path to
+ malloc/realloc/calloc/memalloc
+
+This patch adds a single-threaded fast path to malloc, realloc,
+calloc and memalloc.  When we're single-threaded, we can bypass
+arena_get (which always locks the arena it returns) and just use
+the main arena.  Also avoid retrying a different arena since
+there is just the main arena.
+
+	* malloc/malloc.c (__libc_malloc): Add SINGLE_THREAD_P path.
+	(__libc_realloc): Likewise.
+	(_mid_memalign): Likewise.
+	(__libc_calloc): Likewise.
+
+(cherry-picked 3f6bb8a32e5f5efd78ac08c41e623651cc242a89)
+---
+ ChangeLog       |  7 +++++++
+ malloc/malloc.c | 50 +++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 48 insertions(+), 9 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 06da839328..75aa92c823 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-10-23  Wilco Dijkstra  <wdijkstr@arm.com>
++
++	* malloc/malloc.c (__libc_malloc): Add SINGLE_THREAD_P path.
++	(__libc_realloc): Likewise.
++	(_mid_memalign): Likewise.
++	(__libc_calloc): Likewise.
++
+ 2017-10-20  Wilco Dijkstra  <wdijkstr@arm.com>
+ 
+ 	* malloc/malloc.c (sysdep-cancel.h): Add include.
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 236ded8fdd..f8495f3ae1 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -3045,6 +3045,14 @@ __libc_malloc (size_t bytes)
+   DIAG_POP_NEEDS_COMMENT;
+ #endif
+ 
++  if (SINGLE_THREAD_P)
++    {
++      victim = _int_malloc (&main_arena, bytes);
++      assert (!victim || chunk_is_mmapped (mem2chunk (victim)) ||
++	      &main_arena == arena_for_chunk (mem2chunk (victim)));
++      return victim;
++    }
++
+   arena_get (ar_ptr, bytes);
+ 
+   victim = _int_malloc (ar_ptr, bytes);
+@@ -3201,6 +3209,15 @@ __libc_realloc (void *oldmem, size_t bytes)
+       return newmem;
+     }
+ 
++  if (SINGLE_THREAD_P)
++    {
++      newp = _int_realloc (ar_ptr, oldp, oldsize, nb);
++      assert (!newp || chunk_is_mmapped (mem2chunk (newp)) ||
++	      ar_ptr == arena_for_chunk (mem2chunk (newp)));
++
++      return newp;
++    }
++
+   __libc_lock_lock (ar_ptr->mutex);
+ 
+   newp = _int_realloc (ar_ptr, oldp, oldsize, nb);
+@@ -3276,6 +3293,15 @@ _mid_memalign (size_t alignment, size_t bytes, void *address)
+       alignment = a;
+     }
+ 
++  if (SINGLE_THREAD_P)
++    {
++      p = _int_memalign (&main_arena, alignment, bytes);
++      assert (!p || chunk_is_mmapped (mem2chunk (p)) ||
++	      &main_arena == arena_for_chunk (mem2chunk (p)));
++
++      return p;
++    }
++
+   arena_get (ar_ptr, bytes + alignment + MINSIZE);
+ 
+   p = _int_memalign (ar_ptr, alignment, bytes);
+@@ -3368,7 +3394,11 @@ __libc_calloc (size_t n, size_t elem_size)
+ 
+   MAYBE_INIT_TCACHE ();
+ 
+-  arena_get (av, sz);
++  if (SINGLE_THREAD_P)
++    av = &main_arena;
++  else
++    arena_get (av, sz);
++
+   if (av)
+     {
+       /* Check if we hand out the top chunk, in which case there may be no
+@@ -3398,19 +3428,21 @@ __libc_calloc (size_t n, size_t elem_size)
+     }
+   mem = _int_malloc (av, sz);
+ 
+-
+   assert (!mem || chunk_is_mmapped (mem2chunk (mem)) ||
+           av == arena_for_chunk (mem2chunk (mem)));
+ 
+-  if (mem == 0 && av != NULL)
++  if (!SINGLE_THREAD_P)
+     {
+-      LIBC_PROBE (memory_calloc_retry, 1, sz);
+-      av = arena_get_retry (av, sz);
+-      mem = _int_malloc (av, sz);
+-    }
++      if (mem == 0 && av != NULL)
++	{
++	  LIBC_PROBE (memory_calloc_retry, 1, sz);
++	  av = arena_get_retry (av, sz);
++	  mem = _int_malloc (av, sz);
++	}
+ 
+-  if (av != NULL)
+-    __libc_lock_unlock (av->mutex);
++      if (av != NULL)
++	__libc_lock_unlock (av->mutex);
++    }
+ 
+   /* Allocation failed even after a retry.  */
+   if (mem == 0)
+-- 
+2.15.1
+

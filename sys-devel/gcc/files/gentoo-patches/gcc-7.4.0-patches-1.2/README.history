@@ -1,0 +1,26 @@
+1.2		2 Feb 2019
+	U 01_all_default-fortify-source.patch
+	+ 21_all_kr-decl-PR88214.patch
+	+ 22_all_lto-ctor-dtor-target.patch
+
+1.1		9 Dec 2018
+	+ 01_all_default-fortify-source.patch
+	+ 02_all_default-warn-format-security.patch
+	+ 03_all_default-warn-trampolines.patch
+	+ 04_all_default-ssp-fix.patch
+	+ 05_all_alpha-mieee-default.patch
+	+ 06_all_ia64_note.GNU-stack.patch
+	+ 07_all_libiberty-asprintf.patch
+	+ 08_all_libiberty-pic.patch
+	+ 09_all_nopie-all-flags.patch
+	+ 10_all_extra-options.patch
+	+ 11_all_pr55930-dependency-tracking.patch
+	+ 12_all_sh-drop-sysroot-suffix.patch
+	+ 13_all_respect-build-cxxflags.patch
+	+ 14_all_libgfortran-Werror.patch
+	+ 15_all_libgomp-Werror.patch
+	+ 16_all_libitm-Werror.patch
+	+ 17_all_libatomic-Werror.patch
+	+ 18_all_libbacktrace-Werror.patch
+	+ 19_all_libsanitizer-libbacktrace-Werror.patch
+	+ 20_all_libstdcxx-no-vtv.patch

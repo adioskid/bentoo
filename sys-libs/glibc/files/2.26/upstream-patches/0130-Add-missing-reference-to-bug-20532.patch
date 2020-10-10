@@ -1,0 +1,37 @@
+From 7d2672a47b24c6991ddbcc7b65a5086caed4596a Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Fri, 12 Jan 2018 13:32:51 +0100
+Subject: [PATCH 130/146] Add missing reference to bug 20532
+
+---
+ ChangeLog | 1 +
+ NEWS      | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index efc8395ebb..406307d368 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -974,6 +974,7 @@
+ 
+ 2017-09-01  Florian Weimer  <fweimer@redhat.com>
+ 
++	[BZ #20532]
+ 	* sysdeps/posix/getaddrinfo.c (gaih_inet): Make reporting of NSS
+ 	function lookup failures more reliable.
+ 
+diff --git a/NEWS b/NEWS
+index f04b3ed4e8..003bf67779 100644
+--- a/NEWS
++++ b/NEWS
+@@ -63,6 +63,7 @@ The following bugs are resolved with this release:
+ 
+   [16750] ldd: Never run file directly.
+   [17956] crypt: Use NSPR header files in addition to NSS header files
++  [20532] getaddrinfo: More robust handling of dlopen failures
+   [21242] assert: Suppress pedantic warning caused by statement expression
+   [21265] x86-64: Use fxsave/xsave/xsavec in _dl_runtime_resolve
+   [21780] posix: Set p{read,write}v2 to return ENOTSUP
+-- 
+2.15.1
+

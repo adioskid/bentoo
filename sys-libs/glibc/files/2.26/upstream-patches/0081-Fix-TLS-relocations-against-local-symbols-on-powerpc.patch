@@ -1,0 +1,93 @@
+From 77f921dac17c5fa99bd9e926d926c327982895f7 Mon Sep 17 00:00:00 2001
+From: James Clarke <jrtc27@jrtc27.com>
+Date: Fri, 13 Oct 2017 15:44:39 -0300
+Subject: [PATCH 081/146] Fix TLS relocations against local symbols on
+ powerpc32, sparc32 and sparc64
+
+Normally, TLS relocations against local symbols are optimised by the linker
+to be absolute.  However, gold does not do this, and so it is possible to
+end up with, for example, R_SPARC_TLS_DTPMOD64 referring to a local symbol.
+Since sym_map is left as null in elf_machine_rela for the special local
+symbol case, the relocation handling thinks it has nothing to do, and so
+the module gets left as 0.  Havoc then ensues when the variable in question
+is accessed.
+
+Before this fix, the main_local_gold program would receive a SIGBUS on
+sparc64, and SIGSEGV on powerpc32.  With this fix applied, that test now
+passes like the rest of them.
+
+	* sysdeps/powerpc/powerpc32/dl-machine.h (elf_machine_rela):
+	Assign sym_map to be map for local symbols, as TLS relocations
+	use sym_map to determine whether the symbol is defined and to
+	extract the TLS information.
+	* sysdeps/sparc/sparc32/dl-machine.h (elf_machine_rela): Likewise.
+	* sysdeps/sparc/sparc64/dl-machine.h (elf_machine_rela): Likewise.
+
+(cherry picked from commit 8644588807215ab09716ac04a150f91ac83acffd)
+---
+ ChangeLog                              | 9 +++++++++
+ sysdeps/powerpc/powerpc32/dl-machine.h | 5 ++++-
+ sysdeps/sparc/sparc32/dl-machine.h     | 1 +
+ sysdeps/sparc/sparc64/dl-machine.h     | 1 +
+ 4 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index e084305548..e17a716e53 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,12 @@
++2017-10-13  James Clarke  <jrtc27@jrtc27.com>
++
++	* sysdeps/powerpc/powerpc32/dl-machine.h (elf_machine_rela):
++	Assign sym_map to be map for local symbols, as TLS relocations
++	use sym_map to determine whether the symbol is defined and to
++	extract the TLS information.
++	* sysdeps/sparc/sparc32/dl-machine.h (elf_machine_rela): Likewise.
++	* sysdeps/sparc/sparc64/dl-machine.h (elf_machine_rela): Likewise.
++
+ 2017-08-23  H.J. Lu  <hongjiu.lu@intel.com>
+ 
+ 	* sysdeps/x86_64/fpu/libm-test-ulps: Regenerated.
+diff --git a/sysdeps/powerpc/powerpc32/dl-machine.h b/sysdeps/powerpc/powerpc32/dl-machine.h
+index 1f8437ed9c..c19b3b7a16 100644
+--- a/sysdeps/powerpc/powerpc32/dl-machine.h
++++ b/sysdeps/powerpc/powerpc32/dl-machine.h
+@@ -310,7 +310,10 @@ elf_machine_rela (struct link_map *map, const Elf32_Rela *reloc,
+      against local symbols.  */
+   if (__builtin_expect (ELF32_ST_BIND (sym->st_info) == STB_LOCAL, 0)
+       && sym->st_shndx != SHN_UNDEF)
+-    value = map->l_addr;
++    {
++      sym_map = map;
++      value = map->l_addr;
++    }
+   else
+     {
+       sym_map = RESOLVE_MAP (&sym, version, r_type);
+diff --git a/sysdeps/sparc/sparc32/dl-machine.h b/sysdeps/sparc/sparc32/dl-machine.h
+index 436e4e6cc3..debf67bd1b 100644
+--- a/sysdeps/sparc/sparc32/dl-machine.h
++++ b/sysdeps/sparc/sparc32/dl-machine.h
+@@ -376,6 +376,7 @@ elf_machine_rela (struct link_map *map, const Elf32_Rela *reloc,
+   if (__builtin_expect (ELF32_ST_BIND (sym->st_info) == STB_LOCAL, 0)
+       && sym->st_shndx != SHN_UNDEF)
+     {
++      sym_map = map;
+       value = map->l_addr;
+     }
+   else
+diff --git a/sysdeps/sparc/sparc64/dl-machine.h b/sysdeps/sparc/sparc64/dl-machine.h
+index c2871dca3a..e1ec7a532c 100644
+--- a/sysdeps/sparc/sparc64/dl-machine.h
++++ b/sysdeps/sparc/sparc64/dl-machine.h
+@@ -403,6 +403,7 @@ elf_machine_rela (struct link_map *map, const Elf64_Rela *reloc,
+   if (__builtin_expect (ELF64_ST_BIND (sym->st_info) == STB_LOCAL, 0)
+       && sym->st_shndx != SHN_UNDEF)
+     {
++      sym_map = map;
+       value = map->l_addr;
+     }
+   else
+-- 
+2.15.1
+

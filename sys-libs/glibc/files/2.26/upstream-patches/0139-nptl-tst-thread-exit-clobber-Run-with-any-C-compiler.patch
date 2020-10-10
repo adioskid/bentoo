@@ -1,0 +1,50 @@
+From de51f431ed6226ec68ca76e578f2cbd55b6262cb Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Tue, 16 Jan 2018 16:46:00 +0100
+Subject: [PATCH 139/146] nptl/tst-thread-exit-clobber: Run with any C++
+ compiler
+
+We do not need thread_local support in the C++11 comiler, and the
+minimum GCC version for glibc has C++11 support (if it has C++ support).
+
+(cherry picked from commit 10d200dbace0ea5198006b313f40c3b884c88724)
+---
+ ChangeLog     | 6 ++++++
+ nptl/Makefile | 4 ++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index b0e4fb4c82..73777b3b86 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2018-01-16  Florian Weimer  <fweimer@redhat.com>
++
++	* nptl/Makefile [$(have-cxx-thread_local)] (tests-unsupported):
++	Move tst-thread-exit-clobber ...
++	[$(CXX)] (tests-unsupported): ... to here.
++
+ 2018-01-16  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* nptl/Makefile (CFLAGS-tst-minstack-throw.o): Compile in C++11
+diff --git a/nptl/Makefile b/nptl/Makefile
+index 75e21ea90d..0b01e18106 100644
+--- a/nptl/Makefile
++++ b/nptl/Makefile
+@@ -460,11 +460,11 @@ endif
+ ifeq (,$(CXX))
+ # These tests require a C++ compiler and runtime.
+ tests-unsupported += tst-cancel24 tst-cancel24-static tst-once5 \
+-  tst-minstack-throw
++  tst-thread-exit-clobber tst-minstack-throw
+ endif
+ # These tests require a C++ compiler and runtime with thread_local support.
+ ifneq ($(have-cxx-thread_local),yes)
+-tests-unsupported += tst-thread_local1 tst-thread-exit-clobber
++tests-unsupported += tst-thread_local1
+ endif
+ 
+ include ../Rules
+-- 
+2.15.1
+

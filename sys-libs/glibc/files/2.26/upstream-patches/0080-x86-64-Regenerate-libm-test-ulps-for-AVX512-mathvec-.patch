@@ -1,0 +1,57 @@
+From 6a094c0ff15dbf71e87eccc57e192a7b55cf79b0 Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Wed, 23 Aug 2017 09:11:41 -0700
+Subject: [PATCH 080/146] x86-64: Regenerate libm-test-ulps for AVX512 mathvec
+ tests
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Update libm-test-ulps for AVX512 mathvec tests by running
+“make regen-ulps” on Intel Xeon processor with AVX512.
+
+	* sysdeps/x86_64/fpu/libm-test-ulps: Regenerated.
+
+(cherry picked from commit fcaaca412fecb6097c902acd1260f585819b8b7e)
+---
+ ChangeLog                         | 4 ++++
+ sysdeps/x86_64/fpu/libm-test-ulps | 4 ++--
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index a314b167f3..e084305548 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,7 @@
++2017-08-23  H.J. Lu  <hongjiu.lu@intel.com>
++
++	* sysdeps/x86_64/fpu/libm-test-ulps: Regenerated.
++
+ 2017-11-07  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 
+ 	[BZ #22298]
+diff --git a/sysdeps/x86_64/fpu/libm-test-ulps b/sysdeps/x86_64/fpu/libm-test-ulps
+index 1e28aaa9f1..e7ec433b7b 100644
+--- a/sysdeps/x86_64/fpu/libm-test-ulps
++++ b/sysdeps/x86_64/fpu/libm-test-ulps
+@@ -1305,7 +1305,7 @@ Function: "cos_vlen4_avx2":
+ double: 2
+ 
+ Function: "cos_vlen8":
+-double: 1
++double: 2
+ float: 1
+ 
+ Function: "cos_vlen8_avx2":
+@@ -2645,7 +2645,7 @@ Function: "sincos_vlen4_avx2":
+ double: 2
+ 
+ Function: "sincos_vlen8":
+-double: 1
++double: 2
+ float: 1
+ 
+ Function: "sincos_vlen8_avx2":
+-- 
+2.15.1
+

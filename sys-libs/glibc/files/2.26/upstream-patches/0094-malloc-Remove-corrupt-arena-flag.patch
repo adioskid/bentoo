@@ -1,0 +1,117 @@
+From 675e8785dc66ea0dba39c65ee7cf1bc8d185e723 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Tue, 28 Nov 2017 19:10:16 +0530
+Subject: [PATCH 094/146] malloc: Remove corrupt arena flag
+
+This is no longer needed because we now abort immediately
+once heap corruption is detected.
+
+(cherry-picked from a9da0bb2667ab20f1dbcd0a9ae6846db02fbc96a)
+---
+ ChangeLog       |  8 ++++++++
+ malloc/arena.c  | 20 ++------------------
+ malloc/malloc.c | 13 -------------
+ 3 files changed, 10 insertions(+), 31 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 7ab92228e7..577643cbd7 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,11 @@
++2017-08-30  Florian Weimer  <fweimer@redhat.com>
++
++	* malloc/malloc.c (ARENA_CORRUPTION_BIT, arena_is_corrupt)
++	(set_arena_corrupt): Remove definitions.
++	(mtrim): Do not check for corrupt arena.
++	* malloc/arena.c (arena_lock, reused_arena, arena_get_retry):
++	Likewise.
++
+ 2017-08-30  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #21754]
+diff --git a/malloc/arena.c b/malloc/arena.c
+index 39cbfbc282..afd423240a 100644
+--- a/malloc/arena.c
++++ b/malloc/arena.c
+@@ -116,7 +116,7 @@ int __malloc_initialized = -1;
+   } while (0)
+ 
+ #define arena_lock(ptr, size) do {					      \
+-      if (ptr && !arena_is_corrupt (ptr))				      \
++      if (ptr)								      \
+         __libc_lock_lock (ptr->mutex);					      \
+       else								      \
+         ptr = arena_get2 ((size), NULL);				      \
+@@ -832,7 +832,7 @@ reused_arena (mstate avoid_arena)
+   result = next_to_use;
+   do
+     {
+-      if (!arena_is_corrupt (result) && !__libc_lock_trylock (result->mutex))
++      if (!__libc_lock_trylock (result->mutex))
+         goto out;
+ 
+       /* FIXME: This is a data race, see _int_new_arena.  */
+@@ -845,18 +845,6 @@ reused_arena (mstate avoid_arena)
+   if (result == avoid_arena)
+     result = result->next;
+ 
+-  /* Make sure that the arena we get is not corrupted.  */
+-  mstate begin = result;
+-  while (arena_is_corrupt (result) || result == avoid_arena)
+-    {
+-      result = result->next;
+-      if (result == begin)
+-	/* We looped around the arena list.  We could not find any
+-	   arena that was either not corrupted or not the one we
+-	   wanted to avoid.  */
+-	return NULL;
+-    }
+-
+   /* No arena available without contention.  Wait for the next in line.  */
+   LIBC_PROBE (memory_arena_reuse_wait, 3, &result->mutex, result, avoid_arena);
+   __libc_lock_lock (result->mutex);
+@@ -953,10 +941,6 @@ arena_get_retry (mstate ar_ptr, size_t bytes)
+   if (ar_ptr != &main_arena)
+     {
+       __libc_lock_unlock (ar_ptr->mutex);
+-      /* Don't touch the main arena if it is corrupt.  */
+-      if (arena_is_corrupt (&main_arena))
+-	return NULL;
+-
+       ar_ptr = &main_arena;
+       __libc_lock_lock (ar_ptr->mutex);
+     }
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 7a90fda6a2..65deb2f386 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -1626,15 +1626,6 @@ typedef struct malloc_chunk *mfastbinptr;
+ #define set_noncontiguous(M)   ((M)->flags |= NONCONTIGUOUS_BIT)
+ #define set_contiguous(M)      ((M)->flags &= ~NONCONTIGUOUS_BIT)
+ 
+-/* ARENA_CORRUPTION_BIT is set if a memory corruption was detected on the
+-   arena.  Such an arena is no longer used to allocate chunks.  Chunks
+-   allocated in that arena before detecting corruption are not freed.  */
+-
+-#define ARENA_CORRUPTION_BIT (4U)
+-
+-#define arena_is_corrupt(A)	(((A)->flags & ARENA_CORRUPTION_BIT))
+-#define set_arena_corrupt(A)	((A)->flags |= ARENA_CORRUPTION_BIT)
+-
+ /* Maximum size of memory handled in fastbins.  */
+ static INTERNAL_SIZE_T global_max_fast;
+ 
+@@ -4718,10 +4709,6 @@ _int_memalign (mstate av, size_t alignment, size_t bytes)
+ static int
+ mtrim (mstate av, size_t pad)
+ {
+-  /* Don't touch corrupt arenas.  */
+-  if (arena_is_corrupt (av))
+-    return 0;
+-
+   /* Ensure initialization/consolidation */
+   malloc_consolidate (av);
+ 
+-- 
+2.15.1
+

@@ -1,0 +1,45 @@
+From a546080d517c8833ce1d6abdb86a9293c8d29bae Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Wed, 18 Oct 2017 12:20:55 +0100
+Subject: [PATCH 084/146] Fix build failure on tilepro due to unsupported
+ atomics
+
+        * malloc/malloc.c (malloc_state): Use int for have_fastchunks since
+        not all targets support atomics on bool.
+
+(cherry-picked from 2c2245b92ccf6344b324d17d8f94ccd3b8c559c6)
+---
+ ChangeLog       | 5 +++++
+ malloc/malloc.c | 3 ++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 67d3503afe..d67ad031bc 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-10-18  Wilco Dijkstra  <wdijkstr@arm.com>
++
++	* malloc/malloc.c (malloc_state): Use int for have_fastchunks since
++	not all targets support atomics on bool.
++
+ 2017-10-17  Wilco Dijkstra  <wdijkstr@arm.com>
+ 
+ 	* malloc/malloc.c (FASTCHUNKS_BIT): Remove.
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 37e3c44e72..dd9f699d97 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -1689,7 +1689,8 @@ struct malloc_state
+   int flags;
+ 
+   /* Set if the fastbin chunks contain recently inserted free blocks.  */
+-  bool have_fastchunks;
++  /* Note this is a bool but not all targets support atomics on booleans.  */
++  int have_fastchunks;
+ 
+   /* Fastbins */
+   mfastbinptr fastbinsY[NFASTBINS];
+-- 
+2.15.1
+

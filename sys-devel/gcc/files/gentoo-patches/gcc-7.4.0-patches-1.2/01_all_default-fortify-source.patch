@@ -1,0 +1,22 @@
+Taken Debian's patch and removed docs matches:
+    https://salsa.debian.org/toolchain-team/gcc.git
+Also see https://bugs.gentoo.org/621036 where
+initially Gentoo used too complicated macro.
+
+# DP: Turn on -D_FORTIFY_SOURCE=2 by default for C, C++, ObjC, ObjC++,
+# DP: if the optimization level is > 0
+--- a/gcc/c-family/c-cppbuiltin.c
++++ b/gcc/c-family/c-cppbuiltin.c
+@@ -951,6 +951,12 @@ c_cpp_builtins (cpp_reader *pfile)
+   builtin_define_with_value ("__REGISTER_PREFIX__", REGISTER_PREFIX, 0);
+   builtin_define_with_value ("__USER_LABEL_PREFIX__", user_label_prefix, 0);
+ 
++#if !defined(ACCEL_COMPILER)
++  /* Fortify Source enabled by default for optimization levels > 0 */
++  if (optimize)
++    builtin_define_with_int_value ("_FORTIFY_SOURCE", 2);
++#endif
++
+   /* Misc.  */
+   if (flag_gnu89_inline)
+     cpp_define (pfile, "__GNUC_GNU_INLINE__");

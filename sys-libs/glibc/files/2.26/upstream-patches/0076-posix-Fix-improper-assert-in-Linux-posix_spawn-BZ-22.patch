@@ -1,0 +1,165 @@
+From f8ee700e8959236bb2c54f3aacf57edca5dab186 Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Thu, 12 Oct 2017 15:20:57 -0300
+Subject: [PATCH 076/146] posix: Fix improper assert in Linux posix_spawn
+ (BZ#22273)
+
+As noted by Florian Weimer, current Linux posix_spawn implementation
+can trigger an assert if the auxiliary process is terminated before
+actually setting the err member:
+
+    340   /* Child must set args.err to something non-negative - we rely on
+    341      the parent and child sharing VM.  */
+    342   args.err = -1;
+    [...]
+    362   new_pid = CLONE (__spawni_child, STACK (stack, stack_size), stack_size,
+    363                    CLONE_VM | CLONE_VFORK | SIGCHLD, &args);
+    364
+    365   if (new_pid > 0)
+    366     {
+    367       ec = args.err;
+    368       assert (ec >= 0);
+
+Another possible issue is killing the child between setting the err and
+actually calling execve.  In this case the process will not ran, but
+posix_spawn also will not report any error:
+
+    269
+    270   args->err = 0;
+    271   args->exec (args->file, args->argv, args->envp);
+
+As suggested by Andreas Schwab, this patch removes the faulty assert
+and also handles any signal that happens before fork and execve as the
+spawn was successful (and thus relaying the handling to the caller to
+figure this out).  Different than Florian, I can not see why using
+atomics to set err would help here, essentially the code runs
+sequentially (due CLONE_VFORK) and I think it would not be legal the
+compiler evaluate ec without checking for new_pid result (thus there
+is no need to compiler barrier).
+
+Summarizing the possible scenarios on posix_spawn execution, we
+have:
+
+  1. For default case with a success execution, args.err will be 0, pid
+     will not be collected and it will be reported to caller.
+
+  2. For default failure case, args.err will be positive and the it will
+     be collected by the waitpid.  An error will be reported to the
+     caller.
+
+  3. For the unlikely case where the process was terminated and not
+     collected by a caller signal handler, it will be reported as succeful
+     execution and not be collected by posix_spawn (since args.err will
+     be 0). The caller will need to actually handle this case.
+
+  4. For the unlikely case where the process was terminated and collected
+     by caller we have 3 other possible scenarios:
+
+     4.1. The auxiliary process was terminated with args.err equal to 0:
+	  it will handled as 1. (so it does not matter if we hit the pid
+          reuse race since we won't possible collect an unexpected
+          process).
+
+     4.2. The auxiliary process was terminated after execve (due a failure
+          in calling it) and before setting args.err to -1: it will also
+          be handle as 1. but with the issue of not be able to report the
+          caller a possible execve failures.
+
+     4.3. The auxiliary process was terminated after args.err is set to -1:
+          this is the case where it will be possible to hit the pid reuse
+          case where we will need to collected the auxiliary pid but we
+          can not be sure if it will be expected one.  I think for this
+          case we need to actually change waitpid to use WNOHANG to avoid
+          hanging indefinitely on the call and report an error to caller
+          since we can't differentiate between a default failure as 2.
+          and a possible pid reuse race issue.
+
+Checked on x86_64-linux-gnu.
+
+	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Handle the case where
+	the auxiliary process is terminated by a signal before calling _exit
+	or execve.
+
+(cherry picked from commit fe05e1cb6d64dba6172249c79526f1e9af8f2bfd)
+---
+ ChangeLog                        |  7 +++++++
+ sysdeps/unix/sysv/linux/spawni.c | 24 ++++++++++++++++++------
+ 2 files changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index c36ef25b53..34709f792e 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-11-07  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++
++	[BZ #22273]
++	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Handle the case where
++	the auxiliary process is terminated by a signal before calling _exit
++	or execve.
++
+ 2017-09-13  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 
+ 	* sysdeps/unix/sysv/linux/s390/s390-32/oldglob.c: New file.
+diff --git a/sysdeps/unix/sysv/linux/spawni.c b/sysdeps/unix/sysv/linux/spawni.c
+index c56f894a82..76001b6624 100644
+--- a/sysdeps/unix/sysv/linux/spawni.c
++++ b/sysdeps/unix/sysv/linux/spawni.c
+@@ -17,7 +17,6 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ #include <spawn.h>
+-#include <assert.h>
+ #include <fcntl.h>
+ #include <paths.h>
+ #include <string.h>
+@@ -268,7 +267,6 @@ __spawni_child (void *arguments)
+   __sigprocmask (SIG_SETMASK, (attr->__flags & POSIX_SPAWN_SETSIGMASK)
+ 		 ? &attr->__ss : &args->oldmask, 0);
+ 
+-  args->err = 0;
+   args->exec (args->file, args->argv, args->envp);
+ 
+   /* This is compatibility function required to enable posix_spawn run
+@@ -339,7 +337,7 @@ __spawnix (pid_t * pid, const char *file,
+ 
+   /* Child must set args.err to something non-negative - we rely on
+      the parent and child sharing VM.  */
+-  args.err = -1;
++  args.err = 0;
+   args.file = file;
+   args.exec = exec;
+   args.fa = file_actions;
+@@ -362,12 +360,26 @@ __spawnix (pid_t * pid, const char *file,
+   new_pid = CLONE (__spawni_child, STACK (stack, stack_size), stack_size,
+ 		   CLONE_VM | CLONE_VFORK | SIGCHLD, &args);
+ 
++  /* It needs to collect the case where the auxiliary process was created
++     but failed to execute the file (due either any preparation step or
++     for execve itself).  */
+   if (new_pid > 0)
+     {
++      /* Also, it handles the unlikely case where the auxiliary process was
++	 terminated before calling execve as if it was successfully.  The
++	 args.err is set to 0 as default and changed to a positive value
++	 only in case of failure, so in case of premature termination
++	 due a signal args.err will remain zeroed and it will be up to
++	 caller to actually collect it.  */
+       ec = args.err;
+-      assert (ec >= 0);
+-      if (ec != 0)
+-	  __waitpid (new_pid, NULL, 0);
++      if (ec > 0)
++	/* There still an unlikely case where the child is cancelled after
++	   setting args.err, due to a positive error value.  Also due a
++	   possible pid reuse race (where the kernel allocated the same pid
++	   to unrelated process) we need not to undefinitely hang expecting
++	   an invalid pid.  In both cases an error is returned to the
++	   caller.  */
++	__waitpid (new_pid, NULL, WNOHANG);
+     }
+   else
+     ec = -new_pid;
+-- 
+2.15.1
+

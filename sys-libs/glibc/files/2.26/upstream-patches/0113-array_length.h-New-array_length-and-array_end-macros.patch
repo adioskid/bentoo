@@ -1,0 +1,71 @@
+From bda48606ee93a29d9dfd8d797839a777344de5c8 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 2 Nov 2017 12:14:01 +0100
+Subject: [PATCH 113/146] <array_length.h>: New array_length and array_end
+ macros
+
+(cherry picked from commit c94a5688fb1228a862b2d4a3f1239cdc0e3349e5)
+---
+ ChangeLog              |  5 +++++
+ include/array_length.h | 36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+ create mode 100644 include/array_length.h
+
+diff --git a/ChangeLog b/ChangeLog
+index 1bf692af23..90ea98550f 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-11-02  Florian Weimer  <fweimer@redhat.com>
++
++	Add array_length and array_end macros.
++	* include/array_length.h: New file.
++
+ 2017-10-27  H.J. Lu  <hongjiu.lu@intel.com>
+ 
+ 	* sysdeps/i386/fpu/libm-test-ulps: Regenerated for GCC 7 with
+diff --git a/include/array_length.h b/include/array_length.h
+new file mode 100644
+index 0000000000..cb4a8b2a56
+--- /dev/null
++++ b/include/array_length.h
+@@ -0,0 +1,36 @@
++/* The array_length and array_end macros.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef _ARRAY_LENGTH_H
++#define _ARRAY_LENGTH_H
++
++/* array_length (VAR) is the number of elements in the array VAR.  VAR
++   must evaluate to an array, not a pointer.  */
++#define array_length(var)                                               \
++  __extension__ ({                                                      \
++    _Static_assert (!__builtin_types_compatible_p                       \
++                    (__typeof (var), __typeof (&(var)[0])),             \
++                    "argument must be an array");                       \
++    sizeof (var) / sizeof ((var)[0]);                                   \
++  })
++
++/* array_end (VAR) is a pointer one past the end of the array VAR.
++   VAR must evaluate to an array, not a pointer.  */
++#define array_end(var) (&(var)[array_length (var)])
++
++#endif /* _ARRAY_LENGTH_H */
+-- 
+2.15.1
+

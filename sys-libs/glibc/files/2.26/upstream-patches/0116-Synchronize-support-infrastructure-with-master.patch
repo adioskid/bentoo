@@ -1,0 +1,1471 @@
+From 5da0de4de5e8b9576475432b94fa0a486fd9389f Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Fri, 22 Dec 2017 15:22:17 +0100
+Subject: [PATCH 116/146] Synchronize support/ infrastructure with master
+
+This commit updates the support/ subdirectory to
+commit bad7a0c81f501fbbcc79af9eaa4b8254441c4a1f
+on the master branch.
+---
+ support/Makefile                        | 20 ++++++-
+ support/check.h                         | 61 ++++++++++++++++++++
+ support/check_addrinfo.c                |  1 +
+ support/check_dns_packet.c              |  1 +
+ support/check_hostent.c                 |  1 +
+ support/check_netent.c                  |  1 +
+ support/namespace.h                     |  5 ++
+ support/next_to_fault.c                 | 52 +++++++++++++++++
+ support/next_to_fault.h                 | 48 ++++++++++++++++
+ support/support-xfstat.c                | 28 ++++++++++
+ support/support.h                       |  1 +
+ support/support_become_root.c           | 68 ++++++++++++++++++++++-
+ support/support_can_chroot.c            |  2 +-
+ support/support_chroot.c                |  6 +-
+ support/support_enter_mount_namespace.c | 45 +++++++++++++++
+ support/support_format_addrinfo.c       |  1 +
+ support/support_format_dns_packet.c     |  1 +
+ support/support_format_hostent.c        | 15 +++--
+ support/support_format_netent.c         |  1 +
+ support/support_test_compare_failure.c  | 55 ++++++++++++++++++
+ support/support_write_file_string.c     |  2 +-
+ support/temp_file.c                     | 13 +++++
+ support/temp_file.h                     |  5 ++
+ support/tst-test_compare.c              | 98 +++++++++++++++++++++++++++++++++
+ support/tst-xreadlink.c                 | 72 ++++++++++++++++++++++++
+ support/xdlfcn.c                        | 59 ++++++++++++++++++++
+ support/xdlfcn.h                        | 34 ++++++++++++
+ support/xftruncate.c                    | 27 +++++++++
+ support/xlseek.c                        | 29 ++++++++++
+ support/xraise.c                        | 27 +++++++++
+ support/xreadlink.c                     | 44 +++++++++++++++
+ support/xsigaction.c                    | 27 +++++++++
+ support/xsignal.c                       | 29 ++++++++++
+ support/xsignal.h                       |  8 +++
+ support/xstrndup.c                      | 30 ++++++++++
+ support/xsysconf.c                      | 36 ++++++++++++
+ support/xunistd.h                       |  9 +++
+ support/xunlink.c                       | 27 +++++++++
+ 38 files changed, 973 insertions(+), 16 deletions(-)
+ create mode 100644 support/next_to_fault.c
+ create mode 100644 support/next_to_fault.h
+ create mode 100644 support/support-xfstat.c
+ create mode 100644 support/support_enter_mount_namespace.c
+ create mode 100644 support/support_test_compare_failure.c
+ create mode 100644 support/tst-test_compare.c
+ create mode 100644 support/tst-xreadlink.c
+ create mode 100644 support/xdlfcn.c
+ create mode 100644 support/xdlfcn.h
+ create mode 100644 support/xftruncate.c
+ create mode 100644 support/xlseek.c
+ create mode 100644 support/xraise.c
+ create mode 100644 support/xreadlink.c
+ create mode 100644 support/xsigaction.c
+ create mode 100644 support/xsignal.c
+ create mode 100644 support/xstrndup.c
+ create mode 100644 support/xsysconf.c
+ create mode 100644 support/xunlink.c
+
+diff --git a/support/Makefile b/support/Makefile
+index 2ace3fa8cc..8458840cd8 100644
+--- a/support/Makefile
++++ b/support/Makefile
+@@ -32,15 +32,18 @@ libsupport-routines = \
+   check_netent \
+   delayed_exit \
+   ignore_stderr \
++  next_to_fault \
+   oom_error \
+   resolv_test \
+   set_fortify_handler \
++  support-xfstat \
+   support-xstat \
+   support_become_root \
+   support_can_chroot \
+   support_capture_subprocess \
+   support_capture_subprocess_check \
+   support_chroot \
++  support_enter_mount_namespace \
+   support_enter_network_namespace \
+   support_format_address_family \
+   support_format_addrinfo \
+@@ -52,6 +55,7 @@ libsupport-routines = \
+   support_record_failure \
+   support_run_diff \
+   support_shared_allocate \
++  support_test_compare_failure \
+   support_write_file_string \
+   support_test_main \
+   support_test_verify_impl \
+@@ -65,12 +69,15 @@ libsupport-routines = \
+   xchroot \
+   xclose \
+   xconnect \
++  xdlfcn \
+   xdup2 \
+   xfclose \
+   xfopen \
+   xfork \
++  xftruncate \
+   xgetsockname \
+   xlisten \
++  xlseek \
+   xmalloc \
+   xmemstream \
+   xmkdir \
+@@ -83,8 +90,8 @@ libsupport-routines = \
+   xpthread_attr_destroy \
+   xpthread_attr_init \
+   xpthread_attr_setdetachstate \
+-  xpthread_attr_setstacksize \
+   xpthread_attr_setguardsize \
++  xpthread_attr_setstacksize \
+   xpthread_barrier_destroy \
+   xpthread_barrier_init \
+   xpthread_barrier_wait \
+@@ -108,19 +115,26 @@ libsupport-routines = \
+   xpthread_once \
+   xpthread_rwlock_init \
+   xpthread_rwlock_rdlock \
+-  xpthread_rwlock_wrlock \
+   xpthread_rwlock_unlock \
++  xpthread_rwlock_wrlock \
+   xpthread_rwlockattr_init \
+   xpthread_rwlockattr_setkind_np \
+   xpthread_sigmask \
+   xpthread_spin_lock \
+   xpthread_spin_unlock \
++  xraise \
++  xreadlink \
+   xrealloc \
+   xrecvfrom \
+   xsendto \
+   xsetsockopt \
++  xsigaction \
++  xsignal \
+   xsocket \
+   xstrdup \
++  xstrndup \
++  xsysconf \
++  xunlink \
+   xwaitpid \
+   xwrite \
+ 
+@@ -137,6 +151,8 @@ tests = \
+   tst-support_capture_subprocess \
+   tst-support_format_dns_packet \
+   tst-support_record_failure \
++  tst-test_compare \
++  tst-xreadlink \
+ 
+ ifeq ($(run-built-tests),yes)
+ tests-special = \
+diff --git a/support/check.h b/support/check.h
+index bdcd12952a..55a6f09f42 100644
+--- a/support/check.h
++++ b/support/check.h
+@@ -86,6 +86,67 @@ void support_test_verify_exit_impl (int status, const char *file, int line,
+    does not support reporting failures from a DSO.  */
+ void support_record_failure (void);
+ 
++/* Compare the two integers LEFT and RIGHT and report failure if they
++   are different.  */
++#define TEST_COMPARE(left, right)                                       \
++  ({                                                                    \
++    /* + applies the integer promotions, for bitfield support.   */     \
++    typedef __typeof__ (+ (left)) __left_type;                          \
++    typedef __typeof__ (+ (right)) __right_type;                        \
++    __left_type __left_value = (left);                                  \
++    __right_type __right_value = (right);                               \
++    /* Prevent use with floating-point and boolean types.  */           \
++    _Static_assert ((__left_type) 1.0 == (__left_type) 1.5,             \
++                    "left value has floating-point type");              \
++    _Static_assert ((__right_type) 1.0 == (__right_type) 1.5,           \
++                    "right value has floating-point type");             \
++    /* Prevent accidental use with larger-than-long long types.  */     \
++    _Static_assert (sizeof (__left_value) <= sizeof (long long),        \
++                    "left value fits into long long");                  \
++    _Static_assert (sizeof (__right_value) <= sizeof (long long),       \
++                    "right value fits into long long");                 \
++    /* Make sure that integer conversions does not alter the sign.   */ \
++    enum                                                                \
++    {                                                                   \
++      __left_is_unsigned = (__left_type) -1 > 0,                        \
++      __right_is_unsigned = (__right_type) -1 > 0,                      \
++      __unsigned_left_converts_to_wider = (__left_is_unsigned           \
++                                           && (sizeof (__left_value)    \
++                                               < sizeof (__right_value))), \
++      __unsigned_right_converts_to_wider = (__right_is_unsigned         \
++                                            && (sizeof (__right_value)  \
++                                                < sizeof (__left_value))) \
++    };                                                                  \
++    _Static_assert (__left_is_unsigned == __right_is_unsigned           \
++                    || __unsigned_left_converts_to_wider                \
++                    || __unsigned_right_converts_to_wider,              \
++                    "integer conversions may alter sign of operands");  \
++    /* Compare the value.  */                                           \
++    if (__left_value != __right_value)                                  \
++      /* Pass the sign for printing the correct value.  */              \
++      support_test_compare_failure                                      \
++        (__FILE__, __LINE__,                                            \
++         #left, __left_value, __left_value < 0, sizeof (__left_type),   \
++         #right, __right_value, __right_value < 0, sizeof (__right_type)); \
++  })
++
++/* Internal implementation of TEST_COMPARE.  LEFT_NEGATIVE and
++   RIGHT_NEGATIVE are used to store the sign separately, so that both
++   unsigned long long and long long arguments fit into LEFT_VALUE and
++   RIGHT_VALUE, and the function can still print the original value.
++   LEFT_SIZE and RIGHT_SIZE specify the size of the argument in bytes,
++   for hexadecimal formatting.  */
++void support_test_compare_failure (const char *file, int line,
++                                   const char *left_expr,
++                                   long long left_value,
++                                   int left_negative,
++                                   int left_size,
++                                   const char *right_expr,
++                                   long long right_value,
++                                   int right_negative,
++                                   int right_size);
++
++
+ /* Internal function called by the test driver.  */
+ int support_report_failure (int status)
+   __attribute__ ((weak, warn_unused_result));
+diff --git a/support/check_addrinfo.c b/support/check_addrinfo.c
+index 55895ace3c..c47f105ce6 100644
+--- a/support/check_addrinfo.c
++++ b/support/check_addrinfo.c
+@@ -20,6 +20,7 @@
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <support/check.h>
+ #include <support/format_nss.h>
+ #include <support/run_diff.h>
+diff --git a/support/check_dns_packet.c b/support/check_dns_packet.c
+index d2a31bed7b..6d14bd90c0 100644
+--- a/support/check_dns_packet.c
++++ b/support/check_dns_packet.c
+@@ -20,6 +20,7 @@
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <support/check.h>
+ #include <support/format_nss.h>
+ #include <support/run_diff.h>
+diff --git a/support/check_hostent.c b/support/check_hostent.c
+index 890d672d50..47fb8bc332 100644
+--- a/support/check_hostent.c
++++ b/support/check_hostent.c
+@@ -20,6 +20,7 @@
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <support/check.h>
+ #include <support/format_nss.h>
+ #include <support/run_diff.h>
+diff --git a/support/check_netent.c b/support/check_netent.c
+index daa3083fd1..80b69309b4 100644
+--- a/support/check_netent.c
++++ b/support/check_netent.c
+@@ -20,6 +20,7 @@
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <support/check.h>
+ #include <support/format_nss.h>
+ #include <support/run_diff.h>
+diff --git a/support/namespace.h b/support/namespace.h
+index 9eddb1a0e9..b5e2d1474a 100644
+--- a/support/namespace.h
++++ b/support/namespace.h
+@@ -51,6 +51,11 @@ bool support_can_chroot (void);
+    has sufficient privileges.  */
+ bool support_enter_network_namespace (void);
+ 
++/* Enter a mount namespace and mark / as private (not shared).  If
++   this function returns true, mount operations in this process will
++   not affect the host system afterwards.  */
++bool support_enter_mount_namespace (void);
++
+ /* Return true if support_enter_network_namespace managed to enter a
+    UTS namespace.  */
+ bool support_in_uts_namespace (void);
+diff --git a/support/next_to_fault.c b/support/next_to_fault.c
+new file mode 100644
+index 0000000000..7c6b077898
+--- /dev/null
++++ b/support/next_to_fault.c
+@@ -0,0 +1,52 @@
++/* Memory allocation next to an unmapped page.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/next_to_fault.h>
++#include <support/xunistd.h>
++#include <sys/mman.h>
++#include <sys/param.h>
++
++struct support_next_to_fault
++support_next_to_fault_allocate (size_t size)
++{
++  long page_size = sysconf (_SC_PAGE_SIZE);
++  TEST_VERIFY_EXIT (page_size > 0);
++  struct support_next_to_fault result;
++  result.region_size = roundup (size, page_size) + page_size;
++  if (size + page_size <= size || result.region_size <= size)
++    FAIL_EXIT1 ("support_next_to_fault_allocate (%zu): overflow", size);
++  result.region_start
++    = xmmap (NULL, result.region_size, PROT_READ | PROT_WRITE,
++             MAP_PRIVATE | MAP_ANONYMOUS, -1);
++  /* Unmap the page after the allocation.  */
++  xmprotect (result.region_start + (result.region_size - page_size),
++             page_size, PROT_NONE);
++  /* Align the allocation within the region so that it ends just
++     before the PROT_NONE page.  */
++  result.buffer = result.region_start + result.region_size - page_size - size;
++  result.length = size;
++  return result;
++}
++
++void
++support_next_to_fault_free (struct support_next_to_fault *ntf)
++{
++  xmunmap (ntf->region_start, ntf->region_size);
++  *ntf = (struct support_next_to_fault) { NULL, };
++}
+diff --git a/support/next_to_fault.h b/support/next_to_fault.h
+new file mode 100644
+index 0000000000..dd71c28ac0
+--- /dev/null
++++ b/support/next_to_fault.h
+@@ -0,0 +1,48 @@
++/* Memory allocation next to an unmapped page.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef SUPPORT_NEXT_TO_FAULT_H
++#define SUPPORT_NEXT_TO_FAULT_H
++
++#include <sys/cdefs.h>
++#include <sys/types.h>
++
++__BEGIN_DECLS
++
++/* The memory region created by next_to_fault_allocate.  */
++struct support_next_to_fault
++{
++  /* The user data.  */
++  char *buffer;
++  size_t length;
++
++  /* The entire allocated region.  */
++  void *region_start;
++  size_t region_size;
++};
++
++/* Allocate a buffer of SIZE bytes just before a page which is mapped
++   with PROT_NONE (so that overrunning the buffer will cause a
++   fault).  */
++struct support_next_to_fault support_next_to_fault_allocate (size_t size);
++
++/* Deallocate the memory region allocated by
++   next_to_fault_allocate.  */
++void support_next_to_fault_free (struct support_next_to_fault *);
++
++#endif /* SUPPORT_NEXT_TO_FAULT_H */
+diff --git a/support/support-xfstat.c b/support/support-xfstat.c
+new file mode 100644
+index 0000000000..4c8ee9142b
+--- /dev/null
++++ b/support/support-xfstat.c
+@@ -0,0 +1,28 @@
++/* fstat64 with error checking.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xunistd.h>
++#include <sys/stat.h>
++
++void
++xfstat (int fd, struct stat64 *result)
++{
++  if (fstat64 (fd, result) != 0)
++    FAIL_EXIT1 ("fstat64 (%d): %m", fd);
++}
+diff --git a/support/support.h b/support/support.h
+index 4b5f04c2cc..bbba803ba1 100644
+--- a/support/support.h
++++ b/support/support.h
+@@ -68,6 +68,7 @@ void *xrealloc (void *p, size_t n);
+ char *xasprintf (const char *format, ...)
+   __attribute__ ((format (printf, 1, 2), malloc));
+ char *xstrdup (const char *);
++char *xstrndup (const char *, size_t);
+ 
+ __END_DECLS
+ 
+diff --git a/support/support_become_root.c b/support/support_become_root.c
+index 3fa0bd4ac0..933138f99f 100644
+--- a/support/support_become_root.c
++++ b/support/support_become_root.c
+@@ -18,18 +18,80 @@
+ 
+ #include <support/namespace.h>
+ 
++#include <errno.h>
++#include <fcntl.h>
+ #include <sched.h>
+ #include <stdio.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/xunistd.h>
+ #include <unistd.h>
+ 
++#ifdef CLONE_NEWUSER
++/* The necessary steps to allow file creation in user namespaces.  */
++static void
++setup_uid_gid_mapping (uid_t original_uid, gid_t original_gid)
++{
++  int fd = open64 ("/proc/self/uid_map", O_WRONLY);
++  if (fd < 0)
++    {
++      printf ("warning: could not open /proc/self/uid_map: %m\n"
++              "warning: file creation may not be possible\n");
++      return;
++    }
++
++  /* We map our original UID to the same UID in the container so we
++     own our own files normally.  Without that, file creation could
++     fail with EOVERFLOW (sic!).  */
++  char buf[100];
++  int ret = snprintf (buf, sizeof (buf), "%llu %llu 1\n",
++                      (unsigned long long) original_uid,
++                      (unsigned long long) original_uid);
++  TEST_VERIFY_EXIT (ret < sizeof (buf));
++  xwrite (fd, buf, ret);
++  xclose (fd);
++
++  /* Linux 3.19 introduced the setgroups file.  We need write "deny" to this
++     file otherwise writing to gid_map will fail with EPERM.  */
++  fd = open64 ("/proc/self/setgroups", O_WRONLY, 0);
++  if (fd < 0)
++    {
++      if (errno != ENOENT)
++        FAIL_EXIT1 ("open64 (\"/proc/self/setgroups\", 0x%x, 0%o): %m",
++                    O_WRONLY, 0);
++      /* This kernel doesn't expose the setgroups file so simply move on.  */
++    }
++  else
++    {
++      xwrite (fd, "deny\n", strlen ("deny\n"));
++      xclose (fd);
++    }
++
++  /* Now map our own GID, like we did for the user ID.  */
++  fd = xopen ("/proc/self/gid_map", O_WRONLY, 0);
++  ret = snprintf (buf, sizeof (buf), "%llu %llu 1\n",
++                  (unsigned long long) original_gid,
++                  (unsigned long long) original_gid);
++  TEST_VERIFY_EXIT (ret < sizeof (buf));
++  xwrite (fd, buf, ret);
++  xclose (fd);
++}
++#endif /* CLONE_NEWUSER */
++
+ bool
+ support_become_root (void)
+ {
+ #ifdef CLONE_NEWUSER
++  uid_t original_uid = getuid ();
++  gid_t original_gid = getgid ();
++
+   if (unshare (CLONE_NEWUSER | CLONE_NEWNS) == 0)
+-    /* Even if we do not have UID zero, we have extended privileges at
+-       this point.  */
+-    return true;
++    {
++      setup_uid_gid_mapping (original_uid, original_gid);
++      /* Even if we do not have UID zero, we have extended privileges at
++         this point.  */
++      return true;
++    }
+ #endif
+   if (setuid (0) != 0)
+     {
+diff --git a/support/support_can_chroot.c b/support/support_can_chroot.c
+index 0dfd2deb54..a462753f76 100644
+--- a/support/support_can_chroot.c
++++ b/support/support_can_chroot.c
+@@ -21,9 +21,9 @@
+ #include <support/check.h>
+ #include <support/namespace.h>
+ #include <support/support.h>
++#include <support/xunistd.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
+-#include <xunistd.h>
+ 
+ static void
+ callback (void *closure)
+diff --git a/support/support_chroot.c b/support/support_chroot.c
+index f3ef551b05..693813f694 100644
+--- a/support/support_chroot.c
++++ b/support/support_chroot.c
+@@ -45,11 +45,7 @@ struct support_chroot *
+ support_chroot_create (struct support_chroot_configuration conf)
+ {
+   struct support_chroot *chroot = xmalloc (sizeof (*chroot));
+-
+-  chroot->path_chroot = xasprintf ("%s/tst-resolv-res_init-XXXXXX", test_dir);
+-  if (mkdtemp (chroot->path_chroot) == NULL)
+-    FAIL_EXIT1 ("mkdtemp (\"%s\"): %m", chroot->path_chroot);
+-  add_temp_file (chroot->path_chroot);
++  chroot->path_chroot = support_create_temp_directory ("tst-resolv-res_init-");
+ 
+   /* Create the /etc directory in the chroot environment.  */
+   char *path_etc = xasprintf ("%s/etc", chroot->path_chroot);
+diff --git a/support/support_enter_mount_namespace.c b/support/support_enter_mount_namespace.c
+new file mode 100644
+index 0000000000..6140692075
+--- /dev/null
++++ b/support/support_enter_mount_namespace.c
+@@ -0,0 +1,45 @@
++/* Enter a mount namespace.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/namespace.h>
++
++#include <sched.h>
++#include <stdio.h>
++#include <sys/mount.h>
++
++bool
++support_enter_mount_namespace (void)
++{
++#ifdef CLONE_NEWNS
++  if (unshare (CLONE_NEWNS) == 0)
++    {
++      /* On some systems, / is marked as MS_SHARED, which means that
++         mounts within the namespace leak to the rest of the system,
++         which is not what we want.  */
++      if (mount ("none", "/", NULL, MS_REC | MS_PRIVATE, NULL) != 0)
++        {
++          printf ("warning: making the mount namespace private failed: %m\n");
++          return false;
++        }
++      return true;
++    }
++  else
++    printf ("warning: unshare (CLONE_NEWNS) failed: %m\n");
++#endif /* CLONE_NEWNS */
++  return false;
++}
+diff --git a/support/support_format_addrinfo.c b/support/support_format_addrinfo.c
+index eedb030591..daf335f775 100644
+--- a/support/support_format_addrinfo.c
++++ b/support/support_format_addrinfo.c
+@@ -21,6 +21,7 @@
+ #include <arpa/inet.h>
+ #include <errno.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <support/support.h>
+ #include <support/xmemstream.h>
+ 
+diff --git a/support/support_format_dns_packet.c b/support/support_format_dns_packet.c
+index 2992c57971..e5ef1aa4b3 100644
+--- a/support/support_format_dns_packet.c
++++ b/support/support_format_dns_packet.c
+@@ -20,6 +20,7 @@
+ 
+ #include <arpa/inet.h>
+ #include <resolv.h>
++#include <stdbool.h>
+ #include <support/check.h>
+ #include <support/support.h>
+ #include <support/xmemstream.h>
+diff --git a/support/support_format_hostent.c b/support/support_format_hostent.c
+index 5b5f26082e..0aac17972b 100644
+--- a/support/support_format_hostent.c
++++ b/support/support_format_hostent.c
+@@ -19,7 +19,9 @@
+ #include <support/format_nss.h>
+ 
+ #include <arpa/inet.h>
++#include <errno.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <support/support.h>
+ #include <support/xmemstream.h>
+ 
+@@ -41,10 +43,15 @@ support_format_hostent (struct hostent *h)
+ {
+   if (h == NULL)
+     {
+-      char *value = support_format_herrno (h_errno);
+-      char *result = xasprintf ("error: %s\n", value);
+-      free (value);
+-      return result;
++      if (h_errno == NETDB_INTERNAL)
++        return xasprintf ("error: NETDB_INTERNAL (errno %d, %m)\n", errno);
++      else
++        {
++          char *value = support_format_herrno (h_errno);
++          char *result = xasprintf ("error: %s\n", value);
++          free (value);
++          return result;
++        }
+     }
+ 
+   struct xmemstream mem;
+diff --git a/support/support_format_netent.c b/support/support_format_netent.c
+index 020f5720d9..be8f1720a2 100644
+--- a/support/support_format_netent.c
++++ b/support/support_format_netent.c
+@@ -20,6 +20,7 @@
+ 
+ #include <arpa/inet.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <support/support.h>
+ #include <support/xmemstream.h>
+ 
+diff --git a/support/support_test_compare_failure.c b/support/support_test_compare_failure.c
+new file mode 100644
+index 0000000000..894145b56d
+--- /dev/null
++++ b/support/support_test_compare_failure.c
+@@ -0,0 +1,55 @@
++/* Reporting a numeric comparison failure.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++#include <support/check.h>
++
++static void
++report (const char *which, const char *expr, long long value, int negative,
++        int size)
++{
++  printf ("  %s: ", which);
++  if (negative)
++    printf ("%lld", value);
++  else
++    printf ("%llu", (unsigned long long) value);
++  unsigned long long mask
++    = (~0ULL) >> (8 * (sizeof (unsigned long long) - size));
++  printf (" (0x%llx); from: %s\n", (unsigned long long) value & mask, expr);
++}
++
++void
++support_test_compare_failure (const char *file, int line,
++                              const char *left_expr,
++                              long long left_value,
++                              int left_negative,
++                              int left_size,
++                              const char *right_expr,
++                              long long right_value,
++                              int right_negative,
++                              int right_size)
++{
++  support_record_failure ();
++  if (left_size != right_size)
++    printf ("%s:%d: numeric comparison failure (widths %d and %d)\n",
++            file, line, left_size * 8, right_size * 8);
++  else
++    printf ("%s:%d: numeric comparison failure\n", file, line);
++  report (" left", left_expr, left_value, left_negative, left_size);
++  report ("right", right_expr, right_value, right_negative, right_size);
++}
+diff --git a/support/support_write_file_string.c b/support/support_write_file_string.c
+index 48e89597f3..48736530bf 100644
+--- a/support/support_write_file_string.c
++++ b/support/support_write_file_string.c
+@@ -19,7 +19,7 @@
+ #include <fcntl.h>
+ #include <string.h>
+ #include <support/check.h>
+-#include <xunistd.h>
++#include <support/xunistd.h>
+ 
+ void
+ support_write_file_string (const char *path, const char *contents)
+diff --git a/support/temp_file.c b/support/temp_file.c
+index fdb2477ab9..547263a3e4 100644
+--- a/support/temp_file.c
++++ b/support/temp_file.c
+@@ -86,6 +86,19 @@ create_temp_file (const char *base, char **filename)
+   return fd;
+ }
+ 
++char *
++support_create_temp_directory (const char *base)
++{
++  char *path = xasprintf ("%s/%sXXXXXX", test_dir, base);
++  if (mkdtemp (path) == NULL)
++    {
++      printf ("error: mkdtemp (\"%s\"): %m", path);
++      exit (1);
++    }
++  add_temp_file (path);
++  return path;
++}
++
+ /* Helper functions called by the test skeleton follow.  */
+ 
+ void
+diff --git a/support/temp_file.h b/support/temp_file.h
+index 6fed8df1ea..3b8563e115 100644
+--- a/support/temp_file.h
++++ b/support/temp_file.h
+@@ -32,6 +32,11 @@ void add_temp_file (const char *name);
+    *FILENAME.  */
+ int create_temp_file (const char *base, char **filename);
+ 
++/* Create a temporary directory and schedule it for deletion.  BASE is
++   used as a prefix for the unique directory name, which the function
++   returns.  The caller should free this string.  */
++char *support_create_temp_directory (const char *base);
++
+ __END_DECLS
+ 
+ #endif /* SUPPORT_TEMP_FILE_H */
+diff --git a/support/tst-test_compare.c b/support/tst-test_compare.c
+new file mode 100644
+index 0000000000..de138d4f8a
+--- /dev/null
++++ b/support/tst-test_compare.c
+@@ -0,0 +1,98 @@
++/* Basic test for the TEST_COMPARE macro.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <string.h>
++#include <support/check.h>
++#include <support/capture_subprocess.h>
++
++static void
++subprocess (void *closure)
++{
++  char ch = 1;
++  /* These tests should fail.  */
++  TEST_COMPARE (ch, -1);         /* Line 28.  */
++  TEST_COMPARE (2LL, -2LL);      /* Line 29.  */
++  TEST_COMPARE (3LL, (short) -3); /* Line 30.  */
++}
++
++struct bitfield
++{
++  int i2 : 2;
++  int i3 : 3;
++  unsigned int u2 : 2;
++  unsigned int u3 : 3;
++  int i31 : 31;
++  unsigned int u31 : 31 ;
++  long long int i63 : 63;
++  unsigned long long int u63 : 63;
++};
++
++static int
++do_test (void)
++{
++  /* This should succeed.  */
++  TEST_COMPARE (1, 1);
++  TEST_COMPARE (2LL, 2U);
++  {
++    char i8 = 3;
++    unsigned short u16 = 3;
++    TEST_COMPARE (i8, u16);
++  }
++
++  struct bitfield bitfield = { 0 };
++  TEST_COMPARE (bitfield.i2, bitfield.i3);
++  TEST_COMPARE (bitfield.u2, bitfield.u3);
++  TEST_COMPARE (bitfield.u2, bitfield.i3);
++  TEST_COMPARE (bitfield.u3, bitfield.i3);
++  TEST_COMPARE (bitfield.i2, bitfield.u3);
++  TEST_COMPARE (bitfield.i3, bitfield.u2);
++  TEST_COMPARE (bitfield.i63, bitfield.i63);
++  TEST_COMPARE (bitfield.u63, bitfield.u63);
++  TEST_COMPARE (bitfield.i31, bitfield.i63);
++  TEST_COMPARE (bitfield.i63, bitfield.i31);
++
++  struct support_capture_subprocess proc = support_capture_subprocess
++    (&subprocess, NULL);
++
++  /* Discard the reported error.  */
++  support_record_failure_reset ();
++
++  puts ("info: *** subprocess output starts ***");
++  fputs (proc.out.buffer, stdout);
++  puts ("info: *** subprocess output ends ***");
++
++  TEST_VERIFY
++    (strcmp (proc.out.buffer,
++             "tst-test_compare.c:28: numeric comparison failure\n"
++             "   left: 1 (0x1); from: ch\n"
++             "  right: -1 (0xffffffff); from: -1\n"
++             "tst-test_compare.c:29: numeric comparison failure\n"
++             "   left: 2 (0x2); from: 2LL\n"
++             "  right: -2 (0xfffffffffffffffe); from: -2LL\n"
++             "tst-test_compare.c:30: numeric comparison failure"
++             " (widths 64 and 32)\n"
++             "   left: 3 (0x3); from: 3LL\n"
++             "  right: -3 (0xfffffffd); from: (short) -3\n") == 0);
++
++  /* Check that there is no output on standard error.  */
++  support_capture_subprocess_check (&proc, "TEST_COMPARE", 0, sc_allow_stdout);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/support/tst-xreadlink.c b/support/tst-xreadlink.c
+new file mode 100644
+index 0000000000..a4a22812c1
+--- /dev/null
++++ b/support/tst-xreadlink.c
+@@ -0,0 +1,72 @@
++/* Test the xreadlink function.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <errno.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/support.h>
++#include <support/temp_file.h>
++#include <support/xunistd.h>
++
++static int
++do_test (void)
++{
++  char *dir = support_create_temp_directory ("tst-xreadlink-");
++  char *symlink_name = xasprintf ("%s/symlink", dir);
++  add_temp_file (symlink_name);
++
++  /* The limit 10000 is arbitrary and simply there to prevent an
++     attempt to exhaust all available disk space.  */
++  for (int size = 1; size < 10000; ++size)
++    {
++      char *contents = xmalloc (size + 1);
++      for (int i = 0; i < size; ++i)
++        contents[i] = 'a' + (rand () % 26);
++      contents[size] = '\0';
++      if (symlink (contents, symlink_name) != 0)
++        {
++          if (errno == ENAMETOOLONG)
++            {
++              printf ("info: ENAMETOOLONG failure at %d bytes\n", size);
++              free (contents);
++              break;
++            }
++          FAIL_EXIT1 ("symlink (%d bytes): %m", size);
++        }
++
++      char *readlink_result = xreadlink (symlink_name);
++      TEST_VERIFY (strcmp (readlink_result, contents) == 0);
++      free (readlink_result);
++      xunlink (symlink_name);
++      free (contents);
++    }
++
++  /* Create an empty file to suppress the temporary file deletion
++     warning.  */
++  xclose (xopen (symlink_name, O_WRONLY | O_CREAT, 0));
++
++  free (symlink_name);
++  free (dir);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/support/xdlfcn.c b/support/xdlfcn.c
+new file mode 100644
+index 0000000000..05966c41ef
+--- /dev/null
++++ b/support/xdlfcn.c
+@@ -0,0 +1,59 @@
++/* Support functionality for using dlopen/dlclose/dlsym.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <stddef.h>
++#include <support/check.h>
++#include <support/xdlfcn.h>
++
++void *
++xdlopen (const char *filename, int flags)
++{
++  void *dso = dlopen (filename, flags);
++
++  if (dso == NULL)
++    FAIL_EXIT1 ("error: dlopen: %s\n", dlerror ());
++
++  /* Clear any errors.  */
++  dlerror ();
++
++  return dso;
++}
++
++void *
++xdlsym (void *handle, const char *symbol)
++{
++  void *sym = dlsym (handle, symbol);
++
++  if (sym == NULL)
++    FAIL_EXIT1 ("error: dlsym: %s\n", dlerror ());
++
++  /* Clear any errors.  */
++  dlerror ();
++
++  return sym;
++}
++
++void
++xdlclose (void *handle)
++{
++  if (dlclose (handle) != 0)
++    FAIL_EXIT1 ("error: dlclose: %s\n", dlerror ());
++
++  /* Clear any errors.  */
++  dlerror ();
++}
+diff --git a/support/xdlfcn.h b/support/xdlfcn.h
+new file mode 100644
+index 0000000000..9bdcb38d3e
+--- /dev/null
++++ b/support/xdlfcn.h
+@@ -0,0 +1,34 @@
++/* Support functionality for using dlopen/dlclose/dlsym.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef SUPPORT_DLOPEN_H
++#define SUPPORT_DLOPEN_H
++
++#include <dlfcn.h>
++
++__BEGIN_DECLS
++
++/* Each of these terminates process on failure with relevant error message.  */
++void *xdlopen (const char *filename, int flags);
++void *xdlsym (void *handle, const char *symbol);
++void xdlclose (void *handle);
++
++
++__END_DECLS
++
++#endif /* SUPPORT_DLOPEN_H */
+diff --git a/support/xftruncate.c b/support/xftruncate.c
+new file mode 100644
+index 0000000000..9c4e9e3050
+--- /dev/null
++++ b/support/xftruncate.c
+@@ -0,0 +1,27 @@
++/* ftruncate with error checking.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xunistd.h>
++
++void
++xftruncate (int fd, long long length)
++{
++  if (ftruncate64 (fd, length) != 0)
++    FAIL_EXIT1 ("ftruncate64 (%d, %lld): %m", fd, length);
++}
+diff --git a/support/xlseek.c b/support/xlseek.c
+new file mode 100644
+index 0000000000..0a75a9f2e6
+--- /dev/null
++++ b/support/xlseek.c
+@@ -0,0 +1,29 @@
++/* lseek with error checking.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xunistd.h>
++
++long long
++xlseek (int fd, long long offset, int whence)
++{
++  long long result = lseek64 (fd, offset, whence);
++  if (result < 0)
++    FAIL_EXIT1 ("lseek64 (%d, %lld, %d): %m", fd, offset, whence);
++  return result;
++}
+diff --git a/support/xraise.c b/support/xraise.c
+new file mode 100644
+index 0000000000..9126c6c3ea
+--- /dev/null
++++ b/support/xraise.c
+@@ -0,0 +1,27 @@
++/* Error-checking wrapper for raise.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xsignal.h>
++
++void
++xraise (int sig)
++{
++  if (raise (sig) != 0)
++    FAIL_EXIT1 ("raise (%d): %m" , sig);
++}
+diff --git a/support/xreadlink.c b/support/xreadlink.c
+new file mode 100644
+index 0000000000..aec58a2aa6
+--- /dev/null
++++ b/support/xreadlink.c
+@@ -0,0 +1,44 @@
++/* Error-checking, allocating wrapper for readlink.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <scratch_buffer.h>
++#include <support/check.h>
++#include <support/support.h>
++#include <xunistd.h>
++
++char *
++xreadlink (const char *path)
++{
++  struct scratch_buffer buf;
++  scratch_buffer_init (&buf);
++
++  while (true)
++    {
++      ssize_t count = readlink (path, buf.data, buf.length);
++      if (count < 0)
++        FAIL_EXIT1 ("readlink (\"%s\"): %m", path);
++      if (count < buf.length)
++        {
++          char *result = xstrndup (buf.data, count);
++          scratch_buffer_free (&buf);
++          return result;
++        }
++      if (!scratch_buffer_grow (&buf))
++        FAIL_EXIT1 ("scratch_buffer_grow in xreadlink");
++    }
++}
+diff --git a/support/xsigaction.c b/support/xsigaction.c
+new file mode 100644
+index 0000000000..b74c69afae
+--- /dev/null
++++ b/support/xsigaction.c
+@@ -0,0 +1,27 @@
++/* Error-checking wrapper for sigaction.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xsignal.h>
++
++void
++xsigaction (int sig, const struct sigaction *newact, struct sigaction *oldact)
++{
++  if (sigaction (sig, newact, oldact))
++    FAIL_EXIT1 ("sigaction (%d): %m" , sig);
++}
+diff --git a/support/xsignal.c b/support/xsignal.c
+new file mode 100644
+index 0000000000..22a1dd74a7
+--- /dev/null
++++ b/support/xsignal.c
+@@ -0,0 +1,29 @@
++/* Error-checking wrapper for signal.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xsignal.h>
++
++sighandler_t
++xsignal (int sig, sighandler_t handler)
++{
++  sighandler_t result = signal (sig, handler);
++  if (result == SIG_ERR)
++    FAIL_EXIT1 ("signal (%d, %p): %m", sig, handler);
++  return result;
++}
+diff --git a/support/xsignal.h b/support/xsignal.h
+index 3dc0d9d5ce..3087ed0082 100644
+--- a/support/xsignal.h
++++ b/support/xsignal.h
+@@ -24,6 +24,14 @@
+ 
+ __BEGIN_DECLS
+ 
++/* The following functions call the corresponding libc functions and
++   terminate the process on error.  */
++
++void xraise (int sig);
++sighandler_t xsignal (int sig, sighandler_t handler);
++void xsigaction (int sig, const struct sigaction *newact,
++                 struct sigaction *oldact);
++
+ /* The following functions call the corresponding libpthread functions
+    and terminate the process on error.  */
+ 
+diff --git a/support/xstrndup.c b/support/xstrndup.c
+new file mode 100644
+index 0000000000..d59a283d25
+--- /dev/null
++++ b/support/xstrndup.c
+@@ -0,0 +1,30 @@
++/* strndup with error checking.
++   Copyright (C) 2016-2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/support.h>
++
++#include <string.h>
++
++char *
++xstrndup (const char *s, size_t length)
++{
++  char *p = strndup (s, length);
++  if (p == NULL)
++    oom_error ("strndup", length);
++  return p;
++}
+diff --git a/support/xsysconf.c b/support/xsysconf.c
+new file mode 100644
+index 0000000000..15ab1e26c4
+--- /dev/null
++++ b/support/xsysconf.c
+@@ -0,0 +1,36 @@
++/* Error-checking wrapper for sysconf.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <errno.h>
++#include <support/check.h>
++#include <support/xunistd.h>
++
++long
++xsysconf (int name)
++{
++  /* Detect errors by a changed errno value, in case -1 is a valid
++     value.  Make sure that the caller does not see the zero value for
++     errno.  */
++  int old_errno = errno;
++  errno = 0;
++  long result = sysconf (name);
++  if (errno != 0)
++    FAIL_EXIT1 ("sysconf (%d): %m", name);
++  errno = old_errno;
++  return result;
++}
+diff --git a/support/xunistd.h b/support/xunistd.h
+index c947bfd8fb..29da063c15 100644
+--- a/support/xunistd.h
++++ b/support/xunistd.h
+@@ -36,8 +36,17 @@ void xpipe (int[2]);
+ void xdup2 (int, int);
+ int xopen (const char *path, int flags, mode_t);
+ void xstat (const char *path, struct stat64 *);
++void xfstat (int fd, struct stat64 *);
+ void xmkdir (const char *path, mode_t);
+ void xchroot (const char *path);
++void xunlink (const char *path);
++long xsysconf (int name);
++long long xlseek (int fd, long long offset, int whence);
++void xftruncate (int fd, long long length);
++
++/* Read the link at PATH.  The caller should free the returned string
++   with free.  */
++char *xreadlink (const char *path);
+ 
+ /* Close the file descriptor.  Ignore EINTR errors, but terminate the
+    process on other errors.  */
+diff --git a/support/xunlink.c b/support/xunlink.c
+new file mode 100644
+index 0000000000..f94ee118cf
+--- /dev/null
++++ b/support/xunlink.c
+@@ -0,0 +1,27 @@
++/* Error-checking wrapper for unlink.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <support/check.h>
++#include <support/xunistd.h>
++
++void
++xunlink (const char *path)
++{
++  if (unlink (path) != 0)
++    FAIL_EXIT1 ("unlink (\"%s\"): %m", path);
++}
+-- 
+2.15.1
+

@@ -1,0 +1,263 @@
+From 4b692dffb95ac4812b161eb6a16113d7e824982e Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Thu, 19 Oct 2017 08:28:09 -0700
+Subject: [PATCH 073/146] x86-64: Don't set GLRO(dl_platform) to NULL [BZ
+ #22299]
+
+Since ld.so expands $PLATFORM with GLRO(dl_platform), don't set
+GLRO(dl_platform) to NULL.
+
+	[BZ #22299]
+	* sysdeps/x86/cpu-features.c (init_cpu_features): Don't set
+	GLRO(dl_platform) to NULL.
+	* sysdeps/x86_64/Makefile (tests): Add tst-platform-1.
+	(modules-names): Add tst-platformmod-1 and
+	x86_64/tst-platformmod-2.
+	(CFLAGS-tst-platform-1.c): New.
+	(CFLAGS-tst-platformmod-1.c): Likewise.
+	(CFLAGS-tst-platformmod-2.c): Likewise.
+	(LDFLAGS-tst-platformmod-2.so): Likewise.
+	($(objpfx)tst-platform-1): Likewise.
+	($(objpfx)tst-platform-1.out): Likewise.
+	(tst-platform-1-ENV): Likewise.
+	($(objpfx)x86_64/tst-platformmod-2.os): Likewise.
+	* sysdeps/x86_64/tst-platform-1.c: New file.
+	* sysdeps/x86_64/tst-platformmod-1.c: Likewise.
+	* sysdeps/x86_64/tst-platformmod-2.c: Likewise.
+
+(cherry picked from commit 4d916f0f12b230f49967797f98b2b613c734a047)
+---
+ ChangeLog                          | 21 +++++++++++++++++++++
+ NEWS                               |  1 +
+ sysdeps/x86/cpu-features.c         | 12 ++++++++----
+ sysdeps/x86_64/Makefile            | 20 ++++++++++++++++++++
+ sysdeps/x86_64/tst-platform-1.c    | 29 +++++++++++++++++++++++++++++
+ sysdeps/x86_64/tst-platformmod-1.c | 23 +++++++++++++++++++++++
+ sysdeps/x86_64/tst-platformmod-2.c | 23 +++++++++++++++++++++++
+ 7 files changed, 125 insertions(+), 4 deletions(-)
+ create mode 100644 sysdeps/x86_64/tst-platform-1.c
+ create mode 100644 sysdeps/x86_64/tst-platformmod-1.c
+ create mode 100644 sysdeps/x86_64/tst-platformmod-2.c
+
+diff --git a/ChangeLog b/ChangeLog
+index 366eaba804..26ebb2e7c9 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,24 @@
++2017-10-26  Valery Reznic <valery_reznic@yahoo.com>
++	    H.J. Lu  <hongjiu.lu@intel.com>
++
++	[BZ #22299]
++	* sysdeps/x86/cpu-features.c (init_cpu_features): Don't set
++	GLRO(dl_platform) to NULL.
++	* sysdeps/x86_64/Makefile (tests): Add tst-platform-1.
++	(modules-names): Add tst-platformmod-1 and
++	x86_64/tst-platformmod-2.
++	(CFLAGS-tst-platform-1.c): New.
++	(CFLAGS-tst-platformmod-1.c): Likewise.
++	(CFLAGS-tst-platformmod-2.c): Likewise.
++	(LDFLAGS-tst-platformmod-2.so): Likewise.
++	($(objpfx)tst-platform-1): Likewise.
++	($(objpfx)tst-platform-1.out): Likewise.
++	(tst-platform-1-ENV): Likewise.
++	($(objpfx)x86_64/tst-platformmod-2.os): Likewise.
++	* sysdeps/x86_64/tst-platform-1.c: New file.
++	* sysdeps/x86_64/tst-platformmod-1.c: Likewise.
++	* sysdeps/x86_64/tst-platformmod-2.c: Likewise.
++
+ 2017-10-23  Alexey Makhalov  <amakhalov@vmware.com>
+ 
+ 	* elf/dl-tunables.c (do_tunable_update_val): Range checking fix.
+diff --git a/NEWS b/NEWS
+index cd6636d0e0..ea1c1f1c04 100644
+--- a/NEWS
++++ b/NEWS
+@@ -47,6 +47,7 @@ The following bugs are resolved with this release:
+   [22225] math: nearbyint arithmetic moved before feholdexcept
+   [22235] Add C++ versions of iscanonical for ldbl-96 and ldbl-128ibm
+   [22296] Let signbit use the builtin in C++ mode with gcc < 6.x
++  [22299] x86-64: Don't set GLRO(dl_platform) to NULL
+   [22320] glob: Fix one-byte overflow (CVE-2017-15670)
+   [22321] sysconf: Fix missing definition of UIO_MAXIOV on Linux
+   [22322] libc: [mips64] wrong bits/long-double.h installed
+diff --git a/sysdeps/x86/cpu-features.c b/sysdeps/x86/cpu-features.c
+index 3a5c3e8bfd..87aaa8683c 100644
+--- a/sysdeps/x86/cpu-features.c
++++ b/sysdeps/x86/cpu-features.c
+@@ -389,7 +389,6 @@ no_cpuid:
+ #endif
+ 
+   /* Reuse dl_platform, dl_hwcap and dl_hwcap_mask for x86.  */
+-  GLRO(dl_platform) = NULL;
+ #if !HAVE_TUNABLES && defined SHARED
+   /* The glibc.tune.hwcap_mask tunable is initialized already, so no need to do
+      this.  */
+@@ -400,13 +399,15 @@ no_cpuid:
+   GLRO(dl_hwcap) = HWCAP_X86_64;
+   if (cpu_features->kind == arch_kind_intel)
+     {
++      const char *platform = NULL;
++
+       if (CPU_FEATURES_ARCH_P (cpu_features, AVX512F_Usable)
+ 	  && CPU_FEATURES_CPU_P (cpu_features, AVX512CD))
+ 	{
+ 	  if (CPU_FEATURES_CPU_P (cpu_features, AVX512ER))
+ 	    {
+ 	      if (CPU_FEATURES_CPU_P (cpu_features, AVX512PF))
+-		GLRO(dl_platform) = "xeon_phi";
++		platform = "xeon_phi";
+ 	    }
+ 	  else
+ 	    {
+@@ -417,7 +418,7 @@ no_cpuid:
+ 	    }
+ 	}
+ 
+-      if (GLRO(dl_platform) == NULL
++      if (platform == NULL
+ 	  && CPU_FEATURES_ARCH_P (cpu_features, AVX2_Usable)
+ 	  && CPU_FEATURES_ARCH_P (cpu_features, FMA_Usable)
+ 	  && CPU_FEATURES_CPU_P (cpu_features, BMI1)
+@@ -425,7 +426,10 @@ no_cpuid:
+ 	  && CPU_FEATURES_CPU_P (cpu_features, LZCNT)
+ 	  && CPU_FEATURES_CPU_P (cpu_features, MOVBE)
+ 	  && CPU_FEATURES_CPU_P (cpu_features, POPCNT))
+-	GLRO(dl_platform) = "haswell";
++	platform = "haswell";
++
++      if (platform != NULL)
++	GLRO(dl_platform) = platform;
+     }
+ #else
+   GLRO(dl_hwcap) = 0;
+diff --git a/sysdeps/x86_64/Makefile b/sysdeps/x86_64/Makefile
+index cb4e63897c..a7e26ac485 100644
+--- a/sysdeps/x86_64/Makefile
++++ b/sysdeps/x86_64/Makefile
+@@ -62,6 +62,21 @@ endif
+ 
+ $(objpfx)tst-x86_64-1: $(objpfx)x86_64/tst-x86_64mod-1.so
+ 
++ifneq (no,$(have-tunables))
++tests += tst-platform-1
++modules-names += tst-platformmod-1 x86_64/tst-platformmod-2
++CFLAGS-tst-platform-1.c = -mno-avx
++CFLAGS-tst-platformmod-1.c = -mno-avx
++CFLAGS-tst-platformmod-2.c = -mno-avx
++LDFLAGS-tst-platformmod-2.so = -Wl,-soname,tst-platformmod-2.so
++$(objpfx)tst-platform-1: $(objpfx)tst-platformmod-1.so
++$(objpfx)tst-platform-1.out: $(objpfx)x86_64/tst-platformmod-2.so
++# Turn off AVX512F_Usable and AVX2_Usable so that GLRO(dl_platform) is
++# always set to x86_64.
++tst-platform-1-ENV = LD_PRELOAD=$(objpfx)\$$PLATFORM/tst-platformmod-2.so \
++	GLIBC_TUNABLES=glibc.tune.hwcaps=-AVX512F_Usable,-AVX2_Usable
++endif
++
+ tests += tst-audit3 tst-audit4 tst-audit5 tst-audit6 tst-audit7 \
+ 	 tst-audit10 tst-sse tst-avx tst-avx512
+ test-extras += tst-audit4-aux tst-audit10-aux \
+@@ -143,3 +158,8 @@ do-tests-clean common-mostlyclean: tst-x86_64-1-clean
+ .PHONY: tst-x86_64-1-clean
+ tst-x86_64-1-clean:
+ 	-rm -rf $(objpfx)x86_64
++
++$(objpfx)x86_64/tst-platformmod-2.os: $(objpfx)tst-platformmod-2.os
++	$(make-target-directory)
++	rm -f $@
++	ln $< $@
+diff --git a/sysdeps/x86_64/tst-platform-1.c b/sysdeps/x86_64/tst-platform-1.c
+new file mode 100644
+index 0000000000..76a02e4b6d
+--- /dev/null
++++ b/sysdeps/x86_64/tst-platform-1.c
+@@ -0,0 +1,29 @@
++/* Test PRELOAD with $PLATFORM.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <stdlib.h>
++
++extern int preload (void);
++
++static int
++do_test (void)
++{
++  return preload () == 0x1234 ? EXIT_SUCCESS : EXIT_FAILURE;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/x86_64/tst-platformmod-1.c b/sysdeps/x86_64/tst-platformmod-1.c
+new file mode 100644
+index 0000000000..9ef5e2b5be
+--- /dev/null
++++ b/sysdeps/x86_64/tst-platformmod-1.c
+@@ -0,0 +1,23 @@
++/* Test PRELOAD with $PLATFORM.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++int
++preload (void)
++{
++  return 0;
++}
+diff --git a/sysdeps/x86_64/tst-platformmod-2.c b/sysdeps/x86_64/tst-platformmod-2.c
+new file mode 100644
+index 0000000000..d0e5103892
+--- /dev/null
++++ b/sysdeps/x86_64/tst-platformmod-2.c
+@@ -0,0 +1,23 @@
++/* Test PRELOAD with $PLATFORM.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++int
++preload (void)
++{
++  return 0x1234;
++}
+-- 
+2.15.1
+

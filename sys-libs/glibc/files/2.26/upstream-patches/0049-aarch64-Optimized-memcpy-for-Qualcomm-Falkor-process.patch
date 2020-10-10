@@ -1,0 +1,852 @@
+From b21ec6c6b80e316143b0914a5c81e9543bbdcc5b Mon Sep 17 00:00:00 2001
+From: Siddhesh Poyarekar <siddhesh@sourceware.org>
+Date: Tue, 10 Oct 2017 15:43:52 +0530
+Subject: [PATCH 049/146] aarch64: Optimized memcpy for Qualcomm Falkor
+ processor
+
+This is an optimized implementation of the memcpy routine that gives a
+significant gain in performance for all sizes of copies on the
+Qualcomm Falkor processor.  A detailed rationale of the implementation
+is written in a comment in the patch.
+
+This implementation improves time for copies up to 128 bytes by up to
+15% and for larger copies by up to 35% in the glibc
+microbenchmark. The memcpy-random benchmark sees improvements in all
+sizes in the range of 13%-18%.
+
+Here are the full numbers extracted from the glibc microbenchmark
+using the commands:
+
+../benchtests/scripts/compare_strings.py benchtests/bench-memcpy.out \
+		../benchtests/scripts/benchout_strings.schema.json \
+		-base=__memcpy_generic length align1 align2
+
+../benchtests/scripts/compare_strings.py benchtests/bench-memcpy-large.out \
+		../benchtests/scripts/benchout_strings.schema.json \
+		-base=__memcpy_generic length align1 align2
+
+../benchtests/scripts/compare_strings.py benchtests/bench-memcpy-random.out \
+		../benchtests/scripts/benchout_strings.schema.json \
+		-base=__memcpy_generic max-size
+
+Function: memcpy
+__memcpy_thunderx       __memcpy_falkor __memcpy_generic
+Variant: default
+================================================================================
+length=1,align1=0,align2=0:     33.59 (-115.00%)        15.62 (0.00%)   15.62
+length=1,align1=0,align2=0:     16.41 (-10.53%) 14.06 (5.26%)   14.84
+length=1,align1=0,align2=0:     14.84 (0.00%)   14.84 (0.00%)   14.84
+length=1,align1=0,align2=0:     15.62 (-5.26%)  14.06 (5.26%)   14.84
+length=2,align1=0,align2=0:     15.62 (-5.26%)  14.06 (5.26%)   14.84
+length=2,align1=1,align2=0:     15.62 (-5.26%)  14.06 (5.26%)   14.84
+length=2,align1=0,align2=1:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=2,align1=1,align2=1:     14.84 (-5.56%)  14.06 (0.00%)   14.06
+length=4,align1=0,align2=0:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=4,align1=2,align2=0:     14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=4,align1=0,align2=2:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=4,align1=2,align2=2:     14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=8,align1=0,align2=0:     14.84 (-5.56%)  13.28 (5.56%)   14.06
+length=8,align1=3,align2=0:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=8,align1=0,align2=3:     13.28 (0.00%)   13.28 (0.00%)   13.28
+length=8,align1=3,align2=3:     13.28 (-6.25%)  13.28 (-6.25%)  12.50
+length=16,align1=0,align2=0:    13.28 (0.00%)   13.28 (0.00%)   13.28
+length=16,align1=4,align2=0:    13.28 (0.00%)   12.50 (5.88%)   13.28
+length=16,align1=0,align2=4:    13.28 (0.00%)   13.28 (0.00%)   13.28
+length=16,align1=4,align2=4:    13.28 (-6.25%)  12.50 (0.00%)   12.50
+length=32,align1=0,align2=0:    14.06 (0.00%)   12.50 (11.11%)  14.06
+length=32,align1=5,align2=0:    13.28 (0.00%)   12.50 (5.88%)   13.28
+length=32,align1=0,align2=5:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=32,align1=5,align2=5:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=64,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=64,align1=6,align2=0:    13.28 (0.00%)   13.28 (0.00%)   13.28
+length=64,align1=0,align2=6:    14.06 (5.26%)   14.06 (5.26%)   14.84
+length=64,align1=6,align2=6:    14.84 (-11.77%) 14.06 (-5.88%)  13.28
+length=128,align1=0,align2=0:   17.19 (-4.76%)  14.84 (9.52%)   16.41
+length=128,align1=7,align2=0:   16.41 (4.55%)   15.62 (9.09%)   17.19
+length=128,align1=0,align2=7:   16.41 (0.00%)   14.06 (14.29%)  16.41
+length=128,align1=7,align2=7:   16.41 (4.55%)   15.62 (9.09%)   17.19
+length=256,align1=0,align2=0:   21.88 (-3.70%)  21.09 (0.00%)   21.09
+length=256,align1=8,align2=0:   21.09 (-3.85%)  21.09 (-3.85%)  20.31
+length=256,align1=0,align2=8:   20.31 (-4.00%)  20.31 (-4.00%)  19.53
+length=256,align1=8,align2=8:   21.88 (-7.69%)  20.31 (0.00%)   20.31
+length=512,align1=0,align2=0:   28.91 (-2.78%)  28.91 (-2.78%)  28.12
+length=512,align1=9,align2=0:   30.47 (-2.63%)  30.47 (-2.63%)  29.69
+length=512,align1=0,align2=9:   29.69 (0.00%)   29.69 (0.00%)   29.69
+length=512,align1=9,align2=9:   28.12 (-2.86%)  28.12 (-2.86%)  27.34
+length=1024,align1=0,align2=0:  44.53 (0.00%)   44.53 (0.00%)   44.53
+length=1024,align1=10,align2=0:         50.00 (0.00%)   50.00 (0.00%)   50.00
+length=1024,align1=0,align2=10:         49.22 (1.56%)   50.78 (-1.56%)  50.00
+length=1024,align1=10,align2=10:        44.53 (-1.79%)  43.75 (0.00%)   43.75
+length=2048,align1=0,align2=0:  77.34 (-1.02%)  76.56 (0.00%)   76.56
+length=2048,align1=11,align2=0:         89.84 (0.00%)   89.84 (0.00%)   89.84
+length=2048,align1=0,align2=11:         89.84 (0.00%)   89.84 (0.00%)   89.84
+length=2048,align1=11,align2=11:        75.78 (0.00%)   75.78 (0.00%)   75.78
+length=4096,align1=0,align2=0:  141.41 (-0.56%) 140.62 (0.00%)  140.62
+length=4096,align1=12,align2=0:         171.09 (-0.46%) 170.31 (0.00%)  170.31
+length=4096,align1=0,align2=12:         170.31 (0.00%)  170.31 (0.00%)  170.31
+length=4096,align1=12,align2=12:        140.62 (0.00%)  140.62 (0.00%)  140.62
+length=8192,align1=0,align2=0:  278.91 (-0.28%) 275.78 (0.84%)  278.12
+length=8192,align1=13,align2=0:         338.28 (0.23%)  335.94 (0.92%)  339.06
+length=8192,align1=0,align2=13:         338.28 (0.00%)  455.47 (-34.64%)        338.28
+length=8192,align1=13,align2=13:        278.12 (-0.28%) 275.78 (0.56%)  277.34
+length=16384,align1=0,align2=0:         535.94 (-0.15%) 531.25 (0.73%)  535.16
+length=16384,align1=14,align2=0:        659.38 (0.12%)  659.38 (0.12%)  660.16
+length=16384,align1=0,align2=14:        659.38 (0.00%)  657.03 (0.36%)  659.38
+length=16384,align1=14,align2=14:       535.16 (0.44%)  532.81 (0.87%)  537.50
+length=32768,align1=0,align2=0:         1260.94 (10.68%)        1121.88 (20.53%)        1411.72
+length=32768,align1=15,align2=0:        1368.75 (10.02%)        1376.56 (9.50%) 1521.09
+length=32768,align1=0,align2=15:        1333.59 (10.91%)        1373.44 (8.25%) 1496.88
+length=32768,align1=15,align2=15:       1256.25 (13.96%)        1125.78 (22.90%)        1460.16
+length=65536,align1=0,align2=0:         2853.91 (30.11%)        2589.06 (36.60%)        4083.59
+length=65536,align1=16,align2=0:        2850.00 (30.14%)        2589.84 (36.52%)        4079.69
+length=65536,align1=0,align2=16:        2853.12 (30.60%)        2589.84 (37.00%)        4110.94
+length=65536,align1=16,align2=16:       2850.78 (30.07%)        2589.06 (36.49%)        4076.56
+length=0,align1=0,align2=0:     15.62 (-5.26%)  16.41 (-10.53%) 14.84
+length=0,align1=0,align2=0:     14.84 (-5.56%)  14.84 (-5.56%)  14.06
+length=0,align1=0,align2=0:     14.84 (0.00%)   14.84 (0.00%)   14.84
+length=0,align1=0,align2=0:     16.41 (-16.67%) 14.84 (-5.56%)  14.06
+length=1,align1=0,align2=0:     15.62 (4.76%)   15.62 (4.76%)   16.41
+length=1,align1=1,align2=0:     15.62 (0.00%)   14.84 (5.00%)   15.62
+length=1,align1=0,align2=1:     14.84 (0.00%)   14.84 (0.00%)   14.84
+length=1,align1=1,align2=1:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=2,align1=0,align2=0:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=2,align1=2,align2=0:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=2,align1=0,align2=2:     14.84 (-5.56%)  14.06 (0.00%)   14.06
+length=2,align1=2,align2=2:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=3,align1=0,align2=0:     14.84 (0.00%)   14.84 (0.00%)   14.84
+length=3,align1=3,align2=0:     14.84 (-5.56%)  14.06 (0.00%)   14.06
+length=3,align1=0,align2=3:     15.62 (-11.11%) 14.06 (0.00%)   14.06
+length=3,align1=3,align2=3:     14.84 (0.00%)   14.06 (5.26%)   14.84
+length=4,align1=0,align2=0:     17.97 (-27.78%) 14.06 (0.00%)   14.06
+length=4,align1=4,align2=0:     13.28 (5.56%)   14.06 (0.00%)   14.06
+length=4,align1=0,align2=4:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=4,align1=4,align2=4:     13.28 (5.56%)   13.28 (5.56%)   14.06
+length=5,align1=0,align2=0:     13.28 (5.56%)   13.28 (5.56%)   14.06
+length=5,align1=5,align2=0:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=5,align1=0,align2=5:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=5,align1=5,align2=5:     14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=6,align1=0,align2=0:     14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=6,align1=6,align2=0:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=6,align1=0,align2=6:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=6,align1=6,align2=6:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=7,align1=0,align2=0:     14.84 (-11.77%) 14.06 (-5.88%)  13.28
+length=7,align1=7,align2=0:     13.28 (0.00%)   14.06 (-5.88%)  13.28
+length=7,align1=0,align2=7:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=7,align1=7,align2=7:     14.06 (0.00%)   14.06 (0.00%)   14.06
+length=8,align1=0,align2=0:     14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=8,align1=8,align2=0:     14.06 (0.00%)   13.28 (5.56%)   14.06
+length=8,align1=0,align2=8:     13.28 (0.00%)   13.28 (0.00%)   13.28
+length=8,align1=8,align2=8:     14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=9,align1=0,align2=0:     13.28 (0.00%)   13.28 (0.00%)   13.28
+length=9,align1=9,align2=0:     13.28 (0.00%)   13.28 (0.00%)   13.28
+length=9,align1=0,align2=9:     13.28 (0.00%)   14.06 (-5.88%)  13.28
+length=9,align1=9,align2=9:     14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=10,align1=0,align2=0:    14.06 (0.00%)   13.28 (5.56%)   14.06
+length=10,align1=10,align2=0:   14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=10,align1=0,align2=10:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=10,align1=10,align2=10:  14.06 (0.00%)   13.28 (5.56%)   14.06
+length=11,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=11,align1=11,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=11,align1=0,align2=11:   13.28 (0.00%)   13.28 (0.00%)   13.28
+length=11,align1=11,align2=11:  13.28 (0.00%)   13.28 (0.00%)   13.28
+length=12,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=12,align1=12,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=12,align1=0,align2=12:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=12,align1=12,align2=12:  14.06 (0.00%)   13.28 (5.56%)   14.06
+length=13,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=13,align1=13,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=13,align1=0,align2=13:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=13,align1=13,align2=13:  13.28 (0.00%)   13.28 (0.00%)   13.28
+length=14,align1=0,align2=0:    13.28 (0.00%)   13.28 (0.00%)   13.28
+length=14,align1=14,align2=0:   13.28 (5.56%)   13.28 (5.56%)   14.06
+length=14,align1=0,align2=14:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=14,align1=14,align2=14:  14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=15,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=15,align1=15,align2=0:   14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=15,align1=0,align2=15:   13.28 (0.00%)   13.28 (0.00%)   13.28
+length=15,align1=15,align2=15:  13.28 (0.00%)   14.06 (-5.88%)  13.28
+length=16,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=16,align1=16,align2=0:   13.28 (5.56%)   14.06 (0.00%)   14.06
+length=16,align1=0,align2=16:   14.84 (-11.77%) 13.28 (0.00%)   13.28
+length=16,align1=16,align2=16:  13.28 (-6.25%)  12.50 (0.00%)   12.50
+length=17,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=17,align1=17,align2=0:   14.84 (-11.77%) 12.50 (5.88%)   13.28
+length=17,align1=0,align2=17:   14.84 (-5.56%)  12.50 (11.11%)  14.06
+length=17,align1=17,align2=17:  14.84 (-11.77%) 12.50 (5.88%)   13.28
+length=18,align1=0,align2=0:    14.06 (0.00%)   12.50 (11.11%)  14.06
+length=18,align1=18,align2=0:   13.28 (5.56%)   12.50 (11.11%)  14.06
+length=18,align1=0,align2=18:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=18,align1=18,align2=18:  14.06 (0.00%)   12.50 (11.11%)  14.06
+length=19,align1=0,align2=0:    14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=19,align1=19,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=19,align1=0,align2=19:   14.84 (-5.56%)  12.50 (11.11%)  14.06
+length=19,align1=19,align2=19:  14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=20,align1=0,align2=0:    14.84 (-11.77%) 12.50 (5.88%)   13.28
+length=20,align1=20,align2=0:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=20,align1=0,align2=20:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=20,align1=20,align2=20:  14.06 (0.00%)   13.28 (5.56%)   14.06
+length=21,align1=0,align2=0:    14.84 (-5.56%)  12.50 (11.11%)  14.06
+length=21,align1=21,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=21,align1=0,align2=21:   14.84 (-11.77%) 12.50 (5.88%)   13.28
+length=21,align1=21,align2=21:  13.28 (5.56%)   13.28 (5.56%)   14.06
+length=22,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=22,align1=22,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=22,align1=0,align2=22:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=22,align1=22,align2=22:  14.06 (0.00%)   12.50 (11.11%)  14.06
+length=23,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=23,align1=23,align2=0:   14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=23,align1=0,align2=23:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=23,align1=23,align2=23:  14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=24,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=24,align1=24,align2=0:   14.06 (0.00%)   13.28 (5.56%)   14.06
+length=24,align1=0,align2=24:   14.84 (-11.77%) 12.50 (5.88%)   13.28
+length=24,align1=24,align2=24:  14.06 (-5.88%)  13.28 (0.00%)   13.28
+length=25,align1=0,align2=0:    14.06 (0.00%)   12.50 (11.11%)  14.06
+length=25,align1=25,align2=0:   14.06 (0.00%)   13.28 (5.56%)   14.06
+length=25,align1=0,align2=25:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=25,align1=25,align2=25:  13.28 (0.00%)   13.28 (0.00%)   13.28
+length=26,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=26,align1=26,align2=0:   14.06 (0.00%)   13.28 (5.56%)   14.06
+length=26,align1=0,align2=26:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=26,align1=26,align2=26:  14.06 (0.00%)   13.28 (5.56%)   14.06
+length=27,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=27,align1=27,align2=0:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=27,align1=0,align2=27:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=27,align1=27,align2=27:  14.06 (0.00%)   12.50 (11.11%)  14.06
+length=28,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=28,align1=28,align2=0:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=28,align1=0,align2=28:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=28,align1=28,align2=28:  14.84 (-11.77%) 13.28 (0.00%)   13.28
+length=29,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=29,align1=29,align2=0:   13.28 (0.00%)   12.50 (5.88%)   13.28
+length=29,align1=0,align2=29:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=29,align1=29,align2=29:  13.28 (5.56%)   12.50 (11.11%)  14.06
+length=30,align1=0,align2=0:    14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=30,align1=30,align2=0:   13.28 (5.56%)   12.50 (11.11%)  14.06
+length=30,align1=0,align2=30:   14.06 (-5.88%)  12.50 (5.88%)   13.28
+length=30,align1=30,align2=30:  13.28 (0.00%)   12.50 (5.88%)   13.28
+length=31,align1=0,align2=0:    13.28 (0.00%)   12.50 (5.88%)   13.28
+length=31,align1=31,align2=0:   14.06 (0.00%)   12.50 (11.11%)  14.06
+length=31,align1=0,align2=31:   13.28 (0.00%)   12.50 (5.88%)   13.28
+length=31,align1=31,align2=31:  14.06 (0.00%)   12.50 (11.11%)  14.06
+length=48,align1=0,align2=0:    14.06 (0.00%)   14.06 (0.00%)   14.06
+length=48,align1=3,align2=0:    14.06 (0.00%)   14.06 (0.00%)   14.06
+length=48,align1=0,align2=3:    14.06 (-5.88%)  14.06 (-5.88%)  13.28
+length=48,align1=3,align2=3:    13.28 (5.56%)   14.06 (0.00%)   14.06
+length=80,align1=0,align2=0:    15.62 (-11.11%) 14.84 (-5.56%)  14.06
+length=80,align1=5,align2=0:    15.62 (-11.11%) 16.41 (-16.67%) 14.06
+length=80,align1=0,align2=5:    14.06 (0.00%)   15.62 (-11.11%) 14.06
+length=80,align1=5,align2=5:    15.62 (-5.26%)  17.19 (-15.79%) 14.84
+length=96,align1=0,align2=0:    14.06 (0.00%)   14.84 (-5.56%)  14.06
+length=96,align1=6,align2=0:    14.84 (-5.56%)  16.41 (-16.67%) 14.06
+length=96,align1=0,align2=6:    14.06 (0.00%)   14.84 (-5.56%)  14.06
+length=96,align1=6,align2=6:    14.84 (-5.56%)  17.19 (-22.22%) 14.06
+length=112,align1=0,align2=0:   17.19 (-4.76%)  14.06 (14.29%)  16.41
+length=112,align1=7,align2=0:   17.19 (0.00%)   16.41 (4.55%)   17.19
+length=112,align1=0,align2=7:   16.41 (0.00%)   14.84 (9.52%)   16.41
+length=112,align1=7,align2=7:   17.19 (0.00%)   17.19 (0.00%)   17.19
+length=144,align1=0,align2=0:   17.19 (-10.00%) 17.97 (-15.00%) 15.62
+length=144,align1=9,align2=0:   17.19 (-4.76%)  18.75 (-14.29%) 16.41
+length=144,align1=0,align2=9:   20.31 (-8.33%)  18.75 (0.00%)   18.75
+length=144,align1=9,align2=9:   18.75 (-4.35%)  18.75 (-4.35%)  17.97
+length=160,align1=0,align2=0:   18.75 (-4.35%)  17.97 (0.00%)   17.97
+length=160,align1=10,align2=0:  18.75 (4.00%)   18.75 (4.00%)   19.53
+length=160,align1=0,align2=10:  19.53 (-4.17%)  17.97 (4.17%)   18.75
+length=160,align1=10,align2=10:         18.75 (-4.35%)  18.75 (-4.35%)  17.97
+length=176,align1=0,align2=0:   18.75 (-4.35%)  17.19 (4.35%)   17.97
+length=176,align1=11,align2=0:  19.53 (0.00%)   19.53 (0.00%)   19.53
+length=176,align1=0,align2=11:  19.53 (-4.17%)  18.75 (0.00%)   18.75
+length=176,align1=11,align2=11:         18.75 (0.00%)   17.97 (4.17%)   18.75
+length=192,align1=0,align2=0:   18.75 (0.00%)   17.97 (4.17%)   18.75
+length=192,align1=12,align2=0:  21.09 (-8.00%)  18.75 (4.00%)   19.53
+length=192,align1=0,align2=12:  18.75 (0.00%)   18.75 (0.00%)   18.75
+length=192,align1=12,align2=12:         18.75 (0.00%)   17.97 (4.17%)   18.75
+length=208,align1=0,align2=0:   17.97 (0.00%)   20.31 (-13.04%) 17.97
+length=208,align1=13,align2=0:  19.53 (7.41%)   21.09 (0.00%)   21.09
+length=208,align1=0,align2=13:  23.44 (-11.11%) 21.09 (0.00%)   21.09
+length=208,align1=13,align2=13:         21.09 (-3.85%)  21.09 (-3.85%)  20.31
+length=224,align1=0,align2=0:   21.09 (-8.00%)  20.31 (-4.00%)  19.53
+length=224,align1=14,align2=0:  23.44 (-11.11%) 20.31 (3.70%)   21.09
+length=224,align1=0,align2=14:  21.09 (3.57%)   20.31 (7.14%)   21.88
+length=224,align1=14,align2=14:         20.31 (0.00%)   19.53 (3.85%)   20.31
+length=240,align1=0,align2=0:   20.31 (-4.00%)  19.53 (0.00%)   19.53
+length=240,align1=15,align2=0:  22.66 (0.00%)   20.31 (10.34%)  22.66
+length=240,align1=0,align2=15:  20.31 (-4.00%)  20.31 (-4.00%)  19.53
+length=240,align1=15,align2=15:         21.88 (0.00%)   21.09 (3.57%)   21.88
+length=272,align1=0,align2=0:   20.31 (0.00%)   28.12 (-38.46%) 20.31
+length=272,align1=17,align2=0:  22.66 (0.00%)   27.34 (-20.69%) 22.66
+length=272,align1=0,align2=17:  25.78 (-10.00%) 28.12 (-20.00%) 23.44
+length=272,align1=17,align2=17:         22.66 (-3.57%)  27.34 (-25.00%) 21.88
+length=288,align1=0,align2=0:   23.44 (-7.14%)  27.34 (-25.00%) 21.88
+length=288,align1=18,align2=0:  22.66 (0.00%)   27.34 (-20.69%) 22.66
+length=288,align1=0,align2=18:  23.44 (-3.45%)  25.00 (-10.35%) 22.66
+length=288,align1=18,align2=18:         22.66 (-3.57%)  21.88 (0.00%)   21.88
+length=304,align1=0,align2=0:   21.88 (0.00%)   21.88 (0.00%)   21.88
+length=304,align1=19,align2=0:  23.44 (-3.45%)  22.66 (0.00%)   22.66
+length=304,align1=0,align2=19:  22.66 (0.00%)   22.66 (0.00%)   22.66
+length=304,align1=19,align2=19:         22.66 (-3.57%)  21.88 (0.00%)   21.88
+length=320,align1=0,align2=0:   22.66 (-3.57%)  21.88 (0.00%)   21.88
+length=320,align1=20,align2=0:  22.66 (0.00%)   22.66 (0.00%)   22.66
+length=320,align1=0,align2=20:  22.66 (0.00%)   22.66 (0.00%)   22.66
+length=320,align1=20,align2=20:         22.66 (-3.57%)  21.88 (0.00%)   21.88
+length=336,align1=0,align2=0:   21.88 (0.00%)   24.22 (-10.71%) 21.88
+length=336,align1=21,align2=0:  22.66 (0.00%)   25.00 (-10.35%) 22.66
+length=336,align1=0,align2=21:  25.78 (0.00%)   25.00 (3.03%)   25.78
+length=336,align1=21,align2=21:         25.00 (0.00%)   23.44 (6.25%)   25.00
+length=352,align1=0,align2=0:   24.22 (0.00%)   24.22 (0.00%)   24.22
+length=352,align1=22,align2=0:  25.00 (0.00%)   25.00 (0.00%)   25.00
+length=352,align1=0,align2=22:  25.00 (-3.23%)  25.00 (-3.23%)  24.22
+length=352,align1=22,align2=22:         25.00 (-3.23%)  24.22 (0.00%)   24.22
+length=368,align1=0,align2=0:   25.00 (-3.23%)  23.44 (3.23%)   24.22
+length=368,align1=23,align2=0:  25.00 (0.00%)   24.22 (3.12%)   25.00
+length=368,align1=0,align2=23:  25.00 (-3.23%)  25.00 (-3.23%)  24.22
+length=368,align1=23,align2=23:         25.00 (-6.67%)  23.44 (0.00%)   23.44
+length=384,align1=0,align2=0:   24.22 (0.00%)   24.22 (0.00%)   24.22
+length=384,align1=24,align2=0:  25.00 (0.00%)   24.22 (3.12%)   25.00
+length=384,align1=0,align2=24:  25.00 (0.00%)   25.78 (-3.12%)  25.00
+length=384,align1=24,align2=24:         24.22 (-3.33%)  23.44 (0.00%)   23.44
+length=400,align1=0,align2=0:   25.00 (-3.23%)  26.56 (-9.68%)  24.22
+length=400,align1=25,align2=0:  25.78 (-3.12%)  27.34 (-9.38%)  25.00
+length=400,align1=0,align2=25:  27.34 (0.00%)   27.34 (0.00%)   27.34
+length=400,align1=25,align2=25:         26.56 (0.00%)   25.78 (2.94%)   26.56
+length=416,align1=0,align2=0:   26.56 (-3.03%)  25.78 (0.00%)   25.78
+length=416,align1=26,align2=0:  28.12 (-2.86%)  27.34 (0.00%)   27.34
+length=416,align1=0,align2=26:  27.34 (-2.94%)  28.12 (-5.88%)  26.56
+length=416,align1=26,align2=26:         25.78 (0.00%)   26.56 (-3.03%)  25.78
+length=432,align1=0,align2=0:   27.34 (-2.94%)  25.78 (2.94%)   26.56
+length=432,align1=27,align2=0:  28.12 (-2.86%)  27.34 (0.00%)   27.34
+length=432,align1=0,align2=27:  27.34 (0.00%)   28.12 (-2.86%)  27.34
+length=432,align1=27,align2=27:         25.78 (0.00%)   25.78 (0.00%)   25.78
+length=448,align1=0,align2=0:   26.56 (-3.03%)  25.78 (0.00%)   25.78
+length=448,align1=28,align2=0:  27.34 (0.00%)   27.34 (0.00%)   27.34
+length=448,align1=0,align2=28:  27.34 (0.00%)   28.12 (-2.86%)  27.34
+length=448,align1=28,align2=28:         25.78 (0.00%)   25.78 (0.00%)   25.78
+length=464,align1=0,align2=0:   25.78 (0.00%)   28.12 (-9.09%)  25.78
+length=464,align1=29,align2=0:  28.12 (-2.86%)  29.69 (-8.57%)  27.34
+length=464,align1=0,align2=29:  30.47 (0.00%)   30.47 (0.00%)   30.47
+length=464,align1=29,align2=29:         28.12 (0.00%)   27.34 (2.78%)   28.12
+length=480,align1=0,align2=0:   29.69 (-5.56%)  28.12 (0.00%)   28.12
+length=480,align1=30,align2=0:  31.25 (-2.56%)  29.69 (2.56%)   30.47
+length=480,align1=0,align2=30:  29.69 (0.00%)   30.47 (-2.63%)  29.69
+length=480,align1=30,align2=30:         28.12 (0.00%)   28.12 (0.00%)   28.12
+length=496,align1=0,align2=0:   28.12 (0.00%)   27.34 (2.78%)   28.12
+length=496,align1=31,align2=0:  30.47 (-2.63%)  29.69 (0.00%)   29.69
+length=496,align1=0,align2=31:  29.69 (0.00%)   30.47 (-2.63%)  29.69
+length=496,align1=31,align2=31:         28.12 (-2.86%)  28.12 (-2.86%)  27.34
+length=1024,align1=0,align2=0:  44.53 (0.00%)   44.53 (0.00%)   44.53
+length=1024,align1=32,align2=0:         44.53 (-1.79%)  44.53 (-1.79%)  43.75
+length=1024,align1=0,align2=32:         44.53 (-1.79%)  43.75 (0.00%)   43.75
+length=1024,align1=32,align2=32:        43.75 (1.75%)   43.75 (1.75%)   44.53
+length=1056,align1=0,align2=0:  46.88 (-1.69%)  46.88 (-1.69%)  46.09
+length=1056,align1=33,align2=0:         53.12 (0.00%)   52.34 (1.47%)   53.12
+length=1056,align1=0,align2=33:         52.34 (0.00%)   53.12 (-1.49%)  52.34
+length=1056,align1=33,align2=33:        46.09 (0.00%)   46.88 (-1.69%)  46.09
+length=1088,align1=0,align2=0:  46.88 (-1.69%)  46.09 (0.00%)   46.09
+length=1088,align1=34,align2=0:         52.34 (0.00%)   52.34 (0.00%)   52.34
+length=1088,align1=0,align2=34:         53.12 (-3.03%)  53.12 (-3.03%)  51.56
+length=1088,align1=34,align2=34:        46.09 (0.00%)   46.88 (-1.69%)  46.09
+length=1120,align1=0,align2=0:  49.22 (-1.61%)  48.44 (0.00%)   48.44
+length=1120,align1=35,align2=0:         54.69 (1.41%)   55.47 (0.00%)   55.47
+length=1120,align1=0,align2=35:         57.03 (0.00%)   55.47 (2.74%)   57.03
+length=1120,align1=35,align2=35:        48.44 (0.00%)   49.22 (-1.61%)  48.44
+length=1152,align1=0,align2=0:  47.66 (1.61%)   48.44 (0.00%)   48.44
+length=1152,align1=36,align2=0:         55.47 (-1.43%)  55.47 (-1.43%)  54.69
+length=1152,align1=0,align2=36:         58.59 (-1.35%)  55.47 (4.05%)   57.81
+length=1152,align1=36,align2=36:        48.44 (0.00%)   49.22 (-1.61%)  48.44
+length=1184,align1=0,align2=0:  53.12 (-3.03%)  50.78 (1.52%)   51.56
+length=1184,align1=37,align2=0:         61.72 (-2.60%)  57.03 (5.19%)   60.16
+length=1184,align1=0,align2=37:         62.50 (-1.27%)  57.03 (7.60%)   61.72
+length=1184,align1=37,align2=37:        53.12 (-1.49%)  50.78 (2.99%)   52.34
+length=1216,align1=0,align2=0:  53.91 (-4.55%)  50.78 (1.52%)   51.56
+length=1216,align1=38,align2=0:         60.94 (0.00%)   57.03 (6.41%)   60.94
+length=1216,align1=0,align2=38:         60.16 (0.00%)   57.81 (3.90%)   60.16
+length=1216,align1=38,align2=38:        52.34 (-1.52%)  50.00 (3.03%)   51.56
+length=1248,align1=0,align2=0:  54.69 (-2.94%)  53.12 (0.00%)   53.12
+length=1248,align1=39,align2=0:         64.06 (-1.23%)  60.16 (4.94%)   63.28
+length=1248,align1=0,align2=39:         60.94 (-2.63%)  60.16 (-1.32%)  59.38
+length=1248,align1=39,align2=39:        53.12 (0.00%)   52.34 (1.47%)   53.12
+length=1280,align1=0,align2=0:  52.34 (-1.52%)  52.34 (-1.52%)  51.56
+length=1280,align1=40,align2=0:         61.72 (3.66%)   59.38 (7.32%)   64.06
+length=1280,align1=0,align2=40:         60.94 (-2.63%)  60.16 (-1.32%)  59.38
+length=1280,align1=40,align2=40:        52.34 (-1.52%)  52.34 (-1.52%)  51.56
+length=1312,align1=0,align2=0:  54.69 (-1.45%)  55.47 (-2.90%)  53.91
+length=1312,align1=41,align2=0:         63.28 (0.00%)   62.50 (1.23%)   63.28
+length=1312,align1=0,align2=41:         62.50 (0.00%)   62.50 (0.00%)   62.50
+length=1312,align1=41,align2=41:        53.91 (0.00%)   54.69 (-1.45%)  53.91
+length=1344,align1=0,align2=0:  54.69 (0.00%)   54.69 (0.00%)   54.69
+length=1344,align1=42,align2=0:         62.50 (0.00%)   62.50 (0.00%)   62.50
+length=1344,align1=0,align2=42:         62.50 (-1.27%)  62.50 (-1.27%)  61.72
+length=1344,align1=42,align2=42:        53.91 (0.00%)   53.91 (0.00%)   53.91
+length=1376,align1=0,align2=0:  65.62 (-16.67%) 68.75 (-22.22%) 56.25
+length=1376,align1=43,align2=0:         71.88 (-9.52%)  73.44 (-11.90%) 65.62
+length=1376,align1=0,align2=43:         72.66 (-12.05%) 74.22 (-14.46%) 64.84
+length=1376,align1=43,align2=43:        64.06 (-13.89%) 67.97 (-20.83%) 56.25
+length=1408,align1=0,align2=0:  57.03 (-1.39%)  68.75 (-22.22%) 56.25
+length=1408,align1=44,align2=0:         65.62 (-1.20%)  73.44 (-13.25%) 64.84
+length=1408,align1=0,align2=44:         64.84 (0.00%)   74.22 (-14.46%) 64.84
+length=1408,align1=44,align2=44:        56.25 (-1.41%)  68.75 (-23.94%) 55.47
+length=1440,align1=0,align2=0:  67.97 (-14.47%) 64.84 (-9.21%)  59.38
+length=1440,align1=45,align2=0:         74.22 (-10.47%) 68.75 (-2.33%)  67.19
+length=1440,align1=0,align2=45:         72.66 (-6.90%)  69.53 (-2.30%)  67.97
+length=1440,align1=45,align2=45:        65.62 (-13.51%) 58.59 (-1.35%)  57.81
+length=1472,align1=0,align2=0:  66.41 (-14.86%) 58.59 (-1.35%)  57.81
+length=1472,align1=46,align2=0:         73.44 (-9.30%)  67.19 (0.00%)   67.19
+length=1472,align1=0,align2=46:         70.31 (-4.65%)  67.97 (-1.16%)  67.19
+length=1472,align1=46,align2=46:        57.81 (0.00%)   58.59 (-1.35%)  57.81
+length=1504,align1=0,align2=0:  60.94 (0.00%)   60.94 (0.00%)   60.94
+length=1504,align1=47,align2=0:         71.09 (-1.11%)  70.31 (0.00%)   70.31
+length=1504,align1=0,align2=47:         70.31 (-1.12%)  70.31 (-1.12%)  69.53
+length=1504,align1=47,align2=47:        60.94 (-1.30%)  60.16 (0.00%)   60.16
+length=1536,align1=0,align2=0:  62.50 (-3.90%)  60.16 (0.00%)   60.16
+length=1536,align1=48,align2=0:         60.94 (-1.30%)  60.16 (0.00%)   60.16
+length=1536,align1=0,align2=48:         61.72 (-3.95%)  60.16 (-1.32%)  59.38
+length=1536,align1=48,align2=48:        60.94 (-1.30%)  60.16 (0.00%)   60.16
+length=1568,align1=0,align2=0:  80.47 (-27.16%) 63.28 (0.00%)   63.28
+length=1568,align1=49,align2=0:         86.72 (-18.09%) 72.66 (1.06%)   73.44
+length=1568,align1=0,align2=49:         74.22 (-3.26%)  74.22 (-3.26%)  71.88
+length=1568,align1=49,align2=49:        62.50 (0.00%)   61.72 (1.25%)   62.50
+length=1600,align1=0,align2=0:  62.50 (-1.27%)  62.50 (-1.27%)  61.72
+length=1600,align1=50,align2=0:         73.44 (0.00%)   71.88 (2.13%)   73.44
+length=1600,align1=0,align2=50:         72.66 (0.00%)   73.44 (-1.08%)  72.66
+length=1600,align1=50,align2=50:        62.50 (-1.27%)  62.50 (-1.27%)  61.72
+length=1632,align1=0,align2=0:  64.84 (0.00%)   64.84 (0.00%)   64.84
+length=1632,align1=51,align2=0:         75.78 (0.00%)   75.00 (1.03%)   75.78
+length=1632,align1=0,align2=51:         78.91 (0.00%)   75.78 (3.96%)   78.91
+length=1632,align1=51,align2=51:        64.84 (-2.47%)  64.84 (-2.47%)  63.28
+length=1664,align1=0,align2=0:  64.84 (-1.22%)  64.84 (-1.22%)  64.06
+length=1664,align1=52,align2=0:         75.78 (0.00%)   75.00 (1.03%)   75.78
+length=1664,align1=0,align2=52:         80.47 (-0.98%)  75.78 (4.90%)   79.69
+length=1664,align1=52,align2=52:        64.06 (-1.23%)  65.62 (-3.70%)  63.28
+length=1696,align1=0,align2=0:  69.53 (-3.49%)  72.66 (-8.14%)  67.19
+length=1696,align1=53,align2=0:         80.47 (-0.98%)  82.03 (-2.94%)  79.69
+length=1696,align1=0,align2=53:         80.47 (0.96%)   82.03 (-0.96%)  81.25
+length=1696,align1=53,align2=53:        68.75 (-2.33%)  72.66 (-8.14%)  67.19
+length=1728,align1=0,align2=0:  67.97 (0.00%)   72.66 (-6.90%)  67.97
+length=1728,align1=54,align2=0:         80.47 (-0.98%)  82.81 (-3.92%)  79.69
+length=1728,align1=0,align2=54:         78.91 (-1.00%)  82.03 (-5.00%)  78.12
+length=1728,align1=54,align2=54:        68.75 (0.00%)   72.66 (-5.68%)  68.75
+length=1760,align1=0,align2=0:  77.34 (-12.50%) 68.75 (0.00%)   68.75
+length=1760,align1=55,align2=0:         91.41 (-8.33%)  79.69 (5.56%)   84.38
+length=1760,align1=0,align2=55:         88.28 (-10.78%) 80.47 (-0.98%)  79.69
+length=1760,align1=55,align2=55:        77.34 (-11.24%) 68.75 (1.12%)   69.53
+length=1792,align1=0,align2=0:  78.12 (-14.94%) 68.75 (-1.15%)  67.97
+length=1792,align1=56,align2=0:         88.28 (-4.63%)  79.69 (5.56%)   84.38
+length=1792,align1=0,align2=56:         88.28 (-9.71%)  80.47 (0.00%)   80.47
+length=1792,align1=56,align2=56:        77.34 (-11.24%) 68.75 (1.12%)   69.53
+length=1824,align1=0,align2=0:  72.66 (7.92%)   70.31 (10.89%)  78.91
+length=1824,align1=57,align2=0:         85.94 (5.17%)   82.03 (9.48%)   90.62
+length=1824,align1=0,align2=57:         82.03 (3.67%)   82.81 (2.75%)   85.16
+length=1824,align1=57,align2=57:        70.31 (-1.12%)  70.31 (-1.12%)  69.53
+length=1856,align1=0,align2=0:  70.31 (-1.12%)  70.31 (-1.12%)  69.53
+length=1856,align1=58,align2=0:         83.59 (-0.94%)  82.03 (0.94%)   82.81
+length=1856,align1=0,align2=58:         178.12 (-115.09%)       82.81 (0.00%)   82.81
+length=1856,align1=58,align2=58:        70.31 (-1.12%)  70.31 (-1.12%)  69.53
+length=1888,align1=0,align2=0:  73.44 (-1.08%)  78.91 (-8.60%)  72.66
+length=1888,align1=59,align2=0:         85.94 (0.00%)   89.84 (-4.55%)  85.94
+length=1888,align1=0,align2=59:         84.38 (0.00%)   89.06 (-5.56%)  84.38
+length=1888,align1=59,align2=59:        72.66 (-1.09%)  78.12 (-8.70%)  71.88
+length=1920,align1=0,align2=0:  72.66 (-1.09%)  78.12 (-8.70%)  71.88
+length=1920,align1=60,align2=0:         85.94 (0.00%)   89.84 (-4.55%)  85.94
+length=1920,align1=0,align2=60:         85.16 (0.00%)   89.06 (-4.59%)  85.16
+length=1920,align1=60,align2=60:        72.66 (-1.09%)  78.91 (-9.78%)  71.88
+length=1952,align1=0,align2=0:  75.00 (-1.05%)  75.00 (-1.05%)  74.22
+length=1952,align1=61,align2=0:         88.28 (0.00%)   87.50 (0.88%)   88.28
+length=1952,align1=0,align2=61:         87.50 (0.00%)   88.28 (-0.89%)  87.50
+length=1952,align1=61,align2=61:        74.22 (0.00%)   74.22 (0.00%)   74.22
+length=1984,align1=0,align2=0:  75.00 (-1.05%)  73.44 (1.05%)   74.22
+length=1984,align1=62,align2=0:         89.06 (-0.89%)  87.50 (0.88%)   88.28
+length=1984,align1=0,align2=62:         87.50 (0.00%)   88.28 (-0.89%)  87.50
+length=1984,align1=62,align2=62:        74.22 (0.00%)   74.22 (0.00%)   74.22
+length=2016,align1=0,align2=0:  77.34 (-1.02%)  76.56 (0.00%)   76.56
+length=2016,align1=63,align2=0:         91.41 (-0.86%)  90.62 (0.00%)   90.62
+length=2016,align1=0,align2=63:         89.84 (0.00%)   90.62 (-0.87%)  89.84
+length=2016,align1=63,align2=63:        77.34 (-1.02%)  76.56 (0.00%)   76.56
+length=4096,align1=0,align2=0:  141.41 (-0.56%) 146.88 (-4.44%) 140.62
+
+Function: memcpy
+__memcpy_thunderx       __memcpy_falkor __memcpy_generic
+Variant: large
+================================================================================
+length=65543,align1=0,align2=0:         4018.75 (3.09%) 2634.38 (36.47%)        4146.88
+length=65551,align1=0,align2=3:         4425.00 (-6.47%)        3134.38 (24.59%)        4156.25
+length=65567,align1=3,align2=0:         2909.38 (29.95%)        3134.38 (24.53%)        4153.12
+length=65599,align1=3,align2=5:         4415.62 (-6.16%)        3134.38 (24.64%)        4159.38
+length=131079,align1=0,align2=0:        5765.62 (30.38%)        5240.62 (36.72%)        8281.25
+length=131087,align1=0,align2=3:        8831.25 (-6.56%)        6271.88 (24.32%)        8287.50
+length=131103,align1=3,align2=0:        5793.75 (29.05%)        6268.75 (23.23%)        8165.62
+length=131135,align1=3,align2=5:        5806.25 (29.97%)        6259.38 (24.50%)        8290.62
+length=262151,align1=0,align2=0:        11850.00 (28.91%)       10762.50 (35.43%)       16668.80
+length=262159,align1=0,align2=3:        12043.80 (27.72%)       12700.00 (23.78%)       16662.50
+length=262175,align1=3,align2=0:        12046.90 (27.90%)       12687.50 (24.07%)       16709.40
+length=262207,align1=3,align2=5:        11984.40 (28.08%)       12678.10 (23.91%)       16662.50
+length=524295,align1=0,align2=0:        24825.00 (25.00%)       24268.80 (27.34%)       33400.00
+length=524303,align1=0,align2=3:        35731.20 (-6.53%)       25678.10 (23.44%)       33540.60
+length=524319,align1=3,align2=0:        25893.80 (22.71%)       25725.00 (23.22%)       33503.10
+length=524351,align1=3,align2=5:        25887.50 (22.86%)       25690.60 (23.45%)       33559.40
+length=1048583,align1=0,align2=0:       50621.90 (0.30%)        50600.00 (0.34%)        50771.90
+length=1048591,align1=0,align2=3:       53206.20 (0.54%)        51081.20 (4.51%)        53493.80
+length=1048607,align1=3,align2=0:       53221.90 (0.32%)        51975.00 (2.66%)        53393.80
+length=1048639,align1=3,align2=5:       53240.60 (0.36%)        51953.10 (2.77%)        53431.20
+length=2097159,align1=0,align2=0:       103744.00 (-2.00%)      102447.00 (-1.00%)      102425.00
+length=2097167,align1=0,align2=3:       108588.00 (-1.00%)      105159.00 (2.00%)       107606.00
+length=2097183,align1=3,align2=0:       107678.00 (0.00%)       105250.00 (2.00%)       108125.00
+length=2097215,align1=3,align2=5:       107906.00 (1.00%)       105841.00 (3.00%)       109475.00
+length=4194311,align1=0,align2=0:       202994.00 (0.00%)       202500.00 (1.00%)       204809.00
+length=4194319,align1=0,align2=3:       213350.00 (0.00%)       205997.00 (3.00%)       213384.00
+length=4194335,align1=3,align2=0:       212653.00 (0.00%)       206444.00 (3.00%)       212900.00
+length=4194367,align1=3,align2=5:       213044.00 (0.00%)       206084.00 (3.00%)       213847.00
+length=8388615,align1=0,align2=0:       401294.00 (0.00%)       401231.00 (0.00%)       401944.00
+length=8388623,align1=0,align2=3:       480872.00 (-14.00%)     406444.00 (3.00%)       422900.00
+length=8388639,align1=3,align2=0:       422147.00 (0.00%)       407750.00 (3.00%)       422803.00
+length=8388671,align1=3,align2=5:       442003.00 (-5.00%)      407125.00 (3.00%)       423509.00
+length=16777223,align1=0,align2=0:      799809.00 (0.00%)       800000.00 (0.00%)       801756.00
+length=16777231,align1=0,align2=3:      841184.00 (0.00%)       808525.00 (4.00%)       843775.00
+length=16777247,align1=3,align2=0:      841166.00 (0.00%)       810147.00 (3.00%)       843147.00
+length=16777279,align1=3,align2=5:      972569.00 (-16.00%)     808588.00 (4.00%)       843731.00
+length=33554439,align1=0,align2=0:      1842240.00 (-0.01%)     1863590.00 (-1.17%)     1841990.00
+length=33554447,align1=0,align2=3:      2103470.00 (-2.74%)     1919460.00 (6.25%)      2047440.00
+length=33554463,align1=3,align2=0:      2075690.00 (-1.07%)     1930040.00 (6.02%)      2053720.00
+length=33554495,align1=3,align2=5:      2110590.00 (-2.82%)     1924440.00 (6.25%)      2052650.00
+
+Function: memcpy
+__memcpy_thunderx       __memcpy_falkor __memcpy_generic
+Variant: random
+================================================================================
+max-size=4096:  44061.90 (5.85%)        38568.20 (17.59%)       46799.90
+max-size=8192:  42790.90 (5.27%)        38158.90 (15.52%)       45171.50
+max-size=16384:         44912.10 (2.25%)        38710.40 (15.75%)       45945.00
+max-size=32768:         43577.90 (1.23%)        37975.10 (13.93%)       44120.00
+max-size=65536:         44375.50 (1.04%)        38474.20 (14.20%)       44840.60
+
+	* manual/tunables.texi (Tunable glibc.tune.cpu): Add falkor.
+	* sysdeps/aarch64/multiarch/Makefile (sysdep_routines): Add
+	memcpy_falkor.
+	* sysdeps/aarch64/multiarch/ifunc-impl-list.c (MAX_IFUNC):
+	Bump.
+	(__libc_ifunc_impl_list): Add __memcpy_falkor.
+	* sysdeps/aarch64/multiarch/memcpy.c: Likewise.
+	* sysdeps/aarch64/multiarch/memcpy_falkor.S: New file.
+	* sysdeps/unix/sysv/linux/aarch64/cpu-features.c (cpu_list):
+	Add falkor.
+	* sysdeps/unix/sysv/linux/aarch64/cpu-features.h (IS_FALKOR):
+	New macro.
+---
+ ChangeLog                                      |  15 ++
+ manual/tunables.texi                           |   2 +-
+ sysdeps/aarch64/multiarch/Makefile             |   2 +-
+ sysdeps/aarch64/multiarch/ifunc-impl-list.c    |   3 +-
+ sysdeps/aarch64/multiarch/memcpy.c             |   7 +-
+ sysdeps/aarch64/multiarch/memcpy_falkor.S      | 187 +++++++++++++++++++++++++
+ sysdeps/unix/sysv/linux/aarch64/cpu-features.c |   1 +
+ sysdeps/unix/sysv/linux/aarch64/cpu-features.h |   3 +
+ 8 files changed, 216 insertions(+), 4 deletions(-)
+ create mode 100644 sysdeps/aarch64/multiarch/memcpy_falkor.S
+
+diff --git a/ChangeLog b/ChangeLog
+index bfcdc1ebbf..0ef88b0c87 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,18 @@
++2017-10-10  Siddhesh Poyarekar  <siddhesh@sourceware.org>
++
++	* manual/tunables.texi (Tunable glibc.tune.cpu): Add falkor.
++	* sysdeps/aarch64/multiarch/Makefile (sysdep_routines): Add
++	memcpy_falkor.
++	* sysdeps/aarch64/multiarch/ifunc-impl-list.c (MAX_IFUNC):
++	Bump.
++	(__libc_ifunc_impl_list): Add __memcpy_falkor.
++	* sysdeps/aarch64/multiarch/memcpy.c: Likewise.
++	* sysdeps/aarch64/multiarch/memcpy_falkor.S: New file.
++	* sysdeps/unix/sysv/linux/aarch64/cpu-features.c (cpu_list):
++	Add falkor.
++	* sysdeps/unix/sysv/linux/aarch64/cpu-features.h (IS_FALKOR):
++	New macro.
++
+ 2017-10-06  Carlos O'Donell  <carlos@redhat.com>
+ 
+ 	[BZ #22111]
+diff --git a/manual/tunables.texi b/manual/tunables.texi
+index 4c658bf3df..3c19567a28 100644
+--- a/manual/tunables.texi
++++ b/manual/tunables.texi
+@@ -267,7 +267,7 @@ This tunable is specific to i386 and x86-64.
+ @deftp Tunable glibc.tune.cpu
+ The @code{glibc.tune.cpu=xxx} tunable allows the user to tell @theglibc{} to
+ assume that the CPU is @code{xxx} where xxx may have one of these values:
+-@code{generic}, @code{thunderxt88}.
++@code{generic}, @code{falkor}, @code{thunderxt88}.
+ 
+ This tunable is specific to aarch64.
+ @end deftp
+diff --git a/sysdeps/aarch64/multiarch/Makefile b/sysdeps/aarch64/multiarch/Makefile
+index 78d52c717d..164ba1ae4b 100644
+--- a/sysdeps/aarch64/multiarch/Makefile
++++ b/sysdeps/aarch64/multiarch/Makefile
+@@ -1,3 +1,3 @@
+ ifeq ($(subdir),string)
+-sysdep_routines += memcpy_generic memcpy_thunderx
++sysdep_routines += memcpy_generic memcpy_thunderx memcpy_falkor
+ endif
+diff --git a/sysdeps/aarch64/multiarch/ifunc-impl-list.c b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+index 32056bcec3..8e873b3d9f 100644
+--- a/sysdeps/aarch64/multiarch/ifunc-impl-list.c
++++ b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+@@ -25,7 +25,7 @@
+ #include <stdio.h>
+ 
+ /* Maximum number of IFUNC implementations.  */
+-#define MAX_IFUNC	2
++#define MAX_IFUNC	3
+ 
+ size_t
+ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+@@ -40,6 +40,7 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+   /* Support sysdeps/aarch64/multiarch/memcpy.c and memmove.c.  */
+   IFUNC_IMPL (i, name, memcpy,
+ 	      IFUNC_IMPL_ADD (array, i, memcpy, 1, __memcpy_thunderx)
++	      IFUNC_IMPL_ADD (array, i, memcpy, 1, __memcpy_falkor)
+ 	      IFUNC_IMPL_ADD (array, i, memcpy, 1, __memcpy_generic))
+   IFUNC_IMPL (i, name, memmove,
+ 	      IFUNC_IMPL_ADD (array, i, memmove, 1, __memmove_thunderx)
+diff --git a/sysdeps/aarch64/multiarch/memcpy.c b/sysdeps/aarch64/multiarch/memcpy.c
+index 9f73efbba7..b395df1c63 100644
+--- a/sysdeps/aarch64/multiarch/memcpy.c
++++ b/sysdeps/aarch64/multiarch/memcpy.c
+@@ -30,9 +30,14 @@ extern __typeof (__redirect_memcpy) __libc_memcpy;
+ 
+ extern __typeof (__redirect_memcpy) __memcpy_generic attribute_hidden;
+ extern __typeof (__redirect_memcpy) __memcpy_thunderx attribute_hidden;
++extern __typeof (__redirect_memcpy) __memcpy_falkor attribute_hidden;
+ 
+ libc_ifunc (__libc_memcpy,
+-            IS_THUNDERX (midr) ? __memcpy_thunderx : __memcpy_generic);
++            (IS_THUNDERX (midr)
++	     ? __memcpy_thunderx
++	     : (IS_FALKOR (midr)
++		? __memcpy_falkor
++		: __memcpy_generic)));
+ 
+ # undef memcpy
+ strong_alias (__libc_memcpy, memcpy);
+diff --git a/sysdeps/aarch64/multiarch/memcpy_falkor.S b/sysdeps/aarch64/multiarch/memcpy_falkor.S
+new file mode 100644
+index 0000000000..3708281147
+--- /dev/null
++++ b/sysdeps/aarch64/multiarch/memcpy_falkor.S
+@@ -0,0 +1,187 @@
++/* Optimized memcpy for Qualcomm Falkor processor.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sysdep.h>
++
++/* Assumptions:
++ *
++ * ARMv8-a, AArch64, falkor, unaligned accesses.
++ *
++ */
++
++#define dstin	x0
++#define src	x1
++#define count	x2
++#define dst	x3
++#define srcend	x4
++#define dstend	x5
++#define A_l	x6
++#define A_lw	w6
++#define A_h	x7
++#define A_hw	w7
++#define tmp1	x14
++
++/* Copies are split into 3 main cases:
++
++   1. Small copies of up to 32 bytes
++   2. Medium copies of 33..128 bytes which are fully unrolled
++   3. Large copies of more than 128 bytes.
++
++   Large copies align the sourceto a quad word and use an unrolled loop
++   processing 64 bytes per iteration.
++
++   FALKOR-SPECIFIC DESIGN:
++
++   The smallest copies (32 bytes or less) focus on optimal pipeline usage,
++   which is why the redundant copies of 0-3 bytes have been replaced with
++   conditionals, since the former would unnecessarily break across multiple
++   issue groups.  The medium copy group has been enlarged to 128 bytes since
++   bumping up the small copies up to 32 bytes allows us to do that without
++   cost and also allows us the reduce the size of the prep code before loop64.
++
++   All copies are done only via two registers r6 and r7.  This is to ensure
++   that all loads hit a single hardware prefetcher which can get correctly
++   trained to prefetch a single stream.
++
++   The non-temporal stores help optimize cache utilization.
++*/
++
++#if IS_IN (libc)
++ENTRY_ALIGN (__memcpy_falkor, 6)
++
++	cmp	count, 32
++	add	srcend, src, count
++	add	dstend, dstin, count
++	b.ls	L(copy32)
++	ldp	A_l, A_h, [src]
++	cmp	count, 128
++	stp	A_l, A_h, [dstin]
++	b.hi	L(copy_long)
++
++	/* Medium copies: 33..128 bytes.  */
++	sub	tmp1, count, 1
++	ldp	A_l, A_h, [src, 16]
++	stp	A_l, A_h, [dstin, 16]
++	tbz	tmp1, 6, 1f
++	ldp	A_l, A_h, [src, 32]
++	stp	A_l, A_h, [dstin, 32]
++	ldp	A_l, A_h, [src, 48]
++	stp	A_l, A_h, [dstin, 48]
++	ldp	A_l, A_h, [srcend, -64]
++	stp	A_l, A_h, [dstend, -64]
++	ldp	A_l, A_h, [srcend, -48]
++	stp	A_l, A_h, [dstend, -48]
++1:
++	ldp	A_l, A_h, [srcend, -32]
++	stp	A_l, A_h, [dstend, -32]
++	ldp	A_l, A_h, [srcend, -16]
++	stp	A_l, A_h, [dstend, -16]
++	ret
++
++	.p2align 4
++	/* Small copies: 0..32 bytes.  */
++L(copy32):
++	/* 16-32 */
++	cmp	count, 16
++	b.lo	1f
++	ldp	A_l, A_h, [src]
++	stp	A_l, A_h, [dstin]
++	ldp	A_l, A_h, [srcend, -16]
++	stp	A_l, A_h, [dstend, -16]
++	ret
++	.p2align 4
++1:
++	/* 8-15 */
++	tbz	count, 3, 1f
++	ldr	A_l, [src]
++	str	A_l, [dstin]
++	ldr	A_l, [srcend, -8]
++	str	A_l, [dstend, -8]
++	ret
++	.p2align 4
++1:
++	/* 4-7 */
++	tbz	count, 2, 1f
++	ldr	A_lw, [src]
++	str	A_lw, [dstin]
++	ldr	A_lw, [srcend, -4]
++	str	A_lw, [dstend, -4]
++	ret
++	.p2align 4
++1:
++	/* 2-3 */
++	tbz	count, 1, 1f
++	ldrh	A_lw, [src]
++	strh	A_lw, [dstin]
++	ldrh	A_lw, [srcend, -2]
++	strh	A_lw, [dstend, -2]
++	ret
++	.p2align 4
++1:
++	/* 0-1 */
++	tbz	count, 0, 1f
++	ldrb	A_lw, [src]
++	strb	A_lw, [dstin]
++1:
++	ret
++
++	/* Align SRC to 16 bytes and copy; that way at least one of the
++	   accesses is aligned throughout the copy sequence.
++
++	   The count is off by 0 to 15 bytes, but this is OK because we trim
++	   off the last 64 bytes to copy off from the end.  Due to this the
++	   loop never runs out of bounds.  */
++	.p2align 6
++L(copy_long):
++	sub	count, count, 64 + 16
++	and	tmp1, src, 15
++	bic	src, src, 15
++	sub	dst, dstin, tmp1
++	add	count, count, tmp1
++
++L(loop64):
++	ldp	A_l, A_h, [src, 16]!
++	stnp	A_l, A_h, [dst, 16]
++	ldp	A_l, A_h, [src, 16]!
++	subs	count, count, 64
++	stnp	A_l, A_h, [dst, 32]
++	ldp	A_l, A_h, [src, 16]!
++	stnp	A_l, A_h, [dst, 48]
++	ldp	A_l, A_h, [src, 16]!
++	stnp	A_l, A_h, [dst, 64]
++	add	dst, dst, 64
++	b.hi	L(loop64)
++
++	/* Write the last full set of 64 bytes.  The remainder is at most 64
++	   bytes, so it is safe to always copy 64 bytes from the end even if
++	   there is just 1 byte left.  */
++L(last64):
++	ldp	A_l, A_h, [srcend, -64]
++	stnp	A_l, A_h, [dstend, -64]
++	ldp	A_l, A_h, [srcend, -48]
++	stnp	A_l, A_h, [dstend, -48]
++	ldp	A_l, A_h, [srcend, -32]
++	stnp	A_l, A_h, [dstend, -32]
++	ldp	A_l, A_h, [srcend, -16]
++	stnp	A_l, A_h, [dstend, -16]
++	ret
++
++END (__memcpy_falkor)
++libc_hidden_builtin_def (__memcpy_falkor)
++#endif
+diff --git a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+index 0275d11c7f..18f5e60f4c 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
++++ b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+@@ -28,6 +28,7 @@ struct cpu_list
+ };
+ 
+ static struct cpu_list cpu_list[] = {
++      {"falkor",	0x510FC000},
+       {"thunderxt88",	0x430F0A10},
+       {"generic", 	0x0}
+ };
+diff --git a/sysdeps/unix/sysv/linux/aarch64/cpu-features.h b/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
+index c92b650984..73cb53da9a 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
++++ b/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
+@@ -41,6 +41,9 @@
+ #define IS_THUNDERX(midr) (MIDR_IMPLEMENTOR(midr) == 'C'	\
+ 			   && MIDR_PARTNUM(midr) == 0x0a1)
+ 
++#define IS_FALKOR(midr) (MIDR_IMPLEMENTOR(midr) == 'Q'			      \
++                        && MIDR_PARTNUM(midr) == 0xc00)
++
+ struct cpu_features
+ {
+   uint64_t midr_el1;
+-- 
+2.15.1
+

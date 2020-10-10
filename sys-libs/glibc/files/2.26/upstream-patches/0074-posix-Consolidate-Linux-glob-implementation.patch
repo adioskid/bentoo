@@ -1,0 +1,534 @@
+From ee5bce43eb281e85bac7370922e3674e70229c1d Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Mon, 4 Sep 2017 18:07:03 -0300
+Subject: [PATCH 074/146] posix: Consolidate Linux glob implementation
+
+This patch consolidates the glob implementation.  The main changes are:
+
+  * On Linux all implementation now uses the default one at
+    sysdeps/unix/sysv/linux/glob{free}{64}.c with the exception
+    of alpha (which requires specific versioning) and s390-32 (which
+    different than other 32 bits ports it does not add a compat one
+    symbol for 2.1 version).
+
+  * The default implementation uses XSTAT_IS_XSTAT64 to define whether
+    both glob{free} and glob{free}64 should be different implementations.
+    For archictures that define XSTAT_IS_XSTAT64, glob{free} is an alias
+    to glob{free}64.
+
+  * Move i386 olddirent.h header to Linux default directory, since it is
+    the only header with this name and it is shared among different
+    architectures (and used on compat glob symbol as well).
+
+Checked on x86_64-linux-gnu and on a build using build-many-glibcs.py
+for all major architectures.
+
+	* sysdeps/unix/sysv/linux/arm/glob64.c: Remove file.
+	* sysdeps/unix/sysv/linux/i386/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/m68k/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c: Likewise.
+	* sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/wordsize-64/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/wordsize-64/globfree64.c: Likewise.
+	* sysdeps/unix/sysv/linux/x86_64/x32/glob.c: Likewise.
+	* sysdeps/unix/sysv/linux/x86_64/x32/globfree.c: Likewise.
+	* sysdeps/wordsize-64/glob.c: Likewise.
+	* sysdeps/wordsize-64/glob64.c: Likewise.
+	* sysdeps/wordsize-64/globfree64.c: Likewise.
+	* sysdeps/unix/sysv/linux/glob.c: New file.
+	* sysdeps/unix/sysv/linux/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/globfree.c: Likewise.
+	* sysdeps/unix/sysv/linux/globfree64.c: Likewise.
+	* sysdeps/unix/sysv/linux/s390/s390-32/glob64.c: Likewise.
+	* sysdeps/unix/sysv/linux/oldglob.c [SHLIB_COMPAT]: Also
+	adds !GLOB_NO_OLD_VERSION as an extra condition.
+	* sysdeps/unix/sysv/linux/i386/alphasort64.c: Include olddirent.h
+	using relative path instead of absolute one.
+	* sysdeps/unix/sysv/linux/i386/getdents64.c: Likewise.
+	* sysdeps/unix/sysv/linux/i386/readdir64.c: Likewise.
+	* sysdeps/unix/sysv/linux/i386/readdir64_r.c: Likewise.
+	* sysdeps/unix/sysv/linux/i386/versionsort64.c: Likewise.
+	* sysdeps/unix/sysv/linux/i386/olddirent.h: Move to ...
+	* sysdeps/unix/sysv/linux//olddirent.h: ... here.
+
+(cherry picked from commit 116f1c64d8d84ecbf269ac70a35657aa057f26c3)
+---
+ ChangeLog                                          | 33 +++++++++++++++++
+ sysdeps/unix/sysv/linux/arm/glob64.c               |  1 -
+ sysdeps/unix/sysv/linux/glob.c                     | 28 +++++++++++++++
+ sysdeps/unix/sysv/linux/{i386 => }/glob64.c        | 41 +++++++++++++---------
+ sysdeps/unix/sysv/linux/globfree.c                 | 30 ++++++++++++++++
+ sysdeps/unix/sysv/linux/globfree64.c               | 36 +++++++++++++++++++
+ sysdeps/unix/sysv/linux/i386/alphasort64.c         |  2 +-
+ sysdeps/unix/sysv/linux/i386/getdents64.c          |  2 +-
+ sysdeps/unix/sysv/linux/i386/readdir64.c           |  2 +-
+ sysdeps/unix/sysv/linux/i386/readdir64_r.c         |  2 +-
+ sysdeps/unix/sysv/linux/i386/versionsort64.c       |  2 +-
+ sysdeps/unix/sysv/linux/m68k/glob64.c              |  1 -
+ sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c   |  1 -
+ .../unix/sysv/linux/mips/mips64/n64/globfree64.c   |  1 -
+ sysdeps/unix/sysv/linux/{i386 => }/olddirent.h     |  0
+ sysdeps/unix/sysv/linux/oldglob.c                  |  5 +--
+ sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c |  1 -
+ sysdeps/unix/sysv/linux/s390/s390-32/glob64.c      |  2 ++
+ sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c     |  1 -
+ sysdeps/unix/sysv/linux/wordsize-64/glob64.c       |  2 --
+ sysdeps/unix/sysv/linux/wordsize-64/globfree64.c   |  2 --
+ sysdeps/unix/sysv/linux/x86_64/x32/glob.c          |  1 -
+ sysdeps/unix/sysv/linux/x86_64/x32/globfree.c      |  1 -
+ sysdeps/wordsize-64/glob.c                         |  6 ----
+ sysdeps/wordsize-64/glob64.c                       |  1 -
+ sysdeps/wordsize-64/globfree.c                     |  5 ---
+ sysdeps/wordsize-64/globfree64.c                   |  1 -
+ 27 files changed, 162 insertions(+), 48 deletions(-)
+ delete mode 100644 sysdeps/unix/sysv/linux/arm/glob64.c
+ create mode 100644 sysdeps/unix/sysv/linux/glob.c
+ rename sysdeps/unix/sysv/linux/{i386 => }/glob64.c (57%)
+ create mode 100644 sysdeps/unix/sysv/linux/globfree.c
+ create mode 100644 sysdeps/unix/sysv/linux/globfree64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/m68k/glob64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c
+ rename sysdeps/unix/sysv/linux/{i386 => }/olddirent.h (100%)
+ delete mode 100644 sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c
+ create mode 100644 sysdeps/unix/sysv/linux/s390/s390-32/glob64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/wordsize-64/glob64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/wordsize-64/globfree64.c
+ delete mode 100644 sysdeps/unix/sysv/linux/x86_64/x32/glob.c
+ delete mode 100644 sysdeps/unix/sysv/linux/x86_64/x32/globfree.c
+ delete mode 100644 sysdeps/wordsize-64/glob.c
+ delete mode 100644 sysdeps/wordsize-64/glob64.c
+ delete mode 100644 sysdeps/wordsize-64/globfree.c
+ delete mode 100644 sysdeps/wordsize-64/globfree64.c
+
+diff --git a/ChangeLog b/ChangeLog
+index 26ebb2e7c9..c9b900f4a0 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,36 @@
++2017-09-08  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
++
++	* sysdeps/unix/sysv/linux/arm/glob64.c: Remove file.
++	* sysdeps/unix/sysv/linux/i386/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/m68k/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c: Likewise.
++	* sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/wordsize-64/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/wordsize-64/globfree64.c: Likewise.
++	* sysdeps/unix/sysv/linux/x86_64/x32/glob.c: Likewise.
++	* sysdeps/unix/sysv/linux/x86_64/x32/globfree.c: Likewise.
++	* sysdeps/wordsize-64/glob.c: Likewise.
++	* sysdeps/wordsize-64/glob64.c: Likewise.
++	* sysdeps/wordsize-64/globfree.c: Likewise.
++	* sysdeps/wordsize-64/globfree64.c: Likewise.
++	* sysdeps/unix/sysv/linux/glob.c: New file.
++	* sysdeps/unix/sysv/linux/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/globfree.c: Likewise.
++	* sysdeps/unix/sysv/linux/globfree64.c: Likewise.
++	* sysdeps/unix/sysv/linux/s390/s390-32/glob64.c: Likewise.
++	* sysdeps/unix/sysv/linux/oldglob.c [SHLIB_COMPAT]: Also
++	adds !GLOB_NO_OLD_VERSION as an extra condition.
++	* sysdeps/unix/sysv/linux/i386/alphasort64.c: Include olddirent.h
++	using relative path instead of absolute one.
++	* sysdeps/unix/sysv/linux/i386/getdents64.c: Likewise.
++	* sysdeps/unix/sysv/linux/i386/readdir64.c: Likewise.
++	* sysdeps/unix/sysv/linux/i386/readdir64_r.c: Likewise.
++	* sysdeps/unix/sysv/linux/i386/versionsort64.c: Likewise.
++	* sysdeps/unix/sysv/linux/i386/olddirent.h: Move to ...
++	* sysdeps/unix/sysv/linux//olddirent.h: ... here.
++
+ 2017-10-26  Valery Reznic <valery_reznic@yahoo.com>
+ 	    H.J. Lu  <hongjiu.lu@intel.com>
+ 
+diff --git a/sysdeps/unix/sysv/linux/arm/glob64.c b/sysdeps/unix/sysv/linux/arm/glob64.c
+deleted file mode 100644
+index 82a9a296a7..0000000000
+--- a/sysdeps/unix/sysv/linux/arm/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/unix/sysv/linux/i386/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/glob.c b/sysdeps/unix/sysv/linux/glob.c
+new file mode 100644
+index 0000000000..057ae7fe25
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/glob.c
+@@ -0,0 +1,28 @@
++/* Find pathnames matching a pattern.  Linux version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sys/stat.h>
++#include <kernel_stat.h>
++
++#define glob64 __no_glob64_decl
++#include <posix/glob.c>
++#undef glob64
++
++#if XSTAT_IS_XSTAT64
++weak_alias (glob, glob64)
++#endif
+diff --git a/sysdeps/unix/sysv/linux/i386/glob64.c b/sysdeps/unix/sysv/linux/glob64.c
+similarity index 57%
+rename from sysdeps/unix/sysv/linux/i386/glob64.c
+rename to sysdeps/unix/sysv/linux/glob64.c
+index 230f9fc037..428bbacb11 100644
+--- a/sysdeps/unix/sysv/linux/i386/glob64.c
++++ b/sysdeps/unix/sysv/linux/glob64.c
+@@ -1,5 +1,5 @@
+-/* Two glob variants with 64-bit support, for dirent64 and __olddirent64.
+-   Copyright (C) 1998-2017 Free Software Foundation, Inc.
++/* Find pathnames matching a pattern.  Linux version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+ 
+    The GNU C Library is free software; you can redistribute it and/or
+@@ -16,27 +16,36 @@
+    License along with the GNU C Library; if not, see
+    <http://www.gnu.org/licenses/>.  */
+ 
+-#include <dirent.h>
+-#include <glob.h>
+ #include <sys/stat.h>
+-#include <shlib-compat.h>
++#include <kernel_stat.h>
+ 
+-#define dirent dirent64
+-#define __readdir(dirp) __readdir64 (dirp)
++#if !XSTAT_IS_XSTAT64
++# include <glob.h>
++# include <dirent.h>
++# include <sys/stat.h>
+ 
+-#define glob_t glob64_t
+-#define glob(pattern, flags, errfunc, pglob) \
++# define dirent dirent64
++# define __readdir(dirp) __readdir64 (dirp)
++
++# define glob_t glob64_t
++# define glob(pattern, flags, errfunc, pglob) \
+   __glob64 (pattern, flags, errfunc, pglob)
+-#define globfree(pglob) globfree64 (pglob)
++# define globfree(pglob) globfree64 (pglob)
++
++# undef stat
++# define stat stat64
+ 
+-#undef stat
+-#define stat stat64
+-#undef __stat
+-#define __stat(file, buf) __xstat64 (_STAT_VER, file, buf)
++# define COMPILE_GLOB64	1
+ 
+-#define COMPILE_GLOB64	1
++# include <posix/glob.c>
+ 
+-#include <posix/glob.c>
++# include "shlib-compat.h"
+ 
++# ifdef GLOB_NO_OLD_VERSION
++strong_alias (__glob64, glob64)
++libc_hidden_def (glob64)
++# else
+ versioned_symbol (libc, __glob64, glob64, GLIBC_2_2);
+ libc_hidden_ver (__glob64, glob64)
++# endif
++#endif /* XSTAT_IS_XSTAT64  */
+diff --git a/sysdeps/unix/sysv/linux/globfree.c b/sysdeps/unix/sysv/linux/globfree.c
+new file mode 100644
+index 0000000000..48d4aec332
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/globfree.c
+@@ -0,0 +1,30 @@
++/* Frees the dynamically allocated storage from an earlier call to glob.
++   Linux version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sys/stat.h>
++#include <kernel_stat.h>
++
++#define globfree64 __no_globfree64_decl
++#include <posix/globfree.c>
++#undef globfree64
++
++#if XSTAT_IS_XSTAT64
++weak_alias (globfree, globfree64)
++libc_hidden_ver (globfree, globfree64)
++#endif
+diff --git a/sysdeps/unix/sysv/linux/globfree64.c b/sysdeps/unix/sysv/linux/globfree64.c
+new file mode 100644
+index 0000000000..0020466372
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/globfree64.c
+@@ -0,0 +1,36 @@
++/* Frees the dynamically allocated storage from an earlier call to glob.
++   Linux version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sys/stat.h>
++#include <kernel_stat.h>
++
++#if !XSTAT_IS_XSTAT64
++
++# include <glob.h>
++
++# define glob_t glob64_t
++# define globfree(pglob) globfree64 (pglob)
++
++# undef stat
++# define stat stat64
++
++# include <posix/globfree.c>
++
++libc_hidden_def (globfree64)
++#endif
+diff --git a/sysdeps/unix/sysv/linux/i386/alphasort64.c b/sysdeps/unix/sysv/linux/i386/alphasort64.c
+index d5fd47a9ae..04b29b6e0e 100644
+--- a/sysdeps/unix/sysv/linux/i386/alphasort64.c
++++ b/sysdeps/unix/sysv/linux/i386/alphasort64.c
+@@ -30,7 +30,7 @@ versioned_symbol (libc, __alphasort64, alphasort64, GLIBC_2_2);
+ 
+ #if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ int
+ __old_alphasort64 (const struct __old_dirent64 **a,
+diff --git a/sysdeps/unix/sysv/linux/i386/getdents64.c b/sysdeps/unix/sysv/linux/i386/getdents64.c
+index e8b257f059..2010bbf8df 100644
+--- a/sysdeps/unix/sysv/linux/i386/getdents64.c
++++ b/sysdeps/unix/sysv/linux/i386/getdents64.c
+@@ -28,7 +28,7 @@
+ 
+ #if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ #define __GETDENTS __old_getdents64
+ #define DIRENT_TYPE struct __old_dirent64
+diff --git a/sysdeps/unix/sysv/linux/i386/readdir64.c b/sysdeps/unix/sysv/linux/i386/readdir64.c
+index f80b6a7ba2..bd2375f9a6 100644
+--- a/sysdeps/unix/sysv/linux/i386/readdir64.c
++++ b/sysdeps/unix/sysv/linux/i386/readdir64.c
+@@ -31,7 +31,7 @@ versioned_symbol (libc, __readdir64, readdir64, GLIBC_2_2);
+ 
+ #if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ #define __READDIR attribute_compat_text_section __old_readdir64
+ #define __GETDENTS __old_getdents64
+diff --git a/sysdeps/unix/sysv/linux/i386/readdir64_r.c b/sysdeps/unix/sysv/linux/i386/readdir64_r.c
+index 344fd53d02..8c0262d1dc 100644
+--- a/sysdeps/unix/sysv/linux/i386/readdir64_r.c
++++ b/sysdeps/unix/sysv/linux/i386/readdir64_r.c
+@@ -31,7 +31,7 @@ versioned_symbol (libc, __readdir64_r, readdir64_r, GLIBC_2_2);
+ 
+ #if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ #define __READDIR_R attribute_compat_text_section __old_readdir64_r
+ #define __GETDENTS __old_getdents64
+diff --git a/sysdeps/unix/sysv/linux/i386/versionsort64.c b/sysdeps/unix/sysv/linux/i386/versionsort64.c
+index 3e1c6ea35b..87f2f9578d 100644
+--- a/sysdeps/unix/sysv/linux/i386/versionsort64.c
++++ b/sysdeps/unix/sysv/linux/i386/versionsort64.c
+@@ -30,7 +30,7 @@ versioned_symbol (libc, __versionsort64, versionsort64, GLIBC_2_2);
+ 
+ #if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ int
+ __old_versionsort64 (const struct __old_dirent64 **a,
+diff --git a/sysdeps/unix/sysv/linux/m68k/glob64.c b/sysdeps/unix/sysv/linux/m68k/glob64.c
+deleted file mode 100644
+index 82a9a296a7..0000000000
+--- a/sysdeps/unix/sysv/linux/m68k/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/unix/sysv/linux/i386/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c b/sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c
+deleted file mode 100644
+index 33918ea6a5..0000000000
+--- a/sysdeps/unix/sysv/linux/mips/mips64/n64/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-/* glob64 is in glob.c */
+diff --git a/sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c b/sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c
+deleted file mode 100644
+index abc35fdd2b..0000000000
+--- a/sysdeps/unix/sysv/linux/mips/mips64/n64/globfree64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-/* glob64 is in globfree64.c */
+diff --git a/sysdeps/unix/sysv/linux/i386/olddirent.h b/sysdeps/unix/sysv/linux/olddirent.h
+similarity index 100%
+rename from sysdeps/unix/sysv/linux/i386/olddirent.h
+rename to sysdeps/unix/sysv/linux/olddirent.h
+diff --git a/sysdeps/unix/sysv/linux/oldglob.c b/sysdeps/unix/sysv/linux/oldglob.c
+index 8233e57ce9..5402450f55 100644
+--- a/sysdeps/unix/sysv/linux/oldglob.c
++++ b/sysdeps/unix/sysv/linux/oldglob.c
+@@ -1,12 +1,13 @@
+ #include <shlib-compat.h>
+ 
+-#if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
++#if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2) \
++    && !defined(GLOB_NO_OLD_VERSION)
+ 
+ #include <dirent.h>
+ #include <glob.h>
+ #include <sys/stat.h>
+ 
+-#include <sysdeps/unix/sysv/linux/i386/olddirent.h>
++#include <olddirent.h>
+ 
+ int __old_glob64 (const char *__pattern, int __flags,
+ 		  int (*__errfunc) (const char *, int),
+diff --git a/sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c b/sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c
+deleted file mode 100644
+index 82a9a296a7..0000000000
+--- a/sysdeps/unix/sysv/linux/powerpc/powerpc32/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/unix/sysv/linux/i386/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/s390/s390-32/glob64.c b/sysdeps/unix/sysv/linux/s390/s390-32/glob64.c
+new file mode 100644
+index 0000000000..d220e22e30
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/s390/s390-32/glob64.c
+@@ -0,0 +1,2 @@
++#define GLOB_NO_OLD_VERSION
++#include <sysdeps/unix/sysv/linux/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c b/sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c
+deleted file mode 100644
+index 82a9a296a7..0000000000
+--- a/sysdeps/unix/sysv/linux/sparc/sparc32/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/unix/sysv/linux/i386/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/wordsize-64/glob64.c b/sysdeps/unix/sysv/linux/wordsize-64/glob64.c
+deleted file mode 100644
+index eab7703d5c..0000000000
+--- a/sysdeps/unix/sysv/linux/wordsize-64/glob64.c
++++ /dev/null
+@@ -1,2 +0,0 @@
+-/* This file is here so sysdeps/gnu/glob64.c doesn't take precedence.  */
+-#include <sysdeps/wordsize-64/glob64.c>
+diff --git a/sysdeps/unix/sysv/linux/wordsize-64/globfree64.c b/sysdeps/unix/sysv/linux/wordsize-64/globfree64.c
+deleted file mode 100644
+index af035e1514..0000000000
+--- a/sysdeps/unix/sysv/linux/wordsize-64/globfree64.c
++++ /dev/null
+@@ -1,2 +0,0 @@
+-/* This file is here so sysdeps/gnu/glob64.c doesn't take precedence.  */
+-#include <sysdeps/wordsize-64/globfree64.c>
+diff --git a/sysdeps/unix/sysv/linux/x86_64/x32/glob.c b/sysdeps/unix/sysv/linux/x86_64/x32/glob.c
+deleted file mode 100644
+index e5427475f6..0000000000
+--- a/sysdeps/unix/sysv/linux/x86_64/x32/glob.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/wordsize-64/glob.c>
+diff --git a/sysdeps/unix/sysv/linux/x86_64/x32/globfree.c b/sysdeps/unix/sysv/linux/x86_64/x32/globfree.c
+deleted file mode 100644
+index b76a761c17..0000000000
+--- a/sysdeps/unix/sysv/linux/x86_64/x32/globfree.c
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <sysdeps/wordsize-64/globfree.c>
+diff --git a/sysdeps/wordsize-64/glob.c b/sysdeps/wordsize-64/glob.c
+deleted file mode 100644
+index 954e8d37e2..0000000000
+--- a/sysdeps/wordsize-64/glob.c
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#define glob64 __no_glob64_decl
+-#define globfree64 __no_globfree64_decl
+-#include <posix/glob.c>
+-#undef glob64
+-#undef globfree64
+-weak_alias (glob, glob64)
+diff --git a/sysdeps/wordsize-64/glob64.c b/sysdeps/wordsize-64/glob64.c
+deleted file mode 100644
+index 33918ea6a5..0000000000
+--- a/sysdeps/wordsize-64/glob64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-/* glob64 is in glob.c */
+diff --git a/sysdeps/wordsize-64/globfree.c b/sysdeps/wordsize-64/globfree.c
+deleted file mode 100644
+index ec8c35b489..0000000000
+--- a/sysdeps/wordsize-64/globfree.c
++++ /dev/null
+@@ -1,5 +0,0 @@
+-#define globfree64 __no_globfree64_decl
+-#include <posix/globfree.c>
+-#undef globfree64
+-weak_alias (globfree, globfree64)
+-libc_hidden_ver (globfree, globfree64)
+diff --git a/sysdeps/wordsize-64/globfree64.c b/sysdeps/wordsize-64/globfree64.c
+deleted file mode 100644
+index a0f57ff4b3..0000000000
+--- a/sysdeps/wordsize-64/globfree64.c
++++ /dev/null
+@@ -1 +0,0 @@
+-/* globfree64 is in globfree.c */
+-- 
+2.15.1
+

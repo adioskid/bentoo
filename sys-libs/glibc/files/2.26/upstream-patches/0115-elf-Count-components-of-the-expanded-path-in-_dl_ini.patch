@@ -1,0 +1,79 @@
+From 633e2f7f3d88df6427aa3a7a984d3a6b796d9611 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 14 Dec 2017 15:05:57 +0100
+Subject: [PATCH 115/146] elf: Count components of the expanded path in
+ _dl_init_path [BZ #22607]
+
+(cherry picked from commit 3ff3dfa5af313a6ea33f3393916f30eece4f0171)
+---
+ ChangeLog     |  7 +++++++
+ NEWS          |  6 ++++++
+ elf/dl-load.c | 13 ++++---------
+ 3 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 772b96ee42..55a17414ab 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-12-14  Florian Weimer  <fweimer@redhat.com>
++
++	[BZ #22607]
++	CVE-2017-1000409
++	* elf/dl-load.c (_dl_init_paths): Compute number of components in
++	the expanded path string.
++
+ 2017-12-14  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #22606]
+diff --git a/NEWS b/NEWS
+index 437b9ee00f..2c49212cb5 100644
+--- a/NEWS
++++ b/NEWS
+@@ -49,6 +49,12 @@ Security related changes:
+   it is mentioned here only because of the CVE assignment.)  Reported by
+   Qualys.
+ 
++  CVE-2017-1000409: Buffer overflow in _dl_init_paths due to miscomputation
++  of the number of search path components.  (This is not a security
++  vulnerability per se because no trust boundary is crossed if the fix for
++  CVE-2017-1000366 has been applied, but it is mentioned here only because
++  of the CVE assignment.)  Reported by Qualys.
++
+ The following bugs are resolved with this release:
+ 
+   [16750] ldd: Never run file directly.
+diff --git a/elf/dl-load.c b/elf/dl-load.c
+index b3b0b37bf9..621403c05f 100644
+--- a/elf/dl-load.c
++++ b/elf/dl-load.c
+@@ -776,8 +776,6 @@ _dl_init_paths (const char *llp)
+ 
+   if (llp != NULL && *llp != '\0')
+     {
+-      size_t nllp;
+-      const char *cp = llp;
+       char *llp_tmp;
+ 
+ #ifdef SHARED
+@@ -800,13 +798,10 @@ _dl_init_paths (const char *llp)
+ 
+       /* Decompose the LD_LIBRARY_PATH contents.  First determine how many
+ 	 elements it has.  */
+-      nllp = 1;
+-      while (*cp)
+-	{
+-	  if (*cp == ':' || *cp == ';')
+-	    ++nllp;
+-	  ++cp;
+-	}
++      size_t nllp = 1;
++      for (const char *cp = llp_tmp; *cp != '\0'; ++cp)
++	if (*cp == ':' || *cp == ';')
++	  ++nllp;
+ 
+       env_path_list.dirs = (struct r_search_path_elem **)
+ 	malloc ((nllp + 1) * sizeof (struct r_search_path_elem *));
+-- 
+2.15.1
+

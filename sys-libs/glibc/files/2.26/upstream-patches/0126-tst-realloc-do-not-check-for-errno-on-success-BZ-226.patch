@@ -1,0 +1,52 @@
+From 7a64940a59cfbcfd9ac3895df3a5c00ced4ca268 Mon Sep 17 00:00:00 2001
+From: Aurelien Jarno <aurelien@aurel32.net>
+Date: Fri, 29 Dec 2017 14:44:57 +0100
+Subject: [PATCH 126/146] tst-realloc: do not check for errno on success [BZ
+ #22611]
+
+POSIX explicitly says that applications should check errno only after
+failure, so the errno value can be clobbered on success as long as it
+is not set to zero.
+
+Changelog:
+	[BZ #22611]
+	* malloc/tst-realloc.c (do_test): Remove the test checking that errno
+	is unchanged on success.
+(cherry picked from commit f8aa69be445f65bb36cb3ae9291423600da7d6d2)
+---
+ ChangeLog            | 6 ++++++
+ malloc/tst-realloc.c | 4 ----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 414e931aa5..2e6383b3dc 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-12-29  Aurelien Jarno  <aurelien@aurel32.net>
++
++	[BZ #22611]
++	* malloc/tst-realloc.c (do_test): Remove the test checking that errno
++	is unchanged on success.
++
+ 2017-12-30  Aurelien Jarno  <aurelien@aurel32.net>
+ 	    Dmitry V. Levin  <ldv@altlinux.org>
+ 
+diff --git a/malloc/tst-realloc.c b/malloc/tst-realloc.c
+index 31a58bd026..d942c6e536 100644
+--- a/malloc/tst-realloc.c
++++ b/malloc/tst-realloc.c
+@@ -66,10 +66,6 @@ do_test (void)
+   if (p == NULL)
+     merror ("realloc (NULL, 10) failed.");
+ 
+-  /* errno should be clear on success (POSIX).  */
+-  if (p != NULL && save != 0)
+-    merror ("errno is set but should not be");
+-
+   free (p);
+ 
+   p = calloc (20, 1);
+-- 
+2.15.1
+

@@ -1,0 +1,20 @@
+libgfortran does not respect --disable-werror
+
+https://bugs.gentoo.org/433435
+http://gcc.gnu.org/PR54724
+
+
+--- a/libgfortran/configure.ac
++++ b/libgfortran/configure.ac
+@@ -140,3 +140,3 @@ AM_PROG_CC_C_O
+ if test "x$GCC" = "xyes"; then
+-  AM_FCFLAGS="-I . -Wall -Werror -fimplicit-none -fno-repack-arrays -fno-underscoring"
++  AM_FCFLAGS="-I . -Wall -fimplicit-none -fno-repack-arrays -fno-underscoring"
+   ## We like to use C11 and C99 routines when available.  This makes
+--- a/libgfortran/configure
++++ b/libgfortran/configure
+@@ -5764,3 +5764,3 @@ fi
+ # Add -Wall -fno-repack-arrays -fno-underscoring if we are using GCC.
+ if test "x$GCC" = "xyes"; then
+-  AM_FCFLAGS="-I . -Wall -Werror -fimplicit-none -fno-repack-arrays -fno-underscoring"
++  AM_FCFLAGS="-I . -Wall -fimplicit-none -fno-repack-arrays -fno-underscoring"

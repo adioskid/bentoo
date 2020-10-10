@@ -1,0 +1,26 @@
+diff -urN portage-2.3.78/bin/ebuild.sh portage-2.3.78-fixed/bin/ebuild.sh
+--- portage-2.3.78/bin/ebuild.sh	2020-09-18 21:47:09.052819566 -0600
++++ portage-2.3.78-fixed/bin/ebuild.sh	2020-09-18 21:47:44.412820990 -0600
+@@ -685,12 +685,11 @@
+ 		# Make it group writable. 666&~002==664
+ 		umask 002
+ 	fi
+-
++	_PY_COMPAT="${PYTHON_COMPAT[@]}"
+ 	auxdbkeys="DEPEND RDEPEND SLOT SRC_URI RESTRICT HOMEPAGE LICENSE
+ 		DESCRIPTION KEYWORDS INHERITED IUSE REQUIRED_USE PDEPEND BDEPEND
+-		EAPI PROPERTIES DEFINED_PHASES HDEPEND UNUSED_04
++		EAPI PROPERTIES DEFINED_PHASES HDEPEND _PY_COMPAT
+ 		UNUSED_03 UNUSED_02 UNUSED_01"
+-
+ 	if ! ___eapi_has_HDEPEND; then
+ 		unset HDEPEND
+ 	fi
+@@ -710,6 +709,7 @@
+ 		done
+ 		eval "exec ${PORTAGE_PIPE_FD}>&-"
+ 	fi
++	unset _PY_COMPAT
+ 	set +f
+ else
+ 	# Note: readonly variables interfere with __preprocess_ebuild_env(), so

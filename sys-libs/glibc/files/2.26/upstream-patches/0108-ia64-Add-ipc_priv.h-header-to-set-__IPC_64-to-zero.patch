@@ -1,0 +1,65 @@
+From c48e2e558e27f5d38346828c46f9c325c21e52f5 Mon Sep 17 00:00:00 2001
+From: James Clarke <jrtc27@jrtc27.com>
+Date: Tue, 12 Dec 2017 12:17:10 -0200
+Subject: [PATCH 108/146] ia64: Add ipc_priv.h header to set __IPC_64 to zero
+
+When running strace, IPC_64 was set in the command, but ia64 is
+an architecture where CONFIG_ARCH_WANT_IPC_PARSE_VERSION *isn't* set
+in the kernel, so ipc_parse_version just returns IPC_64 without
+clearing the IPC_64 bit in the command.
+
+	* sysdeps/unix/sysv/linux/ia64/ipc_priv.h: New file defining
+	__IPC_64 to 0 to avoid IPC_64 being set.
+
+Signed-off-by: James Clarke <jrtc27@jrtc27.com>
+
+(cherry picked from commit 89bd8016b30e504829bea48c4cd556769abfcf3a)
+---
+ ChangeLog                               |  5 +++++
+ sysdeps/unix/sysv/linux/ia64/ipc_priv.h | 21 +++++++++++++++++++++
+ 2 files changed, 26 insertions(+)
+ create mode 100644 sysdeps/unix/sysv/linux/ia64/ipc_priv.h
+
+diff --git a/ChangeLog b/ChangeLog
+index 42224c0a2f..4fb30a1d8f 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-12-12  James Clarke <jrtc27@jrtc27.com>
++
++	* sysdeps/unix/sysv/linux/ia64/ipc_priv.h: New file defining
++	__IPC_64 to 0 to avoid IPC_64 being set.
++
+ 2017-10-15  H.J. Lu  <hongjiu.lu@intel.com>
+ 
+ 	[BZ #22052]
+diff --git a/sysdeps/unix/sysv/linux/ia64/ipc_priv.h b/sysdeps/unix/sysv/linux/ia64/ipc_priv.h
+new file mode 100644
+index 0000000000..e602eea455
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/ia64/ipc_priv.h
+@@ -0,0 +1,21 @@
++/* Old SysV permission definition for Linux.  IA64 version.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <sys/ipc.h>  /* For __key_t  */
++
++#define __IPC_64	0x0
+-- 
+2.15.1
+

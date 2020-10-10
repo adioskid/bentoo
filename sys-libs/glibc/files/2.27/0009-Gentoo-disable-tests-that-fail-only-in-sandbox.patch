@@ -1,0 +1,38 @@
+From bce5572467ecd05ceb6b17f0656404505495c806 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andreas=20K=2E=20H=C3=BCttel?= <dilfridge@gentoo.org>
+Date: Wed, 17 Jan 2018 01:00:59 +0100
+Subject: [PATCH 09/92] Gentoo: disable tests that fail only in sandbox
+
+---
+ io/Makefile                      | 2 +-
+ sysdeps/unix/sysv/linux/Makefile | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/io/Makefile b/io/Makefile
+index 2117cb6b62..dcf97f98ff 100644
+--- a/io/Makefile
++++ b/io/Makefile
+@@ -71,7 +71,6 @@ tests		:= test-utime test-stat test-stat2 test-lfs tst-getcwd \
+ 		   tst-mknodat tst-mkfifoat tst-ttyname_r bug-ftw5 \
+ 		   tst-posix_fallocate tst-posix_fallocate64 \
+ 		   tst-fts tst-fts-lfs tst-open-tmpfile \
+-		   tst-copy_file_range tst-getcwd-abspath \
+ 
+ # This test includes the compat implementation of copy_file_range,
+ # which uses internal, unexported libc functions.
+diff --git a/sysdeps/unix/sysv/linux/Makefile b/sysdeps/unix/sysv/linux/Makefile
+index 8f19e0efc3..beecc7ab94 100644
+--- a/sysdeps/unix/sysv/linux/Makefile
++++ b/sysdeps/unix/sysv/linux/Makefile
+@@ -43,7 +43,7 @@ sysdep_headers += sys/mount.h sys/acct.h sys/sysctl.h \
+ 		  bits/siginfo-arch.h bits/siginfo-consts-arch.h
+ 
+ tests += tst-clone tst-clone2 tst-clone3 tst-fanotify tst-personality \
+-	 tst-quota tst-sync_file_range tst-sysconf-iov_max tst-ttyname \
++	 tst-quota tst-sync_file_range tst-sysconf-iov_max \
+ 	 test-errno-linux tst-memfd_create tst-mlock2 tst-pkey \
+ 	 tst-rlimit-infinity
+ 
+-- 
+2.18.0
+

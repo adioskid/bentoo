@@ -1,0 +1,89 @@
+From f8279a4b3cc66d3ec8bfb8519e9987b8f7727f53 Mon Sep 17 00:00:00 2001
+From: Romain Naour <romain.naour@gmail.com>
+Date: Mon, 16 Oct 2017 23:21:56 +0200
+Subject: [PATCH 069/146] Let signbit use the builtin in C++ mode with gcc <
+ 6.x (bug 22296)
+
+When using gcc < 6.x, signbit does not use the type-generic
+__builtin_signbit builtin, instead it uses __MATH_TG.
+However, when library support for float128 is available, __MATH_TG uses
+__builtin_types_compatible_p, which is not available in C++ mode.
+
+On the other hand, libstdc++ undefines (in cmath) many macros from
+math.h, including signbit, so that it can provide its own functions.
+However, during its configure tests, libstdc++ just tests for the
+availability of the macros (it does not undefine them, nor does it
+provide its own functions).
+
+Finally, libstdc++ configure tests include math.h and get the definition
+of signbit that uses __MATH_TG (and __builtin_types_compatible_p).
+Since libstdc++ does not undefine the macros during its configure
+tests, they fail.
+
+This patch lets signbit use the builtin in C++ mode when gcc < 6.x is
+used. This allows the configure test in libstdc++ to work.
+
+Tested for x86_64.
+
+	[BZ #22296]
+	* math/math.h: Let signbit use the builtin in C++ mode with gcc
+	< 6.x
+
+Cc: Gabriel F. T. Gomes <gftg@linux.vnet.ibm.com>
+Cc: Joseph Myers <joseph@codesourcery.com>
+(cherry picked from commit 386e1c26ac473d6863133ab9cbe3bbda16c15816)
+---
+ ChangeLog   | 6 ++++++
+ NEWS        | 1 +
+ math/math.h | 9 +++++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index cd598788f1..6e53277670 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-10-17  Romain Naour  <romain.naour@gmail.com>  (tiny change)
++
++	[BZ #22296]
++	* math/math.h: Let signbit use the builtin in C++ mode with gcc
++	< 6.x
++
+ 2017-10-22  H.J. Lu  <hongjiu.lu@intel.com>
+ 
+ 	[BZ #21265]
+diff --git a/NEWS b/NEWS
+index 87d48025e2..c92ec03617 100644
+--- a/NEWS
++++ b/NEWS
+@@ -45,6 +45,7 @@ The following bugs are resolved with this release:
+   [22146] Let fpclassify use the builtin when optimizing for size in C++ mode
+   [22225] math: nearbyint arithmetic moved before feholdexcept
+   [22235] Add C++ versions of iscanonical for ldbl-96 and ldbl-128ibm
++  [22296] Let signbit use the builtin in C++ mode with gcc < 6.x
+   [22321] sysconf: Fix missing definition of UIO_MAXIOV on Linux
+   [22325] glibc: Memory leak in glob with GLOB_TILDE (CVE-2017-15671)
+ 
+diff --git a/math/math.h b/math/math.h
+index 2b216c6da1..ba26624835 100644
+--- a/math/math.h
++++ b/math/math.h
+@@ -418,6 +418,15 @@ enum
+ /* Return nonzero value if sign of X is negative.  */
+ # if __GNUC_PREREQ (6,0)
+ #  define signbit(x) __builtin_signbit (x)
++# elif defined __cplusplus
++  /* In C++ mode, __MATH_TG cannot be used, because it relies on
++     __builtin_types_compatible_p, which is a C-only builtin.
++     The check for __cplusplus allows the use of the builtin instead of
++     __MATH_TG. This is provided for libstdc++, only to let its configure
++     test work. No further use of this definition of signbit is expected
++     in C++ mode, since libstdc++ provides its own version of signbit
++     in cmath (which undefines signbit). */
++#  define signbit(x) __builtin_signbitl (x)
+ # elif __GNUC_PREREQ (4,0)
+ #  define signbit(x) __MATH_TG ((x), __builtin_signbit, (x))
+ # else
+-- 
+2.15.1
+

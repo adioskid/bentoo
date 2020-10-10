@@ -1,0 +1,142 @@
+From 069c3dd05abc91fced6e1e119e425c361ad97644 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Sat, 18 Nov 2017 14:34:46 +0100
+Subject: [PATCH 123/146] tst-ttyname: Fix namespace setup for Fedora
+
+On Fedora, the previous initialization sequence did not work and
+resulted in failures like:
+
+info:  entering chroot 1
+info:    testcase: basic smoketest
+info:      ttyname: PASS {name="/dev/pts/5", errno=0}
+info:      ttyname_r: PASS {name="/dev/pts/5", ret=0, errno=0}
+error: ../sysdeps/unix/sysv/linux/tst-ttyname.c:122: write (setroups, "deny"): Operation not permitted
+info:  entering chroot 2
+error: ../sysdeps/unix/sysv/linux/tst-ttyname.c:122: write (setroups, "deny"): Operation not permitted
+error: 2 test failures
+
+Reviewed-by: Christian Brauner <christian.brauner@ubuntu.com>
+(cherry picked from commit 8db7f48cb74670829df037b2d037df3f36b71ecd)
+---
+ ChangeLog                             |  8 +++++
+ sysdeps/unix/sysv/linux/tst-ttyname.c | 67 ++++-------------------------------
+ 2 files changed, 14 insertions(+), 61 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 8a7505a0eb..c66eb6c1f3 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,11 @@
++2017-11-18  Florian Weimer  <fweimer@redhat.com>
++
++	* sysdeps/unix/sysv/linux/tst-ttyname.c
++	(become_root_in_mount_ns): Remove.
++	(do_in_chroot_1): Call support_enter_mount_namespace.
++	(do_in_chroot_2): Likewise.
++	(do_test): Call support_become_root early.
++
+ 2017-11-15  Luke Shumaker  <lukeshu@parabola.nu>
+ 
+ 	[BZ #22145]
+diff --git a/sysdeps/unix/sysv/linux/tst-ttyname.c b/sysdeps/unix/sysv/linux/tst-ttyname.c
+index 32d7a65938..0fdf1a8ccb 100644
+--- a/sysdeps/unix/sysv/linux/tst-ttyname.c
++++ b/sysdeps/unix/sysv/linux/tst-ttyname.c
+@@ -78,65 +78,6 @@ proc_fd_readlink (const char *linkname)
+   return target;
+ }
+ 
+-static void
+-become_root_in_mount_ns (void)
+-{
+-  uid_t orig_uid = getuid ();
+-  gid_t orig_gid = getgid ();
+-
+-  support_become_root ();
+-
+-  if (unshare (CLONE_NEWNS) < 0)
+-    FAIL_UNSUPPORTED ("could not enter new mount namespace");
+-
+-  /* support_become_root might have put us in a new user namespace;
+-     most filesystems (including tmpfs) don't allow file or directory
+-     creation from a user namespace unless uid and gid maps are set,
+-     even if we have root privileges in the namespace (failing with
+-     EOVERFLOW, since the uid overflows the empty (0-length) uid map).
+-
+-     Also, stat always reports that uid and gid maps are empty, so we
+-     have to try actually reading from them to check if they are
+-     empty.  */
+-  int fd;
+-
+-  if ((fd = open ("/proc/self/uid_map", O_RDWR, 0)) >= 0)
+-    {
+-      char buf;
+-      if (read (fd, &buf, 1) == 0)
+-	{
+-	  char *str = xasprintf ("0 %ld 1\n", (long)orig_uid);
+-	  if (write (fd, str, strlen (str)) < 0)
+-	    FAIL_EXIT1 ("write (uid_map, \"%s\"): %m", str);
+-	  free (str);
+-	}
+-      xclose (fd);
+-    }
+-
+-  /* Setting the gid map has the additional complexity that we have to
+-     first turn off setgroups.  */
+-  if ((fd = open ("/proc/self/setgroups", O_WRONLY, 0)) >= 0)
+-    {
+-      const char *str = "deny";
+-      if (write (fd, str, strlen (str)) < 0)
+-	FAIL_EXIT1 ("write (setroups, \"%s\"): %m", str);
+-      xclose (fd);
+-    }
+-
+-  if ((fd = open ("/proc/self/gid_map", O_RDWR, 0)) >= 0)
+-    {
+-      char buf;
+-      if (read (fd, &buf, 1) == 0)
+-	{
+-	  char *str = xasprintf ("0 %ld 1\n", (long)orig_gid);
+-	  if (write (fd, str, strlen (str)) < 0)
+-	    FAIL_EXIT1 ("write (gid_map, \"%s\"): %m", str);
+-	  free (str);
+-	}
+-      xclose (fd);
+-    }
+-}
+-
+ /* plain ttyname runner */
+ 
+ struct result
+@@ -328,7 +269,8 @@ do_in_chroot_1 (int (*cb)(const char *, int))
+     {
+       xclose (master);
+ 
+-      become_root_in_mount_ns ();
++      if (!support_enter_mount_namespace ())
++	FAIL_UNSUPPORTED ("could not enter new mount namespace");
+ 
+       VERIFY (mount ("tmpfs", chrootdir, "tmpfs", 0, "mode=755") == 0);
+       VERIFY (chdir (chrootdir) == 0);
+@@ -395,7 +337,8 @@ do_in_chroot_2 (int (*cb)(const char *, int))
+       xclose (pid_pipe[0]);
+       xclose (exit_pipe[1]);
+ 
+-      become_root_in_mount_ns ();
++      if (!support_enter_mount_namespace ())
++	FAIL_UNSUPPORTED ("could not enter new mount namespace");
+ 
+       int slave = xopen (slavename, O_RDWR, 0);
+       if (!doit (slave, "basic smoketest",
+@@ -611,6 +554,8 @@ run_chroot_tests (const char *slavename, int slave)
+ static int
+ do_test (void)
+ {
++  support_become_root ();
++
+   int ret1 = do_in_chroot_1 (run_chroot_tests);
+   if (ret1 == EXIT_UNSUPPORTED)
+     return ret1;
+-- 
+2.15.1
+

@@ -1,0 +1,394 @@
+From 5712f8db265a75132dde7ffa4b5aab41c89a6b89 Mon Sep 17 00:00:00 2001
+From: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+Date: Mon, 16 Oct 2017 14:27:29 -0200
+Subject: [PATCH 078/146] nptl: Add tests for internal pthread_mutex_t offsets
+
+This patch adds a new build test to check for internal fields
+offsets for user visible internal field.  Although currently
+the only field which is statically initialized to a non zero value
+is pthread_mutex_t.__data.__kind value, the tests also check the
+offset of __kind, __spins, __elision (if supported), and __list
+internal member.  A internal header (pthread-offset.h) is added
+to each major ABI with the reference value.
+
+Checked on x86_64-linux-gnu and with a build check for all affected
+ABIs (aarch64-linux-gnu, alpha-linux-gnu, arm-linux-gnueabihf,
+hppa-linux-gnu, i686-linux-gnu, ia64-linux-gnu, m68k-linux-gnu,
+microblaze-linux-gnu, mips64-linux-gnu, mips64-n32-linux-gnu,
+mips-linux-gnu, powerpc64le-linux-gnu, powerpc-linux-gnu,
+s390-linux-gnu, s390x-linux-gnu, sh4-linux-gnu, sparc64-linux-gnu,
+sparcv9-linux-gnu, tilegx-linux-gnu, tilegx-linux-gnu-x32,
+tilepro-linux-gnu, x86_64-linux-gnu, and x86_64-linux-x32).
+
+	* nptl/pthreadP.h (ASSERT_PTHREAD_STRING,
+	ASSERT_PTHREAD_INTERNAL_OFFSET): New macro.
+	* nptl/pthread_mutex_init.c (__pthread_mutex_init): Add build time
+	checks for internal pthread_mutex_t offsets.
+	* sysdeps/aarch64/nptl/pthread-offsets.h
+	(__PTHREAD_MUTEX_NUSERS_OFFSET, __PTHREAD_MUTEX_KIND_OFFSET,
+	__PTHREAD_MUTEX_SPINS_OFFSET, __PTHREAD_MUTEX_ELISION_OFFSET,
+	__PTHREAD_MUTEX_LIST_OFFSET): New macro.
+	* sysdeps/alpha/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/arm/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/hppa/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/i386/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/ia64/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/m68k/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/microblaze/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/mips/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/nios2/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/powerpc/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/s390/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/sh/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/sparc/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/tile/nptl/pthread-offsets.h: Likewise.
+	* sysdeps/x86_64/nptl/pthread-offsets.h: Likewise.
+
+Signed-off-by: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+
+(cherry picked from commit dff91cd45e35e47d567274331f3deb8e87a188c9)
+---
+ ChangeLog                                 | 24 ++++++++++++++++++++++++
+ nptl/pthreadP.h                           |  6 ++++++
+ nptl/pthread_mutex_init.c                 | 13 +++++++++++++
+ sysdeps/aarch64/nptl/pthread-offsets.h    |  5 +++++
+ sysdeps/alpha/nptl/pthread-offsets.h      |  5 +++++
+ sysdeps/arm/nptl/pthread-offsets.h        |  5 +++++
+ sysdeps/hppa/nptl/pthread-offsets.h       |  5 +++++
+ sysdeps/i386/nptl/pthread-offsets.h       |  5 +++++
+ sysdeps/ia64/nptl/pthread-offsets.h       |  5 +++++
+ sysdeps/m68k/nptl/pthread-offsets.h       |  5 +++++
+ sysdeps/microblaze/nptl/pthread-offsets.h |  5 +++++
+ sysdeps/mips/nptl/pthread-offsets.h       | 13 +++++++++++++
+ sysdeps/nios2/nptl/pthread-offsets.h      |  5 +++++
+ sysdeps/powerpc/nptl/pthread-offsets.h    | 15 +++++++++++++++
+ sysdeps/s390/nptl/pthread-offsets.h       | 15 +++++++++++++++
+ sysdeps/sh/nptl/pthread-offsets.h         |  5 +++++
+ sysdeps/sparc/nptl/pthread-offsets.h      | 15 +++++++++++++++
+ sysdeps/tile/nptl/pthread-offsets.h       | 15 +++++++++++++++
+ sysdeps/x86_64/nptl/pthread-offsets.h     |  5 +++++
+ 19 files changed, 171 insertions(+)
+ create mode 100644 sysdeps/aarch64/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/alpha/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/arm/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/hppa/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/i386/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/ia64/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/m68k/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/microblaze/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/mips/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/nios2/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/powerpc/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/s390/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/sh/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/sparc/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/tile/nptl/pthread-offsets.h
+ create mode 100644 sysdeps/x86_64/nptl/pthread-offsets.h
+
+diff --git a/ChangeLog b/ChangeLog
+index c3418c3277..910bfe5d9f 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,5 +1,29 @@
+ 2017-11-07  Adhemerval Zanella  <adhemerval.zanella@linaro.org>
+ 
++	* nptl/pthreadP.h (ASSERT_PTHREAD_STRING,
++	ASSERT_PTHREAD_INTERNAL_OFFSET): New macro.
++	* nptl/pthread_mutex_init.c (__pthread_mutex_init): Add build time
++	checks for internal pthread_mutex_t offsets.
++	* sysdeps/aarch64/nptl/pthread-offsets.h
++	(__PTHREAD_MUTEX_NUSERS_OFFSET, __PTHREAD_MUTEX_KIND_OFFSET,
++	__PTHREAD_MUTEX_SPINS_OFFSET, __PTHREAD_MUTEX_ELISION_OFFSET,
++	__PTHREAD_MUTEX_LIST_OFFSET): New macro.
++	* sysdeps/alpha/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/arm/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/hppa/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/i386/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/ia64/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/m68k/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/microblaze/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/mips/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/nios2/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/powerpc/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/s390/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/sh/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/sparc/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/tile/nptl/pthread-offsets.h: Likewise.
++	* sysdeps/x86_64/nptl/pthread-offsets.h: Likewise.
++
+ 	* sysdeps/unix/sysv/linux/spawni.c (__spawnix): Use 0 instead of
+ 	WNOHANG in waitpid call.
+ 
+diff --git a/nptl/pthreadP.h b/nptl/pthreadP.h
+index 6e7d6ff09e..c5ae04692e 100644
+--- a/nptl/pthreadP.h
++++ b/nptl/pthreadP.h
+@@ -647,4 +647,10 @@ check_stacksize_attr (size_t st)
+   return EINVAL;
+ }
+ 
++#define ASSERT_PTHREAD_STRING(x) __STRING (x)
++#define ASSERT_PTHREAD_INTERNAL_OFFSET(type, member, offset)		\
++  _Static_assert (offsetof (type, member) == offset,			\
++		  "offset of " #member " field of " #type " != "	\
++		  ASSERT_PTHREAD_STRING (offset))
++
+ #endif	/* pthreadP.h */
+diff --git a/nptl/pthread_mutex_init.c b/nptl/pthread_mutex_init.c
+index 6f2fc808ff..e1f911bf29 100644
+--- a/nptl/pthread_mutex_init.c
++++ b/nptl/pthread_mutex_init.c
+@@ -23,6 +23,7 @@
+ #include <kernel-features.h>
+ #include "pthreadP.h"
+ #include <atomic.h>
++#include <pthread-offsets.h>
+ 
+ #include <stap-probe.h>
+ 
+@@ -58,6 +59,18 @@ __pthread_mutex_init (pthread_mutex_t *mutex,
+   const struct pthread_mutexattr *imutexattr;
+ 
+   assert (sizeof (pthread_mutex_t) <= __SIZEOF_PTHREAD_MUTEX_T);
++  ASSERT_PTHREAD_INTERNAL_OFFSET (pthread_mutex_t, __data.__nusers,
++				  __PTHREAD_MUTEX_NUSERS_OFFSET);
++  ASSERT_PTHREAD_INTERNAL_OFFSET (pthread_mutex_t, __data.__kind,
++				  __PTHREAD_MUTEX_KIND_OFFSET);
++  ASSERT_PTHREAD_INTERNAL_OFFSET (pthread_mutex_t, __data.__spins,
++				  __PTHREAD_MUTEX_SPINS_OFFSET);
++#if __PTHREAD_MUTEX_LOCK_ELISION
++  ASSERT_PTHREAD_INTERNAL_OFFSET (pthread_mutex_t, __data.__elision,
++				  __PTHREAD_MUTEX_ELISION_OFFSET);
++#endif
++  ASSERT_PTHREAD_INTERNAL_OFFSET (pthread_mutex_t, __data.__list,
++				  __PTHREAD_MUTEX_LIST_OFFSET);
+ 
+   imutexattr = ((const struct pthread_mutexattr *) mutexattr
+ 		?: &default_mutexattr);
+diff --git a/sysdeps/aarch64/nptl/pthread-offsets.h b/sysdeps/aarch64/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..16c6b0d9fd
+--- /dev/null
++++ b/sysdeps/aarch64/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++#define __PTHREAD_MUTEX_KIND_OFFSET     16
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     24
+diff --git a/sysdeps/alpha/nptl/pthread-offsets.h b/sysdeps/alpha/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..16c6b0d9fd
+--- /dev/null
++++ b/sysdeps/alpha/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++#define __PTHREAD_MUTEX_KIND_OFFSET     16
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     24
+diff --git a/sysdeps/arm/nptl/pthread-offsets.h b/sysdeps/arm/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/arm/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/hppa/nptl/pthread-offsets.h b/sysdeps/hppa/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..8ae01b9d95
+--- /dev/null
++++ b/sysdeps/hppa/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   32
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    36
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     36
+diff --git a/sysdeps/i386/nptl/pthread-offsets.h b/sysdeps/i386/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/i386/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/ia64/nptl/pthread-offsets.h b/sysdeps/ia64/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..16c6b0d9fd
+--- /dev/null
++++ b/sysdeps/ia64/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++#define __PTHREAD_MUTEX_KIND_OFFSET     16
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     24
+diff --git a/sysdeps/m68k/nptl/pthread-offsets.h b/sysdeps/m68k/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/m68k/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/microblaze/nptl/pthread-offsets.h b/sysdeps/microblaze/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/microblaze/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/mips/nptl/pthread-offsets.h b/sysdeps/mips/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..0ac3eda3fb
+--- /dev/null
++++ b/sysdeps/mips/nptl/pthread-offsets.h
+@@ -0,0 +1,13 @@
++#if _MIPS_SIM == _ABI64
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++# define __PTHREAD_MUTEX_KIND_OFFSET     16
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     24
++#else
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++# define __PTHREAD_MUTEX_KIND_OFFSET     12
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     20
++#endif
+diff --git a/sysdeps/nios2/nptl/pthread-offsets.h b/sysdeps/nios2/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/nios2/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/powerpc/nptl/pthread-offsets.h b/sysdeps/powerpc/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..bdda1f197e
+--- /dev/null
++++ b/sysdeps/powerpc/nptl/pthread-offsets.h
+@@ -0,0 +1,15 @@
++#include <bits/wordsize.h>
++
++#if __WORDSIZE == 64
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++# define __PTHREAD_MUTEX_KIND_OFFSET     16
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     24
++#else
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++# define __PTHREAD_MUTEX_KIND_OFFSET     12
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     20
++#endif
+diff --git a/sysdeps/s390/nptl/pthread-offsets.h b/sysdeps/s390/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..bdda1f197e
+--- /dev/null
++++ b/sysdeps/s390/nptl/pthread-offsets.h
+@@ -0,0 +1,15 @@
++#include <bits/wordsize.h>
++
++#if __WORDSIZE == 64
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++# define __PTHREAD_MUTEX_KIND_OFFSET     16
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     24
++#else
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++# define __PTHREAD_MUTEX_KIND_OFFSET     12
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     20
++#endif
+diff --git a/sysdeps/sh/nptl/pthread-offsets.h b/sysdeps/sh/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..9617354dc7
+--- /dev/null
++++ b/sysdeps/sh/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++#define __PTHREAD_MUTEX_KIND_OFFSET     12
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     20
+diff --git a/sysdeps/sparc/nptl/pthread-offsets.h b/sysdeps/sparc/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..bdda1f197e
+--- /dev/null
++++ b/sysdeps/sparc/nptl/pthread-offsets.h
+@@ -0,0 +1,15 @@
++#include <bits/wordsize.h>
++
++#if __WORDSIZE == 64
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++# define __PTHREAD_MUTEX_KIND_OFFSET     16
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     24
++#else
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++# define __PTHREAD_MUTEX_KIND_OFFSET     12
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     20
++#endif
+diff --git a/sysdeps/tile/nptl/pthread-offsets.h b/sysdeps/tile/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..bdda1f197e
+--- /dev/null
++++ b/sysdeps/tile/nptl/pthread-offsets.h
+@@ -0,0 +1,15 @@
++#include <bits/wordsize.h>
++
++#if __WORDSIZE == 64
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++# define __PTHREAD_MUTEX_KIND_OFFSET     16
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     24
++#else
++# define __PTHREAD_MUTEX_NUSERS_OFFSET   16
++# define __PTHREAD_MUTEX_KIND_OFFSET     12
++# define __PTHREAD_MUTEX_SPINS_OFFSET    20
++# define __PTHREAD_MUTEX_ELISION_OFFSET  22
++# define __PTHREAD_MUTEX_LIST_OFFSET     20
++#endif
+diff --git a/sysdeps/x86_64/nptl/pthread-offsets.h b/sysdeps/x86_64/nptl/pthread-offsets.h
+new file mode 100644
+index 0000000000..16c6b0d9fd
+--- /dev/null
++++ b/sysdeps/x86_64/nptl/pthread-offsets.h
+@@ -0,0 +1,5 @@
++#define __PTHREAD_MUTEX_NUSERS_OFFSET   12
++#define __PTHREAD_MUTEX_KIND_OFFSET     16
++#define __PTHREAD_MUTEX_SPINS_OFFSET    20
++#define __PTHREAD_MUTEX_ELISION_OFFSET  22
++#define __PTHREAD_MUTEX_LIST_OFFSET     24
+-- 
+2.15.1
+

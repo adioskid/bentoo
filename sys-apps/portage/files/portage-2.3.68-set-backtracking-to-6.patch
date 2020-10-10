@@ -1,0 +1,39 @@
+From 8ec3d73241dadf647dcae5ab070a45d2d46e83ce Mon Sep 17 00:00:00 2001
+From: Daniel Robbins <drobbins@funtoo.org>
+Date: Sat, 27 Jul 2019 23:38:47 -0600
+Subject: [PATCH 1/1] Set backtracking to zero^H^H^H^Hsix by default.
+
+---
+ lib/_emerge/depgraph.py | 2 +-
+ man/emerge.1            | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/_emerge/depgraph.py b/lib/_emerge/depgraph.py
+index 3e99ac077..61d92d951 100644
+--- a/lib/_emerge/depgraph.py
++++ b/lib/_emerge/depgraph.py
+@@ -9755,7 +9755,7 @@ def _backtrack_depgraph(settings, trees, myopts, myparams, myaction, myfiles, sp
+ 
+ 	debug = "--debug" in myopts
+ 	mydepgraph = None
+-	max_retries = myopts.get('--backtrack', 10)
++	max_retries = myopts.get('--backtrack', 6)
+ 	max_depth = max(1, (max_retries + 1) // 2)
+ 	allow_backtracking = max_retries > 0
+ 	backtracker = Backtracker(max_depth)
+diff --git a/man/emerge.1 b/man/emerge.1
+index 4db2b3e62..72b540f48 100644
+--- a/man/emerge.1
++++ b/man/emerge.1
+@@ -419,7 +419,7 @@ precedence over existing changes. This option is automatically enabled with
+ .BR \-\-backtrack=COUNT
+ Specifies an integer number of times to backtrack if
+ dependency calculation fails due to a conflict or an
+-unsatisfied dependency (default: \'10\').
++unsatisfied dependency (default in Funtoo Linux: \'6\').
+ .TP
+ .BR "\-\-binpkg\-changed\-deps [ y | n ]"
+ Tells emerge to ignore binary packages for which the corresponding
+-- 
+2.22.0
+

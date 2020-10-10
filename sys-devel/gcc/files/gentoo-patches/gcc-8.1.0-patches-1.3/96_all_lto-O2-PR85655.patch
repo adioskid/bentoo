@@ -1,0 +1,35 @@
+https://bugs.gentoo.org/655518
+https://gcc.gnu.org/PR85655
+
+From 815f1bcb7b6e7d076317c15a31525fea1b53b0c0 Mon Sep 17 00:00:00 2001
+From: jamborm <jamborm@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 11 May 2018 15:58:29 +0000
+Subject: [PATCH] Check is_single_const in intersect_with_plats
+
+2018-05-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR ipa/85655
+	* ipa-cp.c (intersect_with_plats): Check that the lattice contains
+	single const.
+
+testsuite/
+	* g++.dg/lto/pr85655_0.C: New test.
+
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-8-branch@260166 138bc75d-0d04-0410-961f-82ee72b054a4
+diff --git a/gcc/ipa-cp.c b/gcc/ipa-cp.c
+index 4f28a55b862..e868b9c2623 100644
+--- a/gcc/ipa-cp.c
++++ b/gcc/ipa-cp.c
+@@ -4127,7 +4127,9 @@ intersect_with_plats (struct ipcp_param_lattices *plats,
+ 	  if (aglat->offset - offset == item->offset)
+ 	    {
+ 	      gcc_checking_assert (item->value);
+-	      if (values_equal_for_ipcp_p (item->value, aglat->values->value))
++	      if (aglat->is_single_const ()
++		  && values_equal_for_ipcp_p (item->value,
++					      aglat->values->value))
+ 		found = true;
+ 	      break;
+ 	    }

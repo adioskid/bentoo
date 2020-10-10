@@ -1,0 +1,173 @@
+From 2e78ea7a207e49a47a3448fbbc387d606141ec9d Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Fri, 20 Oct 2017 04:10:15 +0200
+Subject: [PATCH 062/146] sysconf: Fix missing definition of UIO_MAXIOV on
+ Linux [BZ #22321]
+
+After commit 37f802f86400684c8d13403958b2c598721d6360 (Remove
+__need_IOV_MAX and __need_FOPEN_MAX), UIO_MAXIOV is no longer supplied
+(indirectly) through <bits/stdio_lim.h>, so sysdeps/posix/sysconf.c no
+longer sees the definition.
+
+(cherry picked from commit 63b4baa44e8d22501c433c4093aa3310f91b6aa2)
+---
+ ChangeLog                                          | 10 ++++++
+ NEWS                                               |  1 +
+ sysdeps/posix/sysconf.c                            |  1 +
+ sysdeps/unix/sysv/linux/Makefile                   |  8 +++--
+ sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c | 27 +++++++++++++++
+ sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c      | 40 ++++++++++++++++++++++
+ 6 files changed, 85 insertions(+), 2 deletions(-)
+ create mode 100644 sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c
+ create mode 100644 sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c
+
+diff --git a/ChangeLog b/ChangeLog
+index ad3adc0bdc..a1fd1e8a3e 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,13 @@
++2017-10-20  Florian Weimer  <fweimer@redhat.com>
++
++	[BZ #22321]
++	sysconf: Fix missing definition of UIO_MAXIOV on Linux.
++	* sysdeps/posix/sysconf.c: Include <sys/uio.h>.
++	* sysdeps/unix/sysv/linux/Makefile (tests): Add tst-sysconf-iov_max.
++	(tst-sysconf-iov_max): Link with tst-sysconf-iov_max-uapi.o.
++	* sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c: New file.
++	* sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c: Likewise.
++
+ 2017-10-11  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #22078]
+diff --git a/NEWS b/NEWS
+index 9cb8f00529..e5ac109a63 100644
+--- a/NEWS
++++ b/NEWS
+@@ -38,6 +38,7 @@ The following bugs are resolved with this release:
+   [22146] Let fpclassify use the builtin when optimizing for size in C++ mode
+   [22225] math: nearbyint arithmetic moved before feholdexcept
+   [22235] Add C++ versions of iscanonical for ldbl-96 and ldbl-128ibm
++  [22321] sysconf: Fix missing definition of UIO_MAXIOV on Linux
+ 
+ Version 2.26
+ 
+diff --git a/sysdeps/posix/sysconf.c b/sysdeps/posix/sysconf.c
+index a95e1b3f05..254f87c437 100644
+--- a/sysdeps/posix/sysconf.c
++++ b/sysdeps/posix/sysconf.c
+@@ -29,6 +29,7 @@
+ #include <sys/stat.h>
+ #include <sys/sysinfo.h>
+ #include <sys/types.h>
++#include <sys/uio.h>
+ #include <regex.h>
+ 
+ #define NEED_SPEC_ARRAY 0
+diff --git a/sysdeps/unix/sysv/linux/Makefile b/sysdeps/unix/sysv/linux/Makefile
+index 9d6a2de870..5dce300f7f 100644
+--- a/sysdeps/unix/sysv/linux/Makefile
++++ b/sysdeps/unix/sysv/linux/Makefile
+@@ -50,7 +50,7 @@ sysdep_headers += sys/mount.h sys/acct.h sys/sysctl.h \
+ 		  bits/siginfo-arch.h bits/siginfo-consts-arch.h
+ 
+ tests += tst-clone tst-clone2 tst-clone3 tst-fanotify tst-personality \
+-	 tst-quota tst-sync_file_range test-errno-linux
++	 tst-quota tst-sync_file_range test-errno-linux tst-sysconf-iov_max
+ 
+ # Generate the list of SYS_* macros for the system calls (__NR_* macros).
+ 
+@@ -120,7 +120,11 @@ ifndef no_deps
+ -include $(objpfx)bits/syscall.d
+ endif
+ generated += bits/syscall.h bits/syscall.d
+-endif
++
++# Separate object file for access to the constant from the UAPI header.
++$(objpfx)tst-sysconf-iov_max: $(objpfx)tst-sysconf-iov_max-uapi.o
++
++endif # $(subdir) == misc
+ 
+ ifeq ($(subdir),time)
+ sysdep_headers += sys/timex.h bits/timex.h
+diff --git a/sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c b/sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c
+new file mode 100644
+index 0000000000..1240b846e6
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/tst-sysconf-iov_max-uapi.c
+@@ -0,0 +1,27 @@
++/* Check IOV_MAX definition: Helper function to capture UAPI header value.
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Use a separate function to avoid header compatibility issues.  */
++
++#include <linux/uio.h>
++
++long
++uio_maxiov_value (void)
++{
++  return UIO_MAXIOV;
++}
+diff --git a/sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c b/sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c
+new file mode 100644
+index 0000000000..dfdf3da484
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/tst-sysconf-iov_max.c
+@@ -0,0 +1,40 @@
++/* Check IOV_MAX definition for consistency (bug 22321).
++   Copyright (C) 2017 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++/* Defined in tst-sysconf-iov_max-uapi.c.  */
++long uio_maxiov_value (void);
++
++
++#include <limits.h>
++#include <support/check.h>
++#include <sys/uio.h>
++#include <unistd.h>
++
++static int
++do_test (void)
++{
++  TEST_VERIFY (_XOPEN_IOV_MAX == 16); /* Value required by POSIX.  */
++  TEST_VERIFY (uio_maxiov_value () >= _XOPEN_IOV_MAX);
++  TEST_VERIFY (IOV_MAX == uio_maxiov_value ());
++  TEST_VERIFY (UIO_MAXIOV == uio_maxiov_value ());
++  TEST_VERIFY (sysconf (_SC_UIO_MAXIOV) == uio_maxiov_value ());
++  TEST_VERIFY (sysconf (_SC_IOV_MAX) == uio_maxiov_value ());
++  return 0;
++}
++
++#include <support/test-driver.c>
+-- 
+2.15.1
+

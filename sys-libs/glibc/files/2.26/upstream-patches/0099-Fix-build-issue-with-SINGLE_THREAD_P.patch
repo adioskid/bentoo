@@ -1,0 +1,44 @@
+From fe161827c50804fcd5a62c88d19c4d97d6ce2b8d Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Tue, 28 Nov 2017 19:15:13 +0530
+Subject: [PATCH 099/146] Fix build issue with SINGLE_THREAD_P
+
+Add sysdep-cancel.h include.
+
+	* malloc/malloc.c (sysdep-cancel.h): Add include.
+
+(cherry-picked 6d43de4b85b11d26a19bebe4f55f31be16e3d419)
+---
+ ChangeLog       | 4 ++++
+ malloc/malloc.c | 3 +++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/ChangeLog b/ChangeLog
+index 30e6f505f0..06da839328 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,7 @@
++2017-10-20  Wilco Dijkstra  <wdijkstr@arm.com>
++
++	* malloc/malloc.c (sysdep-cancel.h): Add include.
++
+ 2017-10-20  Wilco Dijkstra  <wdijkstr@arm.com>
+ 
+ 	* malloc/malloc.c (_int_free): Add SINGLE_THREAD_P fast paths.
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 78676a6f4a..236ded8fdd 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -243,6 +243,9 @@
+ 
+ #include <malloc/malloc-internal.h>
+ 
++/* For SINGLE_THREAD_P.  */
++#include <sysdep-cancel.h>
++
+ /*
+   Debugging:
+ 
+-- 
+2.15.1
+

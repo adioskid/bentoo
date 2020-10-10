@@ -1,0 +1,96 @@
+From a5db85df69dce7fcf793fefc60c764c684e0c272 Mon Sep 17 00:00:00 2001
+From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Date: Wed, 18 Oct 2017 17:26:23 +0100
+Subject: [PATCH 142/146] [AARCH64] Rewrite elf_machine_load_address using
+ _DYNAMIC symbol
+
+This patch rewrites aarch64 elf_machine_load_address to use special _DYNAMIC
+symbol instead of _dl_start.
+
+The static address of _DYNAMIC symbol is stored in the first GOT entry.
+Here is the change which makes this solution work (part of binutils 2.24):
+https://sourceware.org/ml/binutils/2013-06/msg00248.html
+
+i386, x86_64 targets use the same method to do this as well.
+
+The original implementation relies on a trick that R_AARCH64_ABS32 relocation
+being resolved at link time and the static address fits in the 32bits.
+However, in LP64, normally, the address is defined to be 64 bit.
+
+Here is the C version one which should be portable in all cases.
+
+	* sysdeps/aarch64/dl-machine.h (elf_machine_load_address): Use
+	_DYNAMIC symbol to calculate load address.
+
+(cherry picked from commit a68ba2f3cd3cbe32c1f31e13c20ed13487727b32)
+---
+ ChangeLog                    |  5 +++++
+ sysdeps/aarch64/dl-machine.h | 39 +++++----------------------------------
+ 2 files changed, 10 insertions(+), 34 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index d1a23a4f1b..9f65a5cca1 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-10-18  Renlin Li  <renlin.li@arm.com>
++
++	* sysdeps/aarch64/dl-machine.h (elf_machine_load_address): Use
++	_DYNAMIC symbol to calculate load address.
++
+ 2018-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+ 
+ 	[BZ #22715]
+diff --git a/sysdeps/aarch64/dl-machine.h b/sysdeps/aarch64/dl-machine.h
+index 60472036f5..3fb00e6e2d 100644
+--- a/sysdeps/aarch64/dl-machine.h
++++ b/sysdeps/aarch64/dl-machine.h
+@@ -51,40 +51,11 @@ elf_machine_load_address (void)
+   /* To figure out the load address we use the definition that for any symbol:
+      dynamic_addr(symbol) = static_addr(symbol) + load_addr
+ 
+-     The choice of symbol is arbitrary. The static address we obtain
+-     by constructing a non GOT reference to the symbol, the dynamic
+-     address of the symbol we compute using adrp/add to compute the
+-     symbol's address relative to the PC.
+-     This depends on 32/16bit relocations being resolved at link time
+-     and that the static address fits in the 32/16 bits.  */
+-
+-  ElfW(Addr) static_addr;
+-  ElfW(Addr) dynamic_addr;
+-
+-  asm ("					\n"
+-"	adrp	%1, _dl_start;			\n"
+-#ifdef __LP64__
+-"	add	%1, %1, #:lo12:_dl_start	\n"
+-#else
+-"	add	%w1, %w1, #:lo12:_dl_start	\n"
+-#endif
+-"	ldr	%w0, 1f				\n"
+-"	b	2f				\n"
+-"1:						\n"
+-#ifdef __LP64__
+-"	.word	_dl_start			\n"
+-#else
+-# ifdef __AARCH64EB__
+-"	.short  0                               \n"
+-# endif
+-"	.short  _dl_start                       \n"
+-# ifndef __AARCH64EB__
+-"	.short  0                               \n"
+-# endif
+-#endif
+-"2:						\n"
+-    : "=r" (static_addr),  "=r" (dynamic_addr));
+-  return dynamic_addr - static_addr;
++    _DYNAMIC sysmbol is used here as its link-time address stored in
++    the special unrelocated first GOT entry.  */
++
++    extern ElfW(Dyn) _DYNAMIC[] attribute_hidden;
++    return (ElfW(Addr)) &_DYNAMIC - elf_machine_dynamic ();
+ }
+ 
+ /* Set up the loaded object described by L so its unrelocated PLT
+-- 
+2.15.1
+

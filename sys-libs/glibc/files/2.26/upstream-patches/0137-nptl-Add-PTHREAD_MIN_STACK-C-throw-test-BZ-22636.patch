@@ -1,0 +1,158 @@
+From 247c1ddd309e3f4135045eab554f3817b7d765be Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Mon, 15 Jan 2018 15:30:00 +0100
+Subject: [PATCH 137/146] nptl: Add PTHREAD_MIN_STACK C++ throw test [BZ
+ #22636]
+
+(cherry picked from commit 860b0240a5645edd6490161de3f8d1d1f2786025)
+---
+ ChangeLog                  |  8 +++++
+ nptl/Makefile              |  7 ++--
+ nptl/tst-minstack-throw.cc | 87 ++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 100 insertions(+), 2 deletions(-)
+ create mode 100644 nptl/tst-minstack-throw.cc
+
+diff --git a/ChangeLog b/ChangeLog
+index a67b98cdc9..465f8face7 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,11 @@
++2018-01-15  Florian Weimer  <fweimer@redhat.com>
++
++	[BZ #22636]
++	* nptl/tst-minstack-throw.cc: New file.
++	* nptl/Makefile (tests): Add tst-minstack-throw.
++	(LDLIBS-tst-minstack-throw): Link with libstdc++.
++	[!CXX] (tests-unsupported): Add tst-minstack-throw.
++
+ 2018-01-11  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	[BZ #22636]
+diff --git a/nptl/Makefile b/nptl/Makefile
+index 4ab513b6c3..6516fcd8fb 100644
+--- a/nptl/Makefile
++++ b/nptl/Makefile
+@@ -229,6 +229,7 @@ CFLAGS-tst-thread_local1.o = -std=gnu++11
+ LDLIBS-tst-thread_local1 = -lstdc++
+ CFLAGS-tst-thread-exit-clobber.o = -std=gnu++11
+ LDLIBS-tst-thread-exit-clobber = -lstdc++
++LDLIBS-tst-minstack-throw = -lstdc++
+ 
+ tests = tst-attr1 tst-attr2 tst-attr3 tst-default-attr \
+ 	tst-mutex1 tst-mutex2 tst-mutex3 tst-mutex4 tst-mutex5 tst-mutex6 \
+@@ -305,7 +306,8 @@ tests = tst-attr1 tst-attr2 tst-attr3 tst-default-attr \
+ 	tst-bad-schedattr \
+ 	tst-thread_local1 tst-mutex-errorcheck tst-robust10 \
+ 	tst-robust-fork tst-create-detached tst-memstream \
+-	tst-thread-exit-clobber tst-minstack-cancel tst-minstack-exit
++	tst-thread-exit-clobber tst-minstack-cancel tst-minstack-exit \
++	tst-minstack-throw
+ 
+ tests-internal := tst-typesizes \
+ 		  tst-rwlock19 tst-rwlock20 \
+@@ -456,7 +458,8 @@ endif
+ 
+ ifeq (,$(CXX))
+ # These tests require a C++ compiler and runtime.
+-tests-unsupported += tst-cancel24 tst-cancel24-static tst-once5
++tests-unsupported += tst-cancel24 tst-cancel24-static tst-once5 \
++  tst-minstack-throw
+ endif
+ # These tests require a C++ compiler and runtime with thread_local support.
+ ifneq ($(have-cxx-thread_local),yes)
+diff --git a/nptl/tst-minstack-throw.cc b/nptl/tst-minstack-throw.cc
+new file mode 100644
+index 0000000000..b0a897b0c6
+--- /dev/null
++++ b/nptl/tst-minstack-throw.cc
+@@ -0,0 +1,87 @@
++/* Test that throwing C++ exceptions works with the minimum stack size.
++   Copyright (C) 2018 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#include <stdexcept>
++
++#include <limits.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/xthread.h>
++
++/* Throw a std::runtime_exception.  */
++__attribute__ ((noinline, noclone, weak))
++void
++do_throw_exception ()
++{
++  throw std::runtime_error ("test exception");
++}
++
++/* Class with a destructor, to trigger unwind handling.  */
++struct class_with_destructor
++{
++  class_with_destructor ();
++  ~class_with_destructor ();
++};
++
++__attribute__ ((noinline, noclone, weak))
++class_with_destructor::class_with_destructor ()
++{
++}
++
++__attribute__ ((noinline, noclone, weak))
++class_with_destructor::~class_with_destructor ()
++{
++}
++
++__attribute__ ((noinline, noclone, weak))
++void
++function_with_destructed_object ()
++{
++  class_with_destructor obj;
++  do_throw_exception ();
++}
++
++static void *
++threadfunc (void *closure)
++{
++  try
++    {
++      function_with_destructed_object ();
++      FAIL_EXIT1 ("no exception thrown");
++    }
++  catch (std::exception &e)
++    {
++      TEST_COMPARE (strcmp (e.what (), "test exception"), 0);
++      return reinterpret_cast<void *> (threadfunc);
++    }
++  FAIL_EXIT1 ("no exception caught");
++}
++
++static int
++do_test (void)
++{
++  pthread_attr_t attr;
++  xpthread_attr_init (&attr);
++  xpthread_attr_setstacksize (&attr, PTHREAD_STACK_MIN);
++  pthread_t thr = xpthread_create (&attr, threadfunc, NULL);
++  TEST_VERIFY (xpthread_join (thr) == threadfunc);
++  xpthread_attr_destroy (&attr);
++  return 0;
++}
++
++#include <support/test-driver.c>
+-- 
+2.15.1
+

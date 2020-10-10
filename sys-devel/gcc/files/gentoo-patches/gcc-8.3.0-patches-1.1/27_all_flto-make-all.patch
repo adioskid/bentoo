@@ -1,0 +1,31 @@
+https://gcc.gnu.org/PR89896
+https://bugs.gentoo.org/682018
+
+From e5e34c317c02b16cef2c6c71a18e4b1a358b626c Mon Sep 17 00:00:00 2001
+From: rguenth <rguenth@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 3 Apr 2019 08:46:35 +0000
+Subject: [PATCH] 2019-04-03  Richard Biener  <rguenther@suse.de>
+
+	PR lto/89896
+	* lto-wrapper.c (run_gcc): Avoid implicit rules making
+	the all target phony.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-8-branch@270113 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+--- a/gcc/lto-wrapper.c
++++ b/gcc/lto-wrapper.c
+@@ -1669,7 +1669,9 @@ cont:
+ 	  struct pex_obj *pex;
+ 	  char jobs[32];
+ 
+-	  fprintf (mstream, "all:");
++	  fprintf (mstream,
++		   ".PHONY: all\n"
++		   "all:");
+ 	  for (i = 0; i < nr; ++i)
+ 	    {
+ 	      int j = ltrans_priorities[i*2 + 1];
+-- 
+2.21.0
+

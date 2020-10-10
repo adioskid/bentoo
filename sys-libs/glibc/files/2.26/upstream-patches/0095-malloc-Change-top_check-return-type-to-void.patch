@@ -1,0 +1,119 @@
+From 533afac92904cc6037b54469763105508b45ace0 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Thu, 31 Aug 2017 12:02:59 +0200
+Subject: [PATCH 095/146] malloc: Change top_check return type to void
+
+After commit ec2c1fcefb200c6cb7e09553f3c6af8815013d83,
+(malloc: Abort on heap corruption, without a backtrace), the function
+always returns 0.
+
+(cherry-picked from 5129873a8e913e207e5f7b4b521c72f41a1bbf6d)
+---
+ ChangeLog       |  7 +++++++
+ malloc/hooks.c  | 26 ++++++++++++--------------
+ malloc/malloc.c |  2 +-
+ 3 files changed, 20 insertions(+), 15 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 577643cbd7..519db42d51 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,10 @@
++2017-08-31  Florian Weimer  <fweimer@redhat.com>
++
++	* malloc/malloc.c (top_check): Change return type to void.  Remove
++	internal_function.
++	* malloc/hooks.c (top_check): Likewise.
++	(malloc_check, realloc_check, memalign_check): Adjust.
++
+ 2017-08-30  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* malloc/malloc.c (ARENA_CORRUPTION_BIT, arena_is_corrupt)
+diff --git a/malloc/hooks.c b/malloc/hooks.c
+index dcd311e7c7..4398c0a017 100644
+--- a/malloc/hooks.c
++++ b/malloc/hooks.c
+@@ -228,8 +228,7 @@ mem2chunk_check (void *mem, unsigned char **magic_p)
+ }
+ 
+ /* Check for corruption of the top chunk.  */
+-static int
+-internal_function
++static void
+ top_check (void)
+ {
+   mchunkptr t = top (&main_arena);
+@@ -240,7 +239,7 @@ top_check (void)
+        prev_inuse (t) &&
+        (!contiguous (&main_arena) ||
+         (char *) t + chunksize (t) == mp_.sbrk_base + main_arena.system_mem)))
+-    return 0;
++    return;
+ 
+   malloc_printerr ("malloc: top chunk is corrupt");
+ }
+@@ -257,7 +256,8 @@ malloc_check (size_t sz, const void *caller)
+     }
+ 
+   __libc_lock_lock (main_arena.mutex);
+-  victim = (top_check () >= 0) ? _int_malloc (&main_arena, sz + 1) : NULL;
++  top_check ();
++  victim = _int_malloc (&main_arena, sz + 1);
+   __libc_lock_unlock (main_arena.mutex);
+   return mem2mem_check (victim, sz);
+ }
+@@ -329,8 +329,8 @@ realloc_check (void *oldmem, size_t bytes, const void *caller)
+         else
+           {
+             /* Must alloc, copy, free. */
+-            if (top_check () >= 0)
+-              newmem = _int_malloc (&main_arena, bytes + 1);
++	    top_check ();
++	    newmem = _int_malloc (&main_arena, bytes + 1);
+             if (newmem)
+               {
+                 memcpy (newmem, oldmem, oldsize - 2 * SIZE_SZ);
+@@ -341,12 +341,10 @@ realloc_check (void *oldmem, size_t bytes, const void *caller)
+     }
+   else
+     {
+-      if (top_check () >= 0)
+-        {
+-          INTERNAL_SIZE_T nb;
+-          checked_request2size (bytes + 1, nb);
+-          newmem = _int_realloc (&main_arena, oldp, oldsize, nb);
+-        }
++      top_check ();
++      INTERNAL_SIZE_T nb;
++      checked_request2size (bytes + 1, nb);
++      newmem = _int_realloc (&main_arena, oldp, oldsize, nb);
+     }
+ 
+   /* mem2chunk_check changed the magic byte in the old chunk.
+@@ -396,8 +394,8 @@ memalign_check (size_t alignment, size_t bytes, const void *caller)
+     }
+ 
+   __libc_lock_lock (main_arena.mutex);
+-  mem = (top_check () >= 0) ? _int_memalign (&main_arena, alignment, bytes + 1) :
+-        NULL;
++  top_check ();
++  mem = _int_memalign (&main_arena, alignment, bytes + 1);
+   __libc_lock_unlock (main_arena.mutex);
+   return mem2mem_check (mem, bytes);
+ }
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 65deb2f386..417ffbba5f 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -1022,7 +1022,7 @@ static void*  _mid_memalign(size_t, size_t, void *);
+ static void malloc_printerr(const char *str) __attribute__ ((noreturn));
+ 
+ static void* internal_function mem2mem_check(void *p, size_t sz);
+-static int internal_function top_check(void);
++static void top_check (void);
+ static void internal_function munmap_chunk(mchunkptr p);
+ #if HAVE_MREMAP
+ static mchunkptr internal_function mremap_chunk(mchunkptr p, size_t new_size);
+-- 
+2.15.1
+

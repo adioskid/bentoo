@@ -1,0 +1,97 @@
+From 98f244e2456712778d91fcbdf99b1dd78b89c9f6 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Sun, 17 Dec 2017 23:49:46 +0000
+Subject: [PATCH 124/146] elf: do not substitute dst in $LD_LIBRARY_PATH twice
+ [BZ #22627]
+
+Starting with commit
+glibc-2.18.90-470-g2a939a7e6d81f109d49306bc2e10b4ac9ceed8f9 that
+introduced substitution of dynamic string tokens in fillin_rpath,
+_dl_init_paths invokes _dl_dst_substitute for $LD_LIBRARY_PATH twice:
+the first time it's called directly, the second time the result
+is passed on to fillin_rpath which calls expand_dynamic_string_token
+which in turn calls _dl_dst_substitute, leading to the following
+behaviour:
+
+$ mkdir -p /tmp/'$ORIGIN' && cd /tmp/'$ORIGIN' &&
+  echo 'int main(){}' |gcc -xc - &&
+  strace -qq -E LD_LIBRARY_PATH='$ORIGIN' -e /open ./a.out
+open("/tmp//tmp/$ORIGIN/tls/x86_64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/tmp//tmp/$ORIGIN/tls/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/tmp//tmp/$ORIGIN/x86_64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/tmp//tmp/$ORIGIN/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+open("/lib64/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+
+Fix this by removing the direct _dl_dst_substitute invocation.
+
+* elf/dl-load.c (_dl_init_paths): Remove _dl_dst_substitute preparatory
+code and invocation.
+
+(cherry picked from commit bb195224acc14724e9fc2dbaa8d0b20b72ace79b)
+---
+ ChangeLog     |  6 ++++++
+ NEWS          |  1 +
+ elf/dl-load.c | 20 +-------------------
+ 3 files changed, 8 insertions(+), 19 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index c66eb6c1f3..6ff641a602 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,9 @@
++2017-12-18  Dmitry V. Levin  <ldv@altlinux.org>
++
++	[BZ #22627]
++	* elf/dl-load.c (_dl_init_paths): Remove _dl_dst_substitute preparatory
++	code and invocation.
++
+ 2017-11-18  Florian Weimer  <fweimer@redhat.com>
+ 
+ 	* sysdeps/unix/sysv/linux/tst-ttyname.c
+diff --git a/NEWS b/NEWS
+index c93bf0493b..ac623641e2 100644
+--- a/NEWS
++++ b/NEWS
+@@ -91,6 +91,7 @@ The following bugs are resolved with this release:
+   [22322] libc: [mips64] wrong bits/long-double.h installed
+   [22325] glibc: Memory leak in glob with GLOB_TILDE (CVE-2017-15671)
+   [22375] malloc returns pointer from tcache instead of NULL (CVE-2017-17426)
++  [22627] $ORIGIN in $LD_LIBRARY_PATH is substituted twice
+ 
+ Version 2.26
+ 
+diff --git a/elf/dl-load.c b/elf/dl-load.c
+index 621403c05f..50996e29b8 100644
+--- a/elf/dl-load.c
++++ b/elf/dl-load.c
+@@ -776,25 +776,7 @@ _dl_init_paths (const char *llp)
+ 
+   if (llp != NULL && *llp != '\0')
+     {
+-      char *llp_tmp;
+-
+-#ifdef SHARED
+-      /* Expand DSTs.  */
+-      size_t cnt = DL_DST_COUNT (llp, 1);
+-      if (__glibc_likely (cnt == 0))
+-	llp_tmp = strdupa (llp);
+-      else
+-	{
+-	  /* Determine the length of the substituted string.  */
+-	  size_t total = DL_DST_REQUIRED (l, llp, strlen (llp), cnt);
+-
+-	  /* Allocate the necessary memory.  */
+-	  llp_tmp = (char *) alloca (total + 1);
+-	  llp_tmp = _dl_dst_substitute (l, llp, llp_tmp, 1);
+-	}
+-#else
+-      llp_tmp = strdupa (llp);
+-#endif
++      char *llp_tmp = strdupa (llp);
+ 
+       /* Decompose the LD_LIBRARY_PATH contents.  First determine how many
+ 	 elements it has.  */
+-- 
+2.15.1
+

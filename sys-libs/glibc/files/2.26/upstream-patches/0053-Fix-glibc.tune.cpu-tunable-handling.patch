@@ -1,0 +1,41 @@
+From 1f1239c389f7839e963b02794f64ed85df81396f Mon Sep 17 00:00:00 2001
+From: Steve Ellcey <sellcey@caviumnetworks.com>
+Date: Tue, 10 Oct 2017 15:53:55 +0530
+Subject: [PATCH 053/146] Fix glibc.tune.cpu tunable handling
+
+	* sysdeps/unix/sysv/linux/aarch64/cpu-features.c (get_midr_from_mcpu):
+	Use strcmp instead of tunable_is_name.
+---
+ ChangeLog                                      | 5 +++++
+ sysdeps/unix/sysv/linux/aarch64/cpu-features.c | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index d478f5d8e4..ff9bc2b7eb 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++2017-10-10  Steve Ellcey  <sellcey@cavium.com>
++
++	* sysdeps/unix/sysv/linux/aarch64/cpu-features.c (get_midr_from_mcpu):
++	Use strcmp instead of tunable_is_name.
++
+ 2017-10-10  Siddhesh Poyarekar  <siddhesh@sourceware.org>
+ 
+ 	* sysdeps/aarch64/multiarch/Makefile (sysdep_routines): Add
+diff --git a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+index 18f5e60f4c..0c7e13f4fa 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
++++ b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+@@ -37,7 +37,7 @@ static uint64_t
+ get_midr_from_mcpu (const char *mcpu)
+ {
+   for (int i = 0; i < sizeof (cpu_list) / sizeof (struct cpu_list); i++)
+-    if (tunable_is_name (mcpu, cpu_list[i].name) == 0)
++    if (strcmp (mcpu, cpu_list[i].name) == 0)
+       return cpu_list[i].midr;
+ 
+   return UINT64_MAX;
+-- 
+2.15.1
+
