@@ -8,18 +8,21 @@ inherit qt5-build
 DESCRIPTION="Tool for reporting diagnostic information about Qt and its environment"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="~amd64 ~arm ~hppa ~ppc64 ~sparc ~x86"
+	KEYWORDS="amd64 ~arm ~hppa ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="+network +widgets"
 
-DEPEND="
+RDEPEND="
 	~dev-qt/qtcore-${PV}:5=
 	~dev-qt/qtgui-${PV}:5=
 	network? ( ~dev-qt/qtnetwork-${PV}[ssl] )
 	widgets? ( ~dev-qt/qtwidgets-${PV} )
 "
-RDEPEND="${DEPEND}"
+# TODO: we know it is bogus, figure out how to disable checks, bug 728278
+DEPEND="${RDEPEND}
+	~dev-qt/qtxml-${PV}
+"
 
 src_prepare() {
 	qt_use_disable_mod network network \
