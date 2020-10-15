@@ -85,10 +85,6 @@ RDEPEND="${DEPEND}
 S="${WORKDIR}/${MY_P}"
 
 PATCHES=(
-	# should fix https://bugs.gentoo.org/741162 taken from:
-	# https://gitlab.isc.org/isc-projects/bind9/-/merge_requests/4073
-	"${FILESDIR}/bind-9.16.6-bug-741162.patch"
-
 	"${FILESDIR}/ldap-library-path-on-multilib-machines.patch"
 )
 
@@ -152,11 +148,14 @@ bind_configure() {
 	# This is for users to start to migrate back to USE=geoip, rather than
 	# USE=geoip2
 	if use geoip ; then
-		myeconfargs+=( $(use_with geoip maxminddb) )
+		myeconfargs+=( $(use_with geoip maxminddb) --enable-geoip )
 	elif use geoip2 ; then
-		myeconfargs+=( $(use_with geoip2 maxminddb) )
+		# Added 2020/09/30
+		# Remove USE=geoip2 support after 2020/03/01
+		ewarn "USE=geoip2 is deprecated; update your USE flags!"
+		myeconfargs+=( $(use_with geoip2 maxminddb) --enable-geoip )
 	else
-		myeconfargs+=( --without-maxminddb )
+		myeconfargs+=( --without-maxminddb --disable-geoip )
 	fi
 
 	# bug #158664
