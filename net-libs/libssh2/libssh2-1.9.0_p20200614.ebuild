@@ -1,10 +1,11 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+CMAKE_ECLASS=cmake
 inherit cmake-multilib
 
-EGIT_COMMIT=336bd86d2ca4030b808d76e56a0387914982e289
+EGIT_COMMIT=6c7769dcc422250d14af1b06fce378b6ee009440
 DESCRIPTION="Library implementing the SSH2 protocol"
 HOMEPAGE="https://www.libssh2.org"
 SRC_URI="https://github.com/libssh2/libssh2/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
@@ -12,7 +13,7 @@ S=${WORKDIR}/${PN}-${EGIT_COMMIT}
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="alpha amd64 arm arm64 hppa ia64 ~mips ppc ppc64 s390 sh sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-solaris"
 IUSE="gcrypt libressl mbedtls zlib"
 REQUIRED_USE="?? ( gcrypt mbedtls )"
 RESTRICT="test"
@@ -34,7 +35,6 @@ DEPEND="
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-1.8.0-mansyntax_sh.patch
-	"${FILESDIR}"/${PN}-1.9.0-libdir.patch
 )
 
 multilib_src_configure() {
@@ -50,7 +50,7 @@ multilib_src_configure() {
 		-DCRYPTO_BACKEND=${crypto_backend}
 		-DENABLE_ZLIB_COMPRESSION=$(usex zlib)
 	)
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 multilib_src_install_all() {
