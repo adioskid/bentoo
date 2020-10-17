@@ -4,16 +4,16 @@
 EAPI=7
 
 ECM_HANDBOOK="optional"
-KFMIN=5.60.0
-QTMIN=5.12.3
+KFMIN=5.74.0
+QTMIN=5.14.2
 inherit ecm kde.org
 
 DESCRIPTION="Utility for management of disks, partitions and file systems"
-HOMEPAGE="https://kde.org/applications/system/org.kde.partitionmanager"
+HOMEPAGE="https://kde.org/applications/en/partitionmanager"
 
 if [[ ${KDE_BUILD_TYPE} == release ]]; then
 	SRC_URI="mirror://kde/stable/${PN}/${PV}/src/${P}.tar.xz"
-	KEYWORDS="amd64 ~arm ~arm64 x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 fi
 
 LICENSE="GPL-3"
@@ -29,11 +29,10 @@ DEPEND="
 	>=kde-frameworks/kcrash-${KFMIN}:5
 	>=kde-frameworks/kdbusaddons-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
-	>=kde-frameworks/kiconthemes-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=kde-frameworks/kjobwidgets-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
-	>=sys-libs/kpmcore-4.1.0:5=
+	>=sys-libs/kpmcore-4.2.0:5=
 "
 RDEPEND="${DEPEND}"
