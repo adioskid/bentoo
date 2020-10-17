@@ -91,7 +91,7 @@ REQUIRED_USE="
 	)"
 
 DOCS=( CHANGES README docs/FEATURES docs/INTERNALS.md \
-	docs/FAQ docs/BUGS docs/CONTRIBUTE.md )
+	docs/FAQ docs/BUGS.md docs/CONTRIBUTE.md )
 
 MULTILIB_WRAPPED_HEADERS=(
 	/usr/include/curl/curlbuild.h
@@ -186,7 +186,7 @@ multilib_src_configure() {
 		$(use_enable alt-svc) \
 		--enable-crypto-auth \
 		--enable-dict \
-		--disable-esni \
+		--disable-ech \
 		--enable-file \
 		$(use_enable ftp) \
 		$(use_enable gopher) \
@@ -210,6 +210,7 @@ multilib_src_configure() {
 		--enable-dateparse \
 		--enable-dnsshuffle \
 		--enable-doh \
+		--disable-get-easy-options \
 		--enable-hidden-symbols \
 		--enable-http-auth \
 		$(use_enable ipv6) \
@@ -220,6 +221,7 @@ multilib_src_configure() {
 		$(use_enable progress-meter) \
 		--enable-proxy \
 		--disable-sspi \
+		--disable-socketpair \
 		$(use_enable static-libs static) \
 		$(use_enable threads threaded-resolver) \
 		$(use_enable threads pthreads) \

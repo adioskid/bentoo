@@ -16,10 +16,16 @@ VIRTUALX_REQUIRED="pgo"
 
 MOZ_ESR=
 
-# Convert the ebuild version to the upstream mozilla version, used by mozlinguas
-MOZ_PV="${PV/_alpha/a}"    # Handle alpha for SRC_URI
-MOZ_PV="${MOZ_PV/_beta/b}" # Handle beta for SRC_URI
-MOZ_PV="${MOZ_PV%%_rc*}"   # Handle rc for SRC_URI
+MOZ_PV=${PV}
+MOZ_PV_SUFFIX=
+if [[ ${PV} =~ (_(alpha|beta|rc).*)$ ]] ; then
+	MOZ_PV_SUFFIX=${BASH_REMATCH[1]}
+
+	# Convert the ebuild version to the upstream Mozilla version
+	MOZ_PV="${MOZ_PV/_alpha/a}" # Handle alpha for SRC_URI
+	MOZ_PV="${MOZ_PV/_beta/b}"  # Handle beta for SRC_URI
+	MOZ_PV="${MOZ_PV%%_rc*}"    # Handle rc for SRC_URI
+fi
 
 if [[ -n ${MOZ_ESR} ]] ; then
 	# ESR releases have slightly different version numbers
@@ -28,6 +34,8 @@ fi
 
 MOZ_PN="${PN%-bin}"
 MOZ_P="${MOZ_PN}-${MOZ_PV}"
+MOZ_PV_DISTFILES="${MOZ_PV}${MOZ_PV_SUFFIX}"
+MOZ_P_DISTFILES="${MOZ_PN}-${MOZ_PV_DISTFILES}"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs \
@@ -43,13 +51,13 @@ PATCH_URIS=(
 	https://dev.gentoo.org/~{axs,polynomial-c,whissi}/mozilla/patchsets/${FIREFOX_PATCHSET}
 )
 
-SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz
+SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz -> ${MOZ_P_DISTFILES}.sources.tar.xz
 	${PATCH_URIS[@]}"
 
 DESCRIPTION="Thunderbird Mail Client"
 HOMEPAGE="https://www.mozilla.org/thunderbird"
 
-KEYWORDS="amd64 ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 
 SLOT="0/$(ver_cut 1)"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
@@ -232,7 +240,7 @@ mozilla_set_globals() {
 		fi
 
 		SRC_URI+=" l10n_${xflag/[_@]/-}? ("
-		SRC_URI+=" ${MOZ_SRC_BASE_URI}/linux-x86_64/xpi/${lang}.xpi -> ${MOZ_P}-${lang}.xpi"
+		SRC_URI+=" ${MOZ_SRC_BASE_URI}/linux-x86_64/xpi/${lang}.xpi -> ${MOZ_P_DISTFILES}-${lang}.xpi"
 		SRC_URI+=" )"
 		IUSE+=" l10n_${xflag/[_@]/-}"
 	done
@@ -509,14 +517,20 @@ src_configure() {
 		# Force clang
 		einfo "Enforcing the use of clang due to USE=clang ..."
 		have_switched_compiler=yes
+		AR=llvm-ar
 		CC=${CHOST}-clang
 		CXX=${CHOST}-clang++
+		NM=llvm-nm
+		RANLIB=llvm-ranlib
 	elif ! use clang && ! tc-is-gcc ; then
 		# Force gcc
 		have_switched_compiler=yes
 		einfo "Enforcing the use of gcc due to USE=-clang ..."
+		AR=gcc-ar
 		CC=${CHOST}-gcc
 		CXX=${CHOST}-g++
+		NM=gcc-nm
+		RANLIB=gcc-ranlib
 	fi
 
 	if [[ -n "${have_switched_compiler}" ]] ; then
@@ -559,6 +573,11 @@ src_configure() {
 
 		if use pgo ; then
 			mozconfig_add_options_ac '+pgo' MOZ_PGO=1
+
+			if use clang ; then
+				# Used in build/pgo/profileserver.py
+				export LLVM_PROFDATA="llvm-profdata"
+			fi
 		fi
 	else
 		# Avoid auto-magic on linker

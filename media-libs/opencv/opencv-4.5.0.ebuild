@@ -12,14 +12,14 @@ HOMEPAGE="https://opencv.org"
 TINY_DNN_PV="1.0.0a3"
 SRC_URI="https://github.com/${PN}/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz
 	dnnsamples? ( https://dev.gentoo.org/~amynka/snap/${PN}-3.4.0-res10_300x300-caffeemodel.tar.gz )
-	download? ( https://github.com/rossbridger/opencv-extdep/archive/${PV}.tar.gz -> ${P}_extdep.tar.gz )
+	download? ( https://github.com/rossbridger/opencv-extdep/archive/4.4.0.tar.gz -> ${PN}-4.4.0_extdep.tar.gz )
 	contrib? (
 		https://github.com/${PN}/${PN}_contrib/archive/${PV}.tar.gz -> ${P}_contrib.tar.gz
 		contribdnn? ( https://dev.gentoo.org/~amynka/snap/${PN}-3.4.0-face_landmark_model.tar.gz )
 		contribxfeatures2d? ( https://dev.gentoo.org/~amynka/snap/vgg_boostdesc-3.2.0.tar.gz )
 	)"
 
-LICENSE="BSD"
+LICENSE="Apache-2.0"
 SLOT="0/${PV}" # subslot = libopencv* soname version
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 IUSE="contrib contribcvv contribdnn contribfreetype contribhdf contribovis contribsfm contribxfeatures2d cuda debug dnnsamples download +eigen examples +features2d ffmpeg gdal gflags glog gphoto2 gstreamer gtk3 ieee1394 jpeg jpeg2k lapack lto opencl openexr opengl openmp opencvapps png +python qt5 tesseract testprograms threads tiff vaapi v4l vtk webp xine"
@@ -283,7 +283,7 @@ src_prepare() {
 	cmake_src_prepare
 
 	# remove bundled stuff
-	rm -rf 3rdparty || die "Removing 3rd party components failed"
+	rm -r 3rdparty || die "Removing 3rd party components failed"
 	sed -e '/add_subdirectory(.*3rdparty.*)/ d' \
 		-i CMakeLists.txt cmake/*cmake || die
 
@@ -299,7 +299,7 @@ src_prepare() {
 	fi
 
 	if use download; then
-		mv "${WORKDIR}/${PN}-extdep-${PV}" "${WORKDIR}/${P}/.cache/" || die
+		mv "${WORKDIR}/${PN}-extdep-4.4.0" "${WORKDIR}/${P}/.cache/" || die
 	fi
 
 	java-pkg-opt-2_src_prepare
@@ -457,7 +457,9 @@ multilib_src_configure() {
 	#===================================================
 	local CPU_BASELINE=""
 	for i in "${CPU_FEATURES_MAP[@]}" ; do
-		use ${i%:*} && CPU_BASELINE="${CPU_BASELINE}${i#*:};"
+		if [[ ${ABI} != x86 || ${i%:*} != "cpu_flags_x86_avx2" ]]; then # workaround for Bug 747163
+			use ${i%:*} && CPU_BASELINE="${CPU_BASELINE}${i#*:};"
+		fi
 	done
 
 	GLOBALCMAKEARGS+=(
@@ -529,7 +531,7 @@ python_module_compile() {
 
 	# Regenerate cache file. Can't use rebuild_cache as it won't
 	# have the Gentoo specific options.
-	rm -rf CMakeCache.txt || die "rm failed"
+	rm CMakeCache.txt || die "rm failed"
 	cmake_src_configure
 	cmake_src_compile
 	cmake_src_install
@@ -537,7 +539,7 @@ python_module_compile() {
 	# Remove compiled binary so new version compiles
 	# Avoid conflicts with new module builds as build system doesn't
 	# really support it.
-	rm -rf modules/python2 || die "rm failed"
+	rm -r modules/python3 || die "rm failed"
 
 	python_optimize "${ED}"/$(python_get_sitedir)
 }
