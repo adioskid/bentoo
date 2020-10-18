@@ -12,13 +12,16 @@ SRC_URI="https://www.alsa-project.org/files/pub/lib/${P}.tar.bz2"
 
 LICENSE="LGPL-2.1"
 SLOT="0"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~alpha ~amd64 ~arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-linux ~x86-linux"
 IUSE="alisp debug doc elibc_uclibc python +thread-safety"
 
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
 BDEPEND="doc? ( >=app-doc/doxygen-1.2.6 )"
-RDEPEND="python? ( ${PYTHON_DEPS} )"
+RDEPEND="python? ( ${PYTHON_DEPS} )
+	media-libs/alsa-topology-conf
+	media-libs/alsa-ucm-conf
+"
 DEPEND="${RDEPEND}"
 
 PATCHES=(
