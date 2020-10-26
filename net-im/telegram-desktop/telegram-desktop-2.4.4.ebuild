@@ -3,20 +3,29 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+CMAKE_MAKEFILE_GENERATOR="ninja"
+PYTHON_COMPAT=( python3_{7,8,9} )
 
-inherit cmake desktop flag-o-matic python-any-r1 xdg-utils
+inherit cmake desktop flag-o-matic ninja-utils python-any-r1 xdg-utils
 
 MY_P="tdesktop-${PV}-full"
+TG_OWT_COMMIT="c73a4718cbff7048373a63db32068482e5fd11ef"
 
 DESCRIPTION="Official desktop client for Telegram"
 HOMEPAGE="https://desktop.telegram.org"
-SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${MY_P}.tar.gz"
+SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${MY_P}.tar.gz
+	webrtc? (
+		https://github.com/desktop-app/tg_owt/archive/c73a4718cbff7048373a63db32068482e5fd11ef.tar.gz -> tg_owt-${TG_OWT_COMMIT}.tar.gz
+	)
+"
 
-LICENSE="GPL-3-with-openssl-exception"
+LICENSE="GPL-3-with-openssl-exception LGPL-2+
+	!system-rlottie? ( BSD FTL JSON MIT )
+	webrtc? ( BSD )
+"
 SLOT="0"
 KEYWORDS="~amd64 ~ppc64"
-IUSE="+alsa +dbus enchant +gtk +hunspell libressl pulseaudio +spell +X"
+IUSE="+alsa +dbus enchant +gtk +hunspell libressl +pulseaudio +spell system-rlottie +webrtc +X"
 
 RDEPEND="
 	!net-im/telegram-desktop-bin
@@ -33,7 +42,7 @@ RDEPEND="
 	dev-qt/qtwidgets:5[png,X(-)?]
 	media-fonts/open-sans
 	media-libs/fontconfig:=
-	~media-libs/libtgvoip-2.4.4_p20200704[alsa?,pulseaudio?]
+	~media-libs/libtgvoip-2.4.4_p20200818[alsa?,pulseaudio?]
 	media-libs/openal[alsa?,pulseaudio?]
 	media-libs/opus:=
 	media-video/ffmpeg:=[alsa?,opus,pulseaudio?]
@@ -53,6 +62,8 @@ RDEPEND="
 	)
 	hunspell? ( >=app-text/hunspell-1.7:= )
 	pulseaudio? ( media-sound/pulseaudio )
+	webrtc? ( media-libs/libjpeg-turbo:= )
+	system-rlottie? ( media-libs/rlottie:= )
 "
 
 DEPEND="
@@ -65,6 +76,7 @@ DEPEND="
 BDEPEND="
 	>=dev-util/cmake-3.16
 	virtual/pkgconfig
+	webrtc? ( amd64? ( dev-lang/yasm ) )
 "
 
 REQUIRED_USE="
@@ -72,6 +84,7 @@ REQUIRED_USE="
 	spell? (
 		^^ ( enchant hunspell )
 	)
+	webrtc? ( alsa pulseaudio )
 "
 
 S="${WORKDIR}/${MY_P}"
@@ -86,6 +99,20 @@ pkg_pretend() {
 	fi
 }
 
+src_unpack() {
+	default
+	use webrtc && mv -v "${WORKDIR}/tg_owt-${TG_OWT_COMMIT}" "${WORKDIR}/tg_owt"
+}
+
+build_tg_owt() {
+	einfo "Building tg_owt / webrtc"
+	mkdir -v "${WORKDIR}/tg_owt_build" || die
+	pushd "${WORKDIR}/tg_owt_build" > /dev/null || die
+	cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DTG_OWT_PACKAGED_BUILD=ON ../tg_owt || die
+	eninja
+	popd > /dev/null || die
+}
+
 src_configure() {
 	local mycxxflags=(
 		-Wno-deprecated-declarations
@@ -95,6 +122,9 @@ src_configure() {
 
 	append-cxxflags "${mycxxflags[@]}"
 
+	# we have to build tg_owt now before running telegram's cmake
+	use webrtc && build_tg_owt
+
 	# TODO: unbundle header-only libs, ofc telegram uses git versions...
 	# it fals with tl-expected-1.0.0, so we use bundled for now to avoid git rev snapshots
 	# EXPECTED VARIANT
@@ -103,14 +133,15 @@ src_configure() {
 		-DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 		-DDESKTOP_APP_USE_GLIBC_WRAPS=OFF
 		-DDESKTOP_APP_USE_PACKAGED=ON
-		-DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF
-		-DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF
-		-DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF
+		-DDESKTOP_APP_USE_PACKAGED_FONTS=ON
+		-DDESKTOP_APP_LOTTIE_USE_CACHE=$(usex system-rlottie OFF ON) # we disable cache with system rlottie
 		-DTDESKTOP_DISABLE_GTK_INTEGRATION="$(usex gtk OFF ON)"
 		-DTDESKTOP_LAUNCHER_BASENAME="${PN}"
 		-DDESKTOP_APP_DISABLE_DBUS_INTEGRATION="$(usex dbus OFF ON)"
 		-DDESKTOP_APP_DISABLE_SPELLCHECK="$(usex spell OFF ON)" # enables hunspell (recommended)
+		-DDESKTOP_APP_DISABLE_WEBRTC_INTEGRATION="$(usex webrtc OFF ON)" # requires pulse AND alsa
 		-DDESKTOP_APP_USE_ENCHANT="$(usex enchant ON OFF)" # enables enchant and disables hunspell
+		$(usex webrtc "-Dtg_owt_DIR=${WORKDIR}/tg_owt_build" '')
 	)
 
 	if [[ -n ${MY_TDESKTOP_API_ID} && -n ${MY_TDESKTOP_API_HASH} ]]; then
@@ -143,7 +174,7 @@ pkg_postinst() {
 	xdg_desktop_database_update
 	xdg_icon_cache_update
 	xdg_mimeinfo_database_update
-	use gtk || einfo "enable \'gtk\' useflag if you have image copy-paste problems"
+	use gtk || einfo "enable 'gtk' useflag if you have image copy-paste problems"
 }
 
 pkg_postrm() {
