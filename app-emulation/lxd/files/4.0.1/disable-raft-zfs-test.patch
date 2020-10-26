@@ -1,0 +1,16 @@
+--- /deps/raft/configure.ac.orig	2020-04-22 00:16:28.000000000 +0300
++++ /deps/raft/configure.ac	2020-04-28 08:33:20.000000000 +0300
+@@ -48,12 +48,7 @@
+ AC_CHECK_HEADERS([stdlib.h string.h stdio.h assert.h unistd.h linux/io_uring.h linux/aio_abi.h])
+ 
+ # Check if zfs >= 0.8.0 is available (for direct I/O support).
+-AC_CHECK_PROG(have_zfs, zfs, yes)
+-AS_IF([test x"$have_zfs" = x"yes"],
+-   [AX_COMPARE_VERSION($(zfs version 2>/dev/null | cut -f 2 -d - | head -1), [ge], [0.8.0],
+-       [AC_DEFINE(RAFT_HAVE_ZFS_WITH_DIRECT_IO)], [])
+-   ],
+-   [])
++AC_DEFINE(RAFT_HAVE_ZFS_WITH_DIRECT_IO)
+ 
+ # Checks for typedefs, structures, and compiler characteristics.
+ AC_TYPE_SIZE_T
