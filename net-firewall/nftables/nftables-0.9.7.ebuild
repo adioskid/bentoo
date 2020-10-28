@@ -18,11 +18,11 @@ IUSE="debug doc +gmp json +modern-kernel python +readline static-libs xtables"
 
 RDEPEND="
 	>=net-libs/libmnl-1.0.4:0=
+	>=net-libs/libnftnl-1.1.8:0=
 	gmp? ( dev-libs/gmp:0= )
 	json? ( dev-libs/jansson )
 	python? ( ${PYTHON_DEPS} )
 	readline? ( sys-libs/readline:0= )
-	>=net-libs/libnftnl-1.1.7:0=
 	xtables? ( >=net-firewall/iptables-1.6.1 )
 "
 
@@ -111,7 +111,7 @@ src_install() {
 	exeinto /usr/libexec/${PN}
 	newexe "${FILESDIR}"/libexec/${PN}${mksuffix}.sh ${PN}.sh
 	newconfd "${FILESDIR}"/${PN}${mksuffix}.confd ${PN}
-	newinitd "${FILESDIR}"/${PN}${mksuffix}.init-r1 ${PN}
+	newinitd "${FILESDIR}"/${PN}${mksuffix}.init ${PN}
 	keepdir /var/lib/nftables
 
 	systemd_dounit "${FILESDIR}"/systemd/${PN}-restore.service
