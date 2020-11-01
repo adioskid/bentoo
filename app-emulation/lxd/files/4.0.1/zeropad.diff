@@ -1,0 +1,24 @@
+diff -urN go/src/github.com/lxc/lxd/lxd/devices.go go-fixed/src/github.com/lxc/lxd/lxd/devices.go
+--- go/src/github.com/lxc/lxd/lxd/devices.go	2020-03-31 22:33:31.000000000 +0300
++++ go-fixed/src/github.com/lxc/lxd/lxd/devices.go	2020-04-12 00:36:08.000000000 +0300
+@@ -256,13 +256,19 @@
+ 				product := ""
+ 				if action == "add" {
+ 					vendor, product, ok = ueventParseVendorProduct(props, subsystem, devname)
++					logger.Errorf("Parsed vendor/product for %s, got: %s/%s", devname, vendor, product)
+ 					if !ok {
+ 						continue
+ 					}
+ 				}
+ 
+ 				zeroPad := func(s string, l int) string {
+-					return strings.Repeat("0", l-len(s)) + s
++					if len(s) <= 4 {
++						return strings.Repeat("0", l-len(s)) + s
++					} else {
++						logger.Errorf("Can't zeropad vendor/product: '%s'", s)
++						return s
++					}
+ 				}
+ 
+ 				// zeropad
