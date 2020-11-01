@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{7..9} )
 inherit autotools python-single-r1
 
 DESCRIPTION="Standalone file import filter library for spreadsheet documents"
@@ -18,7 +18,7 @@ else
 fi
 
 LICENSE="MIT"
-SLOT="0/0.15" # based on SONAME of liborcus.so
+SLOT="0/0.16" # based on SONAME of liborcus.so
 IUSE="python +spreadsheet-model tools"
 
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
@@ -32,8 +32,6 @@ RDEPEND="
 DEPEND="${RDEPEND}
 	dev-util/mdds:1/1.5
 "
-
-PATCHES=( "${FILESDIR}/${P}-bashism.patch" ) # bug 723130
 
 pkg_setup() {
 	use python && python-single-r1_pkg_setup
