@@ -9,11 +9,11 @@ DESCRIPTION="Operating system and container binary deployment and upgrades"
 HOMEPAGE="https://ostreedev.github.io/ostree/"
 SRC_URI="https://github.com/ostreedev/ostree/releases/download/v${PV}/lib${P}.tar.xz -> ${P}.tar.xz"
 
-KEYWORDS="~amd64 ~arm64 ~x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 LICENSE="LGPL-2+"
 SLOT="0"
 
-IUSE="archive curl doc dracut gnutls +gpg grub http2 httpd introspection libmount selinux sodium ssl soup systemd zeroconf"
+IUSE="archive curl doc dracut gnutls +gpg grub http2 httpd introspection libmount libressl selinux sodium ssl soup systemd zeroconf"
 RESTRICT="test"
 REQUIRED_USE="httpd? ( || ( curl soup ) )"
 
@@ -33,7 +33,11 @@ COMMON_DEPEND="
 	introspection? ( dev-libs/gobject-introspection )
 	ssl? (
 		gnutls? ( net-libs/gnutls )
-		!gnutls? ( dev-libs/openssl:0= ) )
+		!gnutls? (
+			!libressl? ( dev-libs/openssl:0= )
+			libressl? ( dev-libs/libressl:0= )
+		)
+	)
 	>=sys-fs/fuse-2.9.2:0
 	sys-libs/zlib
 	libmount? ( sys-apps/util-linux )
