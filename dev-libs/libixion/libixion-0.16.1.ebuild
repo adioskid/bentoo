@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{7..9} )
 inherit autotools python-single-r1
 
 DESCRIPTION="General purpose formula parser & interpreter"
@@ -14,11 +14,11 @@ if [[ ${PV} == *9999 ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://kohei.us/files/ixion/src/${P}.tar.xz"
-	KEYWORDS="amd64 ~arm arm64 ~ppc ~ppc64 x86"
+	KEYWORDS="amd64 ~arm arm64 ~ppc ~ppc64 ~x86"
 fi
 
 LICENSE="MIT"
-SLOT="0/0.15" # based on SONAME of libixion.so
+SLOT="0/0.16" # based on SONAME of libixion.so
 IUSE="debug python +threads"
 
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
@@ -31,11 +31,6 @@ RDEPEND="
 DEPEND="${RDEPEND}
 	dev-libs/spdlog
 "
-
-PATCHES=(
-	"${FILESDIR}/${P}-musl-clang.patch" # bug 714018
-	"${FILESDIR}/${P}-bashism.patch" # bug 723128
-)
 
 pkg_setup() {
 	use python && python-single-r1_pkg_setup
