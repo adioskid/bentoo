@@ -1,8 +1,8 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
-inherit eutils flag-o-matic linux-info linux-mod multilib-minimal nvidia-driver \
-	portability toolchain-funcs unpacker user udev
+EAPI=7
+inherit desktop eutils flag-o-matic linux-info linux-mod multilib-minimal \
+nvidia-driver portability toolchain-funcs unpacker user udev
 
 DESCRIPTION="NVIDIA Accelerated Graphics Driver"
 HOMEPAGE="http://www.nvidia.com/ http://www.nvidia.com/Download/Find.aspx"
@@ -10,42 +10,28 @@ HOMEPAGE="http://www.nvidia.com/ http://www.nvidia.com/Download/Find.aspx"
 AMD64_FBSD_NV_PACKAGE="NVIDIA-FreeBSD-x86_64-${PV}"
 AMD64_NV_PACKAGE="NVIDIA-Linux-x86_64-${PV}"
 ARM_NV_PACKAGE="NVIDIA-Linux-armv7l-gnueabihf-${PV}"
-X86_FBSD_NV_PACKAGE="NVIDIA-FreeBSD-x86-${PV}"
-X86_NV_PACKAGE="NVIDIA-Linux-x86-${PV}"
 
 NV_URI="http://download.nvidia.com/XFree86/"
-
 SRC_URI="
-	amd64? ( ${NV_URI}Linux-x86_64/${PV}/${AMD64_NV_PACKAGE}-no-compat32.run )
 	amd64-fbsd? ( ${NV_URI}FreeBSD-x86_64/${PV}/${AMD64_FBSD_NV_PACKAGE}.tar.gz )
+	amd64? ( ${NV_URI}Linux-x86_64/${PV}/${AMD64_NV_PACKAGE}.run )
+	tools? (
+		https://download.nvidia.com/XFree86/nvidia-settings/nvidia-settings-${PV}.tar.bz2
+	)
 "
 
-if [ ${PV%%.*} -le 390 ] ; then
-	SRC_URI="${SRC_URI}
-		x86? ( ${NV_URI}Linux-x86/${PV}/${X86_NV_PACKAGE}.run )
-		x86-fbsd? ( ${NV_URI}FreeBSD-x86/${PV}/${X86_FBSD_NV_PACKAGE}.tar.gz )
-		arm? ( ${NV_URI}Linux-32bit-ARM/${PV}/${ARM_NV_PACKAGE}.run )
-	"
-fi
-
-LICENSE="GPL-2 NVIDIA-r2"
-SLOT="0/${PV%.*}"
-KEYWORDS="-* ~amd64 ~amd64-fbsd"
-RESTRICT="bindist strip"
 EMULTILIB_PKG="true"
+KEYWORDS="-* ~amd64"
+LICENSE="GPL-2 NVIDIA-r2"
+SLOT="0/${PV%%.*}"
 
-IUSE="+X +opencl +cuda +tools"
+IUSE="+X +opencl +cuda +tools +glvnd gtk3 uvm wayland"
 IUSE_KERNELS="kernel_FreeBSD kernel_linux"
 IUSE_NV_PKG="+opengl +gpgpu +nvpd +nvifr +nvfbc +nvcuvid +nvml +encodeapi +vdpau +xutils +xdriver"
-
-if [ ${PV%%.*} -ge 384 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +egl" ; IUSE="${IUSE} +glvnd +uvm +wayland" ; else IUSE="${IUSE} uvm" ; fi
-if [ ${PV%%.*} -ge 400 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +optix +raytracing" ; fi
-if [ ${PV%%.*} -ge 418 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +opticalflow" ; fi
 
 IUSE_DUMMY="static-libs acpi"
 
 IUSE="${IUSE} ${IUSE_KERNELS} ${IUSE_NV_PKG} ${IUSE_DUMMY}"
-
 
 COMMON="
 	opencl? (
@@ -53,37 +39,51 @@ COMMON="
 		dev-libs/ocl-icd
 	)
 	kernel_linux? ( >=sys-libs/glibc-2.6.1 )
-	X? ( app-misc/pax-utils )
-"
-
-# glvnd, egl, and wayland support begand in 384.x
-if [ ${PV%%.*} -ge 384 ] ; then
-	COMMON="${COMMON}
-		X? (
-			!glvnd? ( >=app-eselect/eselect-opengl-1.0.9 )
-			glvnd? ( >=media-libs/libglvnd-1.0.0.20180424 )
+	tools? (
+		dev-libs/atk
+		dev-libs/glib:2
+		dev-libs/jansson
+		gtk3? (
+			x11-libs/gtk+:3
 		)
-	"
-	RDEPEND="wayland? ( dev-libs/wayland )"
-fi
+		x11-libs/cairo
+		x11-libs/gdk-pixbuf[X]
+		x11-libs/gtk+:2
+		x11-libs/libX11
+		x11-libs/libXext
+		x11-libs/libXrandr
+		x11-libs/libXv
+		x11-libs/libXxf86vm
+		x11-libs/pango[X]
+	)
+	X? (
+		>=x11-libs/libvdpau-1.0
+		app-misc/pax-utils
+		glvnd? (
+			>=media-libs/libglvnd-1.0.0.20180424
+		)
+	)
+"
 
 DEPEND="
 	${COMMON}
 	kernel_linux? ( virtual/linux-sources )
+	tools? ( sys-apps/dbus )
 "
 
 RDEPEND="
 	${COMMON}
 	${RDEPEND}
+	uvm? ( >=virtual/opencl-3 )
+	wayland? ( dev-libs/wayland )
 	acpi? ( sys-power/acpid )
 	X? (
 		>=x11-base/xorg-server-1.20.8
 		>=x11-libs/libX11-1.6.2
 		>=x11-libs/libXext-1.3.2
-		>=x11-libs/libvdpau-1.0
 		sys-libs/zlib
-		x11-libs/gtk+:3
 	)
+	kernel_linux? ( net-libs/libtirpc )
 "
 
 S="${WORKDIR}/"
@@ -112,10 +112,11 @@ NV_X_MODDIR="xorg/modules"
 # Fixups for issues with particular versions of the package.
 nv_do_fixups() {
 
-	use_if_iuse wayland \
+	if use wayland \
 		&& [ "${D}${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1".* != "${D}${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1.*" ] \
-		&& ! [ -h "${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1" ] \
-		&& dosym "$(cd "${D}${NV_NATIVE_LIBDIR}" && ls -1 libnvidia-egl-wayland.so.1.* | tail -1)" "${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1"
+		&& ! [ -h "${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1" ]; then
+			dosym "$(cd "${D}${NV_NATIVE_LIBDIR}" && ls -1 libnvidia-egl-wayland.so.1.* | tail -1)" "${NV_NATIVE_LIBDIR}/libnvidia-egl-wayland.so.1"
+	fi
 }
 
 # Check if we should use a given nvidia MODULE:<arg>
@@ -128,15 +129,15 @@ nv_use() {
 		compiler|gpgpucomp) mymodule="gpgpu" ;;
 	esac
 
-	[ -z "${mymodule}" ] || use_if_iuse "${mymodule}" || return 1
+	[ -z "${mymodule}" ] || use "${mymodule}" || return 1
 	return 0
 }
 
 # Determine whether we should install GLVND, NON_GLVND, or neither version.
 _nv_glvnd() {
 	case "$1" in
-		GLVND) use_if_iuse glvnd && return 1 ;; # We want to use the system libglvnd, so skip installing from packaging.
-		NON_GLVND) ! use_if_iuse glvnd && return 0 ;;
+		GLVND) use glvnd && return 1 ;; # We want to use the system libglvnd, so skip installing from packaging.
+		NON_GLVND) ! use glvnd && return 0 ;;
 	esac
 	return 1
 }
@@ -384,7 +385,7 @@ nv_parse_manifest() {
 }
 
 nvidia_drivers_versions_check() {
-	if use_if_iuse amd64 && has_multilib_profile && \
+	if use amd64 && has_multilib_profile && \
 		[ "${DEFAULT_ABI}" != "amd64" ]; then
 		eerror "This ebuild doesn't currently support changing your default ABI"
 		die "Unexpected \${DEFAULT_ABI} = ${DEFAULT_ABI}"
@@ -398,11 +399,10 @@ nvidia_drivers_versions_check() {
 	# some kind of guidance as to what version they should install. This tries
 	# to point the user in the right direction but can't be perfect. check
 	# nvidia-driver.eclass
-	nvidia-driver-check-warning
+	nvidia-driver_check_gpu
 
 	# Kernel features/options to check for
 	CONFIG_CHECK="~ZONE_DMA ~MTRR ~SYSVIPC ~!LOCKDEP"
-	use_if_iuse x86 && CONFIG_CHECK+=" ~HIGHMEM"
 	use cuda && CONFIG_CHECK+=" ~NUMA ~CPUSETS"
 
 	# Now do the above checks
@@ -429,12 +429,10 @@ pkg_setup() {
 src_unpack() {
 	if [ -z "${SRC_URI}" ] ; then
 		if [ -d "${NV_DISTFILES_PATH}" ] ; then
-			use_if_iuse amd64 && NV_PACKAGE="${AMD64_NV_PACKAGE}"
-			use_if_iuse amd64-fbsd && NV_PACKAGE="${AMD64_FBSD_NV_PACKAGE}"
-			use_if_iuse arm64 && NV_PACKAGE="${ARM64_NV_PACKAGE}"
-			use_if_iuse x86 && NV_PACKAGE="${X86_NV_PACKAGE}"
-			use_if_iuse x86-fbsd && NV_PACKAGE="${X86_FBSD_NV_PACKAGE}"
-			use_if_iuse arm && NV_PACKAGE="${ARM_NV_PACKAGE}"
+			use amd64 && NV_PACKAGE="${AMD64_NV_PACKAGE}"
+			use amd64-fbsd && NV_PACKAGE="${AMD64_FBSD_NV_PACKAGE}"
+			use arm64 && NV_PACKAGE="${ARM64_NV_PACKAGE}"
+			use arm && NV_PACKAGE="${ARM_NV_PACKAGE}"
 			if [ -f "${NV_DISTFILES_PATH}/${NV_PACKAGE}.run" ] ; then
 				unpacker "${NV_DISTFILES_PATH}/${NV_PACKAGE}.run"
 			else
@@ -498,17 +496,17 @@ src_install() {
 	fi
 
 	# If 'egl' flag is enabled, link 10_nvidia.json into the system egl_vendor.d directory.
-	use_if_iuse egl && dosym "${NV_ROOT}/share/glvnd/egl_vendor.d/10_nvidia.json" "/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
+	use egl && dosym "${NV_ROOT}/share/glvnd/egl_vendor.d/10_nvidia.json" "/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
 
 	# If 'egl' flag is enabled, link 10_nvidia_wayland.json into the system egl_external_platform.d directory.
-	use_if_iuse wayland && dosym "${NV_ROOT}/share/egl/egl_external_platform.d/10_nvidia_wayland.json" "/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json"
+	use wayland && dosym "${NV_ROOT}/share/egl/egl_external_platform.d/10_nvidia_wayland.json" "/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json"
 
 	# OpenCL ICD for NVIDIA
 	# If 'opencl' or 'cuda' flags are enabled, link nvdidia.icd into system OpenCL/vendors directory.
 	( use opencl || use cuda ) && dosym "${NV_ROOT}/share/OpenCL/vendors/nvidia.icd" "/etc/OpenCL/vendors/nvidia.icd"
 
 	# On linux kernels, install nvidia-persistenced init and conf files after fixing up paths.
-	if use_if_iuse kernel_linux; then
+	if use kernel_linux; then
 		for filename in nvidia-{smi,persistenced}.init ; do
 			sed -e 's:/opt/bin:'"${NV_ROOT}"'/bin:g' "${FILESDIR}/${filename}" > "${T}/${filename}"
 			newinitd "${T}/${filename}" "${filename%.init}"
@@ -517,7 +515,7 @@ src_install() {
 	fi
 
 	# If we're not using glvnd support, then set up directory expected by eselect opengl: 
-	if ! use_if_iuse glvnd ; then
+	if ! use glvnd ; then
 		dosym "${NV_NATIVE_LIBDIR}/opengl/nvidia" "${EPREFIX}/usr/lib/opengl/nvidia"
 	fi
 
@@ -562,7 +560,7 @@ pkg_preinst() {
 pkg_postinst() {
 
 	# If we'e not using glvnd, switch to the nvidia opengl vendor implementation
-	! use_if_iuse glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old nvidia
+	! use glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old nvidia
 	use opencl && "${ROOT}"/usr/bin/eselect opencl set --use-old ocl-icd
 
 	readme.gentoo_print_elog
@@ -579,9 +577,9 @@ pkg_postinst() {
 }
 
 pkg_prerm() {
-	! use_if_iuse glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
+	! use glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
 }
 
 pkg_postrm() {
-	! use_if_iuse glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
+	! use glvnd && use X && "${ROOT}"/usr/bin/eselect opengl set --use-old xorg-x11
 }
