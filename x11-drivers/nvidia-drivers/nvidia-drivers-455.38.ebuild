@@ -1,8 +1,8 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
-inherit desktop eutils flag-o-matic linux-info linux-mod multilib-minimal \
-nvidia-driver portability toolchain-funcs unpacker user udev
+EAPI=6
+inherit eutils flag-o-matic linux-info linux-mod multilib-minimal nvidia-driver \
+	portability toolchain-funcs unpacker user udev
 
 DESCRIPTION="NVIDIA Accelerated Graphics Driver"
 HOMEPAGE="http://www.nvidia.com/ http://www.nvidia.com/Download/Find.aspx"
@@ -10,28 +10,42 @@ HOMEPAGE="http://www.nvidia.com/ http://www.nvidia.com/Download/Find.aspx"
 AMD64_FBSD_NV_PACKAGE="NVIDIA-FreeBSD-x86_64-${PV}"
 AMD64_NV_PACKAGE="NVIDIA-Linux-x86_64-${PV}"
 ARM_NV_PACKAGE="NVIDIA-Linux-armv7l-gnueabihf-${PV}"
+X86_FBSD_NV_PACKAGE="NVIDIA-FreeBSD-x86-${PV}"
+X86_NV_PACKAGE="NVIDIA-Linux-x86-${PV}"
 
 NV_URI="http://download.nvidia.com/XFree86/"
+
 SRC_URI="
+	amd64? ( ${NV_URI}Linux-x86_64/${PV}/${AMD64_NV_PACKAGE}-no-compat32.run )
 	amd64-fbsd? ( ${NV_URI}FreeBSD-x86_64/${PV}/${AMD64_FBSD_NV_PACKAGE}.tar.gz )
-	amd64? ( ${NV_URI}Linux-x86_64/${PV}/${AMD64_NV_PACKAGE}.run )
-	tools? (
-		https://download.nvidia.com/XFree86/nvidia-settings/nvidia-settings-${PV}.tar.bz2
-	)
 "
 
-EMULTILIB_PKG="true"
-KEYWORDS="-* ~amd64"
-LICENSE="GPL-2 NVIDIA-r2"
-SLOT="0/${PV%%.*}"
+if [ ${PV%%.*} -le 390 ] ; then
+	SRC_URI="${SRC_URI}
+		x86? ( ${NV_URI}Linux-x86/${PV}/${X86_NV_PACKAGE}.run )
+		x86-fbsd? ( ${NV_URI}FreeBSD-x86/${PV}/${X86_FBSD_NV_PACKAGE}.tar.gz )
+		arm? ( ${NV_URI}Linux-32bit-ARM/${PV}/${ARM_NV_PACKAGE}.run )
+	"
+fi
 
-IUSE="+X +opencl +cuda +tools +glvnd gtk3 uvm wayland"
+LICENSE="GPL-2 NVIDIA-r2"
+SLOT="0/${PV%.*}"
+KEYWORDS="-* ~amd64 ~amd64-fbsd"
+RESTRICT="bindist strip"
+EMULTILIB_PKG="true"
+
+IUSE="+X +opencl +cuda +tools"
 IUSE_KERNELS="kernel_FreeBSD kernel_linux"
 IUSE_NV_PKG="+opengl +gpgpu +nvpd +nvifr +nvfbc +nvcuvid +nvml +encodeapi +vdpau +xutils +xdriver"
+
+if [ ${PV%%.*} -ge 384 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +egl" ; IUSE="${IUSE} +glvnd +uvm +wayland" ; else IUSE="${IUSE} uvm" ; fi
+if [ ${PV%%.*} -ge 400 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +optix +raytracing" ; fi
+if [ ${PV%%.*} -ge 418 ] ; then IUSE_NV_PKG="${IUSE_NV_PKG} +opticalflow" ; fi
 
 IUSE_DUMMY="static-libs acpi"
 
 IUSE="${IUSE} ${IUSE_KERNELS} ${IUSE_NV_PKG} ${IUSE_DUMMY}"
+
 
 COMMON="
 	opencl? (
@@ -39,51 +53,37 @@ COMMON="
 		dev-libs/ocl-icd
 	)
 	kernel_linux? ( >=sys-libs/glibc-2.6.1 )
-	tools? (
-		dev-libs/atk
-		dev-libs/glib:2
-		dev-libs/jansson
-		gtk3? (
-			x11-libs/gtk+:3
-		)
-		x11-libs/cairo
-		x11-libs/gdk-pixbuf[X]
-		x11-libs/gtk+:2
-		x11-libs/libX11
-		x11-libs/libXext
-		x11-libs/libXrandr
-		x11-libs/libXv
-		x11-libs/libXxf86vm
-		x11-libs/pango[X]
-	)
-	X? (
-		>=x11-libs/libvdpau-1.0
-		app-misc/pax-utils
-		glvnd? (
-			>=media-libs/libglvnd-1.0.0.20180424
-		)
-	)
+	X? ( app-misc/pax-utils )
 "
+
+# glvnd, egl, and wayland support begand in 384.x
+if [ ${PV%%.*} -ge 384 ] ; then
+	COMMON="${COMMON}
+		X? (
+			!glvnd? ( >=app-eselect/eselect-opengl-1.0.9 )
+			glvnd? ( >=media-libs/libglvnd-1.0.0.20180424 )
+		)
+	"
+	RDEPEND="wayland? ( dev-libs/wayland )"
+fi
 
 DEPEND="
 	${COMMON}
 	kernel_linux? ( virtual/linux-sources )
-	tools? ( sys-apps/dbus )
 "
 
 RDEPEND="
 	${COMMON}
 	${RDEPEND}
-	uvm? ( >=virtual/opencl-3 )
-	wayland? ( dev-libs/wayland )
 	acpi? ( sys-power/acpid )
 	X? (
 		>=x11-base/xorg-server-1.20.8
 		>=x11-libs/libX11-1.6.2
 		>=x11-libs/libXext-1.3.2
+		>=x11-libs/libvdpau-1.0
 		sys-libs/zlib
+		x11-libs/gtk+:3
 	)
-	kernel_linux? ( net-libs/libtirpc )
 "
 
 S="${WORKDIR}/"
@@ -398,10 +398,11 @@ nvidia_drivers_versions_check() {
 	# some kind of guidance as to what version they should install. This tries
 	# to point the user in the right direction but can't be perfect. check
 	# nvidia-driver.eclass
-	nvidia-driver_check_gpu
+	nvidia-driver-check-warning
 
 	# Kernel features/options to check for
 	CONFIG_CHECK="~ZONE_DMA ~MTRR ~SYSVIPC ~!LOCKDEP"
+	use_if_iuse x86 && CONFIG_CHECK+=" ~HIGHMEM"
 	use cuda && CONFIG_CHECK+=" ~NUMA ~CPUSETS"
 
 	# Now do the above checks

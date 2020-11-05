@@ -1,6 +1,6 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=6
 inherit eutils flag-o-matic linux-info linux-mod multilib-minimal nvidia-driver \
 	portability toolchain-funcs unpacker user udev
 
@@ -14,6 +14,12 @@ KEYWORDS="-* ~amd64 ~amd64-fbsd"
 RESTRICT="bindist"
 
 IUSE="kernel_FreeBSD kernel_linux"
+
+if [ ${PV%%.*} -ge 364 ] ; then
+	IUSE="${IUSE} +kms +uvm"
+elif [ ${PV%%.*} -ge 331 ] ; then
+	IUSE="${IUSE} uvm"
+fi
 
 DEPEND="
 	x11-drivers/nvidia-drivers
@@ -35,7 +41,7 @@ nvidia_drivers_versions_check() {
 	# some kind of guidance as to what version they should install. This tries
 	# to point the user in the right direction but can't be perfect. check
 	# nvidia-driver.eclass
-	nvidia-driver_check_kernel
+	nvidia-driver-check-warning
 
 	# Kernel features/options to check for
 	CONFIG_CHECK="~ZONE_DMA ~MTRR ~SYSVIPC ~!LOCKDEP"
