@@ -12,7 +12,7 @@ DESCRIPTION="Library for rendering dynamic web content in Qt5 C++ and QML applic
 SRC_URI+=" ppc64? ( https://dev.gentoo.org/~gyakovlev/distfiles/${PN}-5.15.0-ppc64.tar.xz )"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 ~arm arm64 ~ppc64 ~x86"
+	KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 fi
 
 IUSE="alsa bindist designer geolocation jumbo-build kerberos pulseaudio +system-ffmpeg +system-icu widgets"
@@ -81,7 +81,10 @@ DEPEND="${RDEPEND}
 	sys-devel/bison
 "
 
-PATCHES=( "${FILESDIR}/${PN}-5.15.0-disable-fatal-warnings.patch" ) # bug 695446
+PATCHES=(
+	"${FILESDIR}/${PN}-5.15.0-disable-fatal-warnings.patch" # bug 695446
+	"${FILESDIR}/${P}-icu-68.patch" # bug 751997
+)
 
 src_prepare() {
 	if use ppc64; then
