@@ -1,0 +1,17 @@
+https://bugs.gentoo.org/170146
+http://gcc.gnu.org/ml/gcc-patches/2009-11/msg00403.html
+https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=223888
+
+alpha: turn -mcpu=<cpu> into -m<cpu> for assembler all the time
+
+--- a/gcc/config/alpha/elf.h
++++ b/gcc/config/alpha/elf.h
+@@ -46,7 +46,7 @@ along with GCC; see the file COPYING3.  If not see
+ #define CC1_SPEC  "%{G*}"
+ 
+ #undef  ASM_SPEC
+-#define ASM_SPEC  "%{G*} %{relax:-relax} %{!gstabs*:-no-mdebug}%{gstabs*:-mdebug}"
++#define ASM_SPEC  "%{G*} %{relax:-relax} %{!gstabs*:-no-mdebug}%{gstabs*:-mdebug} %{mcpu=*:-m%*}"
+ 
+ #undef  IDENT_ASM_OP
+ #define IDENT_ASM_OP "\t.ident\t"

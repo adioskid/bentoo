@@ -1,0 +1,47 @@
+Modern glibc stopped providing ieee.a
+
+From 401a6ba8d6aa5a92acaedae24b84c59d284f446d Mon Sep 17 00:00:00 2001
+From: rguenth <rguenth@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 12 Jul 2018 11:53:34 +0000
+Subject: [PATCH] 2018-07-12  Richard Biener  <rguenther@suse.de>
+
+	PR target/84829
+	* config/gnu-user.h (GNU_USER_TARGET_NO_PTHREADS_LIB_SPEC):
+	Remove -mieee-fp handling.
+
+	* gcc.target/i386/pr84829.c: New testcase.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@262582 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                           | 6 ++++++
+ gcc/config/gnu-user.h                   | 2 +-
+ gcc/testsuite/ChangeLog                 | 5 +++++
+ gcc/testsuite/gcc.target/i386/pr84829.c | 7 +++++++
+ 4 files changed, 19 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/gcc.target/i386/pr84829.c
+
+--- a/gcc/config/gnu-user.h
++++ b/gcc/config/gnu-user.h
+@@ -120,7 +120,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ 
+ #define GNU_USER_TARGET_NO_PTHREADS_LIB_SPEC \
+   "%{shared:-lc} \
+-   %{!shared:%{mieee-fp:-lieee} %{profile:-lc_p}%{!profile:-lc}}"
++   %{!shared:%{profile:-lc_p}%{!profile:-lc}}"
+ 
+ #define GNU_USER_TARGET_LIB_SPEC \
+   "%{pthread:-lpthread} " \
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/i386/pr84829.c
+@@ -0,0 +1,7 @@
++/* { dg-do link } */
++/* { dg-options "-mieee-fp" } */
++
++int main()
++{
++  return 0;
++}
+-- 
+2.19.0
+

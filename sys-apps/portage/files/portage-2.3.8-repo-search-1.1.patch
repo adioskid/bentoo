@@ -1,0 +1,31 @@
+diff -urN portage-2.3.8/pym/_emerge/search.py portage-2.3.8-search/pym/_emerge/search.py
+--- portage-2.3.8/pym/_emerge/search.py	2017-08-16 18:06:53.000000000 -0600
++++ portage-2.3.8-search/pym/_emerge/search.py	2017-09-19 10:25:32.748162508 -0600
+@@ -419,14 +419,15 @@
+ 					mypkg = match.split("/")[1]
+ 					mycpv = match + "-" + myversion
+ 					myebuild = self._findname(mycpv)
++					repo = None
+ 					if myebuild:
+ 						pkg = Package(built=False, cpv=mycpv,
+ 							installed=False, metadata=metadata,
+ 							root_config=self.root_config, type_name="ebuild")
+ 						pkgdir = os.path.dirname(myebuild)
+-						mf = self.settings.repositories.get_repo_for_location(
++						repo = self.settings.repositories.get_repo_for_location(
+ 							os.path.dirname(os.path.dirname(pkgdir)))
+-						mf = mf.load_manifest(
++						mf = repo.load_manifest(
+ 							pkgdir, self.settings["DISTDIR"])
+ 						try:
+ 							uri_map = _parse_uri_map(mycpv, metadata,
+@@ -465,6 +466,9 @@
+ 								myversion))
+ 						msg.append("      %s\n" % \
+ 							self.getInstallationStatus(mycat+'/'+mypkg))
++						if repo:
++							msg.append("      " + darkgreen("Repository:") + \
++								"    " + repo.name + "\n")
+ 						if myebuild:
+ 							msg.append("      %s %s\n" % \
+ 								(darkgreen("Size of files:"), file_size_str))

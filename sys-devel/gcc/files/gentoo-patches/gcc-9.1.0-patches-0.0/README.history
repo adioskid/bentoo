@@ -1,0 +1,31 @@
+1.1		06 Apr 2019
+	+ 26_all_overridable_native.patch
+	+ 27_all_flto-make-all.patch
+	+ 28_all_i386_retpoline-and-jumptable.patch
+
+1.0		22 Feb 2019
+	+ 01_all_default-fortify-source.patch
+	+ 02_all_default-warn-format-security.patch
+	+ 03_all_default-warn-trampolines.patch
+	+ 04_all_default-ssp-fix.patch
+	+ 05_all_alpha-mieee-default.patch
+	+ 06_all_ia64_note.GNU-stack.patch
+	+ 07_all_i386_libgcc_note.GNU-stack.patch
+	+ 08_all_libiberty-asprintf.patch
+	+ 09_all_libiberty-pic.patch
+	+ 10_all_nopie-all-flags.patch
+	+ 11_all_extra-options.patch
+	+ 12_all_pr55930-dependency-tracking.patch
+	+ 13_all_sh-drop-sysroot-suffix.patch
+	+ 14_all_ia64-TEXTREL.patch
+	+ 15_all_disable-systemtap-switch.patch
+	+ 16_all_sh_textrel-on-libitm.patch
+	+ 17_all_m68k-textrel-on-libgcc.patch
+	+ 18_all_respect-build-cxxflags.patch
+	+ 19_all_libgfortran-Werror.patch
+	+ 20_all_libgomp-Werror.patch
+	+ 21_all_libitm-Werror.patch
+	+ 22_all_libatomic-Werror.patch
+	+ 23_all_libbacktrace-Werror.patch
+	+ 24_all_libsanitizer-Werror.patch
+	+ 25_all_libstdcxx-no-vtv.patch

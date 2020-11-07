@@ -1,0 +1,350 @@
+diff -urN portage-2.3.8/pym/_emerge/Package.py portage-2.3.8-better-errors/pym/_emerge/Package.py
+--- portage-2.3.8/pym/_emerge/Package.py	2017-09-22 13:08:10.663341919 -0600
++++ portage-2.3.8-better-errors/pym/_emerge/Package.py	2017-09-22 13:13:00.903354516 -0600
+@@ -520,13 +520,15 @@
+ 			cpv_color = "PKG_UNINSTALL"
+ 		else:
+ 			cpv_color = "PKG_NOMERGE"
++		return self.colorize(cpv_color)
+ 
++	def colorize(self, color):
+ 		build_id_str = ""
+ 		if isinstance(self.cpv.build_id, long) and self.cpv.build_id > 0:
+ 			build_id_str = "-%s" % self.cpv.build_id
+ 
+-		s = "(%s, %s" \
+-			% (portage.output.colorize(cpv_color, self.cpv +
++		s = "%s, %s" \
++			% (portage.output.colorize(color, self.cpv +
+ 			build_id_str + _slot_separator + self.slot + "/" +
+ 			self.sub_slot + _repo_separator + self.repo),
+ 			self.type_name)
+@@ -541,7 +543,6 @@
+ 				s += " scheduled for merge"
+ 				if self.root_config.settings['ROOT'] != "/":
+ 					s += " to '%s'" % self.root_config.settings['ROOT']
+-		s += ")"
+ 		return s
+ 
+ 	if sys.hexversion < 0x3000000:
+diff -urN portage-2.3.8/pym/_emerge/depgraph.py portage-2.3.8-better-errors/pym/_emerge/depgraph.py
+--- portage-2.3.8/pym/_emerge/depgraph.py	2017-09-22 13:08:10.667341919 -0600
++++ portage-2.3.8-better-errors/pym/_emerge/depgraph.py	2017-09-22 13:09:58.651346606 -0600
+@@ -1207,31 +1207,9 @@
+ 			return
+ 
+ 		msg = []
+-		msg.append("It may be possible to solve this problem ")
+-		msg.append("by using package.mask to prevent one of ")
+-		msg.append("those packages from being selected. ")
+-		msg.append("However, it is also possible that conflicting ")
+-		msg.append("dependencies exist such that they are impossible to ")
+-		msg.append("satisfy simultaneously.  If such a conflict exists in ")
+-		msg.append("the dependencies of two different packages, then those ")
+-		msg.append("packages can not be installed simultaneously.")
+-		backtrack_opt = self._frozen_config.myopts.get('--backtrack')
+-		if not self._dynamic_config._allow_backtracking and \
+-			(backtrack_opt is None or \
+-			(backtrack_opt > 0 and backtrack_opt < 30)):
+-			msg.append(" You may want to try a larger value of the ")
+-			msg.append("--backtrack option, such as --backtrack=30, ")
+-			msg.append("in order to see if that will solve this conflict ")
+-			msg.append("automatically.")
+-
+-		for line in textwrap.wrap(''.join(msg), 70):
+-			writemsg(line + '\n', noiselevel=-1)
+-		writemsg('\n', noiselevel=-1)
+-
+-		msg = []
+-		msg.append("For more information, see MASKED PACKAGES ")
+-		msg.append("section in the emerge man page or refer ")
+-		msg.append("to the Gentoo Handbook.")
++		msg.append("We hope this informational output has been useful in identifying the problem. ")
++		msg.append("We are continually working to reduce conflicts. Do not hesitate to report a bug at https://bugs.funtoo.org. Thank you! :)")
++		writemsg('\n\n', noiselevel=-1)
+ 		for line in textwrap.wrap(''.join(msg), 70):
+ 			writemsg(line + '\n', noiselevel=-1)
+ 		writemsg('\n', noiselevel=-1)
+diff -urN portage-2.3.8/pym/_emerge/resolver/slot_collision.py portage-2.3.8-better-errors/pym/_emerge/resolver/slot_collision.py
+--- portage-2.3.8/pym/_emerge/resolver/slot_collision.py	2017-08-16 18:06:53.000000000 -0600
++++ portage-2.3.8-better-errors/pym/_emerge/resolver/slot_collision.py	2017-09-22 13:10:46.419348679 -0600
+@@ -246,21 +246,10 @@
+ 		verboseconflicts = "--verbose-conflicts" in self.myopts
+ 		any_omitted_parents = False
+ 		msg = self.conflict_msg
+-		indent = "  "
+-		msg.append("\n!!! Multiple package instances within a single " + \
+-			"package slot have been pulled\n")
+-		msg.append("!!! into the dependency graph, resulting" + \
+-			" in a slot conflict:\n\n")
+-
++		msg.append(colorize("white", "\nOops! Conflicts have been encountered:\n\n"))
+ 		for root, slot_atom, pkgs in self.all_conflicts:
+-			msg.append("%s" % (slot_atom,))
+-			if root != self.depgraph._frozen_config._running_root.root:
+-				msg.append(" for %s" % (root,))
+-			msg.append("\n\n")
+-
+ 			for pkg in pkgs:
+-				msg.append(indent)
+-				msg.append("%s" % (pkg,))
++				bad_tokens = set()
+ 				parent_atoms = self.all_parents.get(pkg)
+ 				if parent_atoms:
+ 					#Create a list of collision reasons and map them to sets
+@@ -366,112 +355,18 @@
+ 								collision_reasons[("AtomArg", None)] = parent_atoms
+ 								num_all_specific_atoms += 1
+ 
+-					msg.append(" pulled in by\n")
+-
+ 					selected_for_display = set()
+ 					unconditional_use_deps = set()
+ 
+ 					for (type, sub_type), parents in collision_reasons.items():
+-						#From each (type, sub_type) pair select at least one atom.
+-						#Try to select as few atoms as possible
+-
+-						if type == "version":
+-							#Find the atom with version that is as far away as possible.
+-							best_matches = {}
+-							for ppkg, atom, other_pkg in parents:
+-								if atom.cp in best_matches:
+-									cmp = vercmp( \
+-										cpv_getversion(atom.cpv), \
+-										cpv_getversion(best_matches[atom.cp][1].cpv))
+-
+-									if (sub_type == "ge" and  cmp > 0) \
+-										or (sub_type == "le" and cmp < 0) \
+-										or (sub_type == "eq" and cmp > 0):
+-										best_matches[atom.cp] = (ppkg, atom)
+-								else:
+-									best_matches[atom.cp] = (ppkg, atom)
+-								if verboseconflicts:
+-									selected_for_display.add((ppkg, atom))
+-							if not verboseconflicts:
+-								selected_for_display.update(
+-										best_matches.values())
+-						elif type in ("soname", "slot"):
+-							# Check for packages that might need to
+-							# be rebuilt, but cannot be rebuilt for
+-							# some reason.
+-							for ppkg, atom, other_pkg in parents:
+-								if not (isinstance(ppkg, Package) and ppkg.installed):
+-									continue
+-								if not (atom.soname or atom.slot_operator_built):
+-									continue
+-								if self.depgraph._frozen_config.excluded_pkgs.findAtomForPackage(ppkg,
+-									modified_use=self.depgraph._pkg_use_enabled(ppkg)):
+-									selected_for_display.add((ppkg, atom))
+-									need_rebuild[ppkg] = 'matched by --exclude argument'
+-								elif self.depgraph._frozen_config.useoldpkg_atoms.findAtomForPackage(ppkg,
+-									modified_use=self.depgraph._pkg_use_enabled(ppkg)):
+-									selected_for_display.add((ppkg, atom))
+-									need_rebuild[ppkg] = 'matched by --useoldpkg-atoms argument'
+-								elif usepkgonly:
+-									# This case is tricky, so keep quiet in order to avoid false-positives.
+-									pass
+-								elif not self.depgraph._equiv_ebuild_visible(ppkg):
+-									selected_for_display.add((ppkg, atom))
+-									need_rebuild[ppkg] = 'ebuild is masked or unavailable'
+-
+-							for ppkg, atom, other_pkg in parents:
+-								selected_for_display.add((ppkg, atom))
+-								if not verboseconflicts:
+-									break
+-						elif type == "use":
+-							#Prefer atoms with unconditional use deps over, because it's
+-							#not possible to change them on the parent, which means there
+-							#are fewer possible solutions.
+-							use = sub_type
+-							for ppkg, atom, other_pkg in parents:
+-								missing_iuse = other_pkg.iuse.get_missing_iuse(
+-									atom.unevaluated_atom.use.required)
+-								if missing_iuse:
+-									unconditional_use_deps.add((ppkg, atom))
+-								else:
+-									parent_use = None
+-									if isinstance(ppkg, Package):
+-										parent_use = _pkg_use_enabled(ppkg)
+-									violated_atom = atom.unevaluated_atom.violated_conditionals(
+-										_pkg_use_enabled(other_pkg),
+-										other_pkg.iuse.is_valid_flag,
+-										parent_use=parent_use)
+-									# It's possible for autounmask to change
+-									# parent_use such that the unevaluated form
+-									# of the atom now matches, even though the
+-									# earlier evaluated form (from before
+-									# autounmask changed parent_use) does not.
+-									# In this case (see bug #374423), it's
+-									# expected that violated_atom.use is None.
+-									# Since the atom now matches, we don't want
+-									# to display it in the slot conflict
+-									# message, so we simply ignore it and rely
+-									# on the autounmask display to communicate
+-									# the necessary USE change to the user.
+-									if violated_atom.use is None:
+-										continue
+-									if use in violated_atom.use.enabled or \
+-										use in violated_atom.use.disabled:
+-										unconditional_use_deps.add((ppkg, atom))
+-								# When USE flags are removed, it can be
+-								# essential to see all broken reverse
+-								# dependencies here, so don't omit any.
+-								# If the list is long, people can simply
+-								# use a pager.
+-								selected_for_display.add((ppkg, atom))
+-						elif type == "AtomArg":
+-							for ppkg, atom in parents:
+-								selected_for_display.add((ppkg, atom))
++						for foo in parents:
++							selected_for_display.add((foo[0], foo[1]))
+ 
+ 					def highlight_violations(atom, version, use, slot_violated):
+ 						"""Colorize parts of an atom"""
+ 						atom_str = "%s" % (atom,)
+ 						colored_idx = set()
++						bad_tokens = set()
+ 						if version:
+ 							op = atom.operator
+ 							ver = None
+@@ -537,48 +432,43 @@
+ 							if slot_str:
+ 								ii = atom_str.find(slot_str)
+ 								colored_idx.update(range(ii, ii + len(slot_str)))
+-								atom_str = atom_str.replace(slot_str, colorize("BAD", slot_str), 1)
+-						
++								atom_str = atom.cp + colorize("BAD", slot_str)
++								#atom_str = atom_str.replace(slot_str, colorize("BAD", slot_str), 1)
++
+ 						if use and atom.use.tokens:
+ 							use_part_start = atom_str.find("[")
+ 							use_part_end = atom_str.find("]")
+-							
++
+ 							new_tokens = []
+ 							# Compute start index in non-colored atom.
+ 							ii = str(atom).find("[") +  1
+ 							for token in atom.use.tokens:
+ 								if token.lstrip("-!").rstrip("=?") in use:
+ 									new_tokens.append(colorize("BAD", token))
++									bad_tokens.add(token)
+ 									colored_idx.update(range(ii, ii + len(token)))
+-								else:
+-									new_tokens.append(token)
++								#else:
++								#	new_tokens.append(token)
+ 								ii += 1 + len(token)
+ 
+ 							atom_str = atom_str[:use_part_start] \
+ 								+ "[%s]" % (",".join(new_tokens),) + \
+ 								atom_str[use_part_end+1:]
+-						
+-						return atom_str, colored_idx
++
++						return atom_str, colored_idx, bad_tokens
+ 
+ 					# Show unconditional use deps first, since those
+ 					# are more problematic than the conditional kind.
+-					ordered_list = list(unconditional_use_deps)
+-					if len(selected_for_display) > len(unconditional_use_deps):
+-						for parent_atom in selected_for_display:
+-							if parent_atom not in unconditional_use_deps:
+-								ordered_list.append(parent_atom)
++					ordered_list = list(selected_for_display)
++
+ 					for parent_atom in ordered_list:
+ 						parent, atom = parent_atom
+ 						if atom.soname:
+-							msg.append("%s required by %s\n" %
+-								(atom, parent))
++							msg.append(">>> %s, wants %s\n" % (parent.colorize('green'), atom))
+ 						elif isinstance(parent, PackageArg):
+-							# For PackageArg it's
+-							# redundant to display the atom attribute.
+-							msg.append("%s\n" % (parent,))
++							msg.append(">>> %s\n" % (parent.colorize('green'),))
+ 						elif isinstance(parent, AtomArg):
+-							msg.append(2*indent)
+-							msg.append("%s (Argument)\n" % (atom,))
++							msg.append(">>> %s, wants %s\n" % (atom.colorize('green'), parent))
+ 						else:
+ 							# Display the specific atom from SetArg or
+ 							# Package types.
+@@ -596,58 +486,36 @@
+ 											use.append(sub_type)
+ 										break
+ 
+-							atom_str, colored_idx = highlight_violations(atom.unevaluated_atom,
++							atom_str, colored_idx, new_bad_tokens = highlight_violations(atom.unevaluated_atom,
+ 								version_violated, use, slot_violated)
+-
++							bad_tokens = bad_tokens.union(new_bad_tokens)
+ 							if version_violated or slot_violated:
+ 								self.is_a_version_conflict = True
+ 
+-							cur_line = "%s required by %s\n" % (atom_str, parent)
+-							marker_line = ""
+-							for ii in range(len(cur_line)):
+-								if ii in colored_idx:
+-									marker_line += "^"
+-								else:
+-									marker_line += " "
+-							marker_line += "\n"
+-							msg.append(2*indent)
+-							msg.append(cur_line)
+-							msg.append(2*indent)
+-							msg.append(marker_line)
+-
+-					if not selected_for_display:
+-						msg.append(2*indent)
+-						msg.append("(no parents that aren't satisfied by other packages in this slot)\n")
+-						self.conflict_is_unspecific = True
+-					
+-					omitted_parents = num_all_specific_atoms - len(selected_for_display)
+-					if omitted_parents:
+-						any_omitted_parents = True
+-						msg.append(2*indent)
+-						if len(selected_for_display) > 1:
+-							msg.append("(and %d more with the same problems)\n" % omitted_parents)
+-						else:
+-							msg.append("(and %d more with the same problem)\n" % omitted_parents)
++							msg.append(">>> %s, wants %s\n" % ( parent.colorize('green'), atom_str))
++			msg.append("\n")
++			msg.append(colorize("white", "My candidates are:\n\n"))
++			for pkg in pkgs:
++				tokens_of_interest = bad_tokens.intersection(set(pkg.iuse.all))
++				tokens_i_dont_have = bad_tokens - set(pkg.iuse.all)
++				if len(tokens_i_dont_have):
++					pkg_out = pkg.colorize('red')
+ 				else:
+-					msg.append(" (no parents)\n")
++					pkg_out = pkg.colorize('green')
++				msg.append(">>> %s has SLOT %s" % ( pkg_out, pkg.slot + "/" + pkg.sub_slot))
++				if len(tokens_of_interest):
++					tok_list = "".join(list(tokens_of_interest))
++					msg.append(" " + colorize("green", "and") + " IUSE " + tok_list)
++				if len(tokens_i_dont_have):
++					tok_list = "".join(list(tokens_i_dont_have))
++					msg.append(" " + colorize("red", "but not") +" IUSE " + tok_list)
+ 				msg.append("\n")
+-
+ 		if any_omitted_parents:
+ 			msg.append(colorize("INFORM",
+ 				"NOTE: Use the '--verbose-conflicts'"
+ 				" option to display parents omitted above"))
+ 			msg.append("\n")
+ 
+-		if need_rebuild:
+-			msg.append("\n!!! The slot conflict(s) shown above involve package(s) which may need to\n")
+-			msg.append("!!! be rebuilt in order to solve the conflict(s). However, the following\n")
+-			msg.append("!!! package(s) cannot be rebuilt for the reason(s) shown:\n\n")
+-			for ppkg, reason in need_rebuild.items():
+-				msg.append("%s%s: %s\n" % (indent, ppkg, reason))
+-			msg.append("\n")
+-
+-		msg.append("\n")
+-
+ 	def get_explanation(self):
+ 		msg = ""
+ 

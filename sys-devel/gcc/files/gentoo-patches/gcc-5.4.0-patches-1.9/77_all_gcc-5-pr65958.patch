@@ -1,0 +1,215 @@
+https://bugs.gentoo.org/518598
+https://gcc.gnu.org/PR65958
+
+fix alloca behavior with vla's for all arches
+
+From 6ad0a0bc2db129994d44470b070e91d9584f0132 Mon Sep 17 00:00:00 2001
+From: ebotcazou <ebotcazou@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 4 Dec 2015 11:57:15 +0000
+Subject: [PATCH]
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@231260 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                 | 15 +++++++++++++++
+ gcc/doc/extend.texi           |  4 +---
+ gcc/doc/generic.texi          | 14 +++++++++-----
+ gcc/gimplify.c                | 38 ++++++++++++++++++++++++++++----------
+ gcc/testsuite/ChangeLog       |  4 ++++
+ gcc/testsuite/gcc.dg/vla-24.c | 31 +++++++++++++++++++++++++++++++
+ 6 files changed, 88 insertions(+), 18 deletions(-)
+ create mode 100644 gcc/testsuite/gcc.dg/vla-24.c
+
+2015-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/65958
+	* gimplify.c (struct gimplify_ctx): Turn boolean fields into 1-bit
+	fields, add keep_stack and reorder them.
+	(gimplify_bind_expr): Save gimplify_ctxp->keep_stack on entry then
+	set it to false.  Do not insert a stack save/restore pair if it has
+	been set to true by the gimplification of the statements.
+	Restore it to the saved value on exit if it is still false.
+	(gimplify_vla_decl): Do not set gimplify_ctxp->save_stack here.
+	(gimplify_call_expr) <BUILT_IN_ALLOCA[_WITH_ALIGN]>: New case.  Set
+	either save_stack or keep_stack depending on CALL_ALLOCA_FOR_VAR_P.
+	* doc/extend.texi (Variable Length): Document new behavior.
+	* doc/generic.texi (Blocks): Document new handling of VLAs.
+
+diff --git a/gcc/doc/extend.texi b/gcc/doc/extend.texi
+index 63fce0f..6a5e2b8 100644
+--- a/gcc/doc/extend.texi
++++ b/gcc/doc/extend.texi
+@@ -1658,9 +1658,7 @@ variable-length arrays are more elegant.
+ There are other differences between these two methods.  Space allocated
+ with @code{alloca} exists until the containing @emph{function} returns.
+ The space for a variable-length array is deallocated as soon as the array
+-name's scope ends.  (If you use both variable-length arrays and
+-@code{alloca} in the same function, deallocation of a variable-length array
+-also deallocates anything more recently allocated with @code{alloca}.)
++name's scope ends, unless you also use @code{alloca} in this scope.
+ 
+ You can also use variable-length arrays as arguments to functions:
+ 
+diff --git a/gcc/doc/generic.texi b/gcc/doc/generic.texi
+index bbafad9..f6b4397 100644
+--- a/gcc/doc/generic.texi
++++ b/gcc/doc/generic.texi
+@@ -1950,11 +1950,15 @@ this initialization replaces the @code{DECL_STMT}.  These variables
+ will never require cleanups.  The scope of these variables is just the
+ body
+ 
+-Variable-length arrays (VLAs) complicate this process, as their
+-size often refers to variables initialized earlier in the block.
+-To handle this, we currently split the block at that point, and
+-move the VLA into a new, inner @code{BIND_EXPR}.  This strategy
+-may change in the future.
++Variable-length arrays (VLAs) complicate this process, as their size
++often refers to variables initialized earlier in the block and their
++initialization involves an explicit stack allocation.  To handle this,
++we add an indirection and replace them with a pointer to stack space
++allocated by means of @code{alloca}.  In most cases, we also arrange
++for this space to be reclaimed when the enclosing @code{BIND_EXPR} is
++exited, the exception to this being when there is an explicit call to
++@code{alloca} in the source code, in which case the stack is left
++depressed on exit of the @code{BIND_EXPR}.
+ 
+ A C++ program will usually contain more @code{BIND_EXPR}s than
+ there are syntactic blocks in the source code, since several C++
+diff --git a/gcc/gimplify.c b/gcc/gimplify.c
+index 7146a01..80c6bf2 100644
+--- a/gcc/gimplify.c
++++ b/gcc/gimplify.c
+@@ -155,10 +155,11 @@ struct gimplify_ctx
+   hash_table<gimplify_hasher> *temp_htab;
+ 
+   int conditions;
+-  bool save_stack;
+-  bool into_ssa;
+-  bool allow_rhs_cond_expr;
+-  bool in_cleanup_point_expr;
++  unsigned into_ssa : 1;
++  unsigned allow_rhs_cond_expr : 1;
++  unsigned in_cleanup_point_expr : 1;
++  unsigned keep_stack : 1;
++  unsigned save_stack : 1;
+ };
+ 
+ struct gimplify_omp_ctx
+@@ -1080,6 +1081,7 @@ static enum gimplify_status
+ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
+ {
+   tree bind_expr = *expr_p;
++  bool old_keep_stack = gimplify_ctxp->keep_stack;
+   bool old_save_stack = gimplify_ctxp->save_stack;
+   tree t;
+   gbind *bind_stmt;
+@@ -1129,9 +1131,10 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
+     }
+ 
+   bind_stmt = gimple_build_bind (BIND_EXPR_VARS (bind_expr), NULL,
+-                                   BIND_EXPR_BLOCK (bind_expr));
++				 BIND_EXPR_BLOCK (bind_expr));
+   gimple_push_bind_expr (bind_stmt);
+ 
++  gimplify_ctxp->keep_stack = false;
+   gimplify_ctxp->save_stack = false;
+ 
+   /* Gimplify the body into the GIMPLE_BIND tuple's body.  */
+@@ -1154,7 +1157,10 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
+ 
+   cleanup = NULL;
+   stack_save = NULL;
+-  if (gimplify_ctxp->save_stack)
++
++  /* If the code both contains VLAs and calls alloca, then we cannot reclaim
++     the stack space allocated to the VLAs.  */
++  if (gimplify_ctxp->save_stack && !gimplify_ctxp->keep_stack)
+     {
+       gcall *stack_restore;
+ 
+@@ -1236,7 +1242,11 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
+       gimple_bind_set_body (bind_stmt, new_body);
+     }
+ 
++  /* keep_stack propagates all the way up to the outermost BIND_EXPR.  */
++  if (!gimplify_ctxp->keep_stack)
++    gimplify_ctxp->keep_stack = old_keep_stack;
+   gimplify_ctxp->save_stack = old_save_stack;
++
+   gimple_pop_bind_expr ();
+ 
+   gimplify_seq_add_stmt (pre_p, bind_stmt);
+@@ -1393,10 +1403,6 @@ gimplify_vla_decl (tree decl, gimple_seq *seq_p)
+   t = build2 (MODIFY_EXPR, TREE_TYPE (addr), addr, t);
+ 
+   gimplify_and_add (t, seq_p);
+-
+-  /* Indicate that we need to restore the stack level when the
+-     enclosing BIND_EXPR is exited.  */
+-  gimplify_ctxp->save_stack = true;
+ }
+ 
+ /* A helper function to be called via walk_tree.  Mark all labels under *TP
+@@ -2377,6 +2383,18 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
+       && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+     switch (DECL_FUNCTION_CODE (fndecl))
+       {
++      case BUILT_IN_ALLOCA:
++      case BUILT_IN_ALLOCA_WITH_ALIGN:
++	/* If the call has been built for a variable-sized object, then we
++	   want to restore the stack level when the enclosing BIND_EXPR is
++	   exited to reclaim the allocated space; otherwise, we precisely
++	   need to do the opposite and preserve the latest stack level.  */
++	if (CALL_ALLOCA_FOR_VAR_P (*expr_p))
++	  gimplify_ctxp->save_stack = true;
++	else
++	  gimplify_ctxp->keep_stack = true;
++	break;
++
+       case BUILT_IN_VA_START:
+         {
+ 	  builtin_va_start_p = TRUE;
+
+2015-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/vla-24.c: New test.
+
+diff --git a/gcc/testsuite/gcc.dg/vla-24.c b/gcc/testsuite/gcc.dg/vla-24.c
+new file mode 100644
+index 0000000..5bd5fed
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/vla-24.c
+@@ -0,0 +1,31 @@
++/* PR middle-end/65958 */
++
++/* { dg-do run } */
++/* { dg-options "-std=gnu99" } */
++
++extern void abort (void);
++
++int foo (int n)
++{
++  char *p, *q;
++
++  if (1)
++    {
++      char i[n];
++      p = __builtin_alloca (8);
++      p[0] = 1;
++    }
++
++  q = __builtin_alloca (64);
++  __builtin_memset (q, 0, 64);
++
++  return !p[0];
++}
++
++int main (void)
++{
++  if (foo (48) != 0)
++    abort ();
++
++  return 0;
++}
+-- 
+2.6.2
+

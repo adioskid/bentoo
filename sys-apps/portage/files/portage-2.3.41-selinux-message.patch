@@ -1,0 +1,13 @@
+diff --git a/pym/portage/package/ebuild/config.py b/pym/portage/package/ebuild/config.py
+index 88acac5cc..5188e2a37 100644
+--- a/pym/portage/package/ebuild/config.py
++++ b/pym/portage/package/ebuild/config.py
+@@ -2861,7 +2861,7 @@ class config(object):
+ 					else:
+ 						self._selinux_enabled = 0
+ 				else:
+-					writemsg(_("!!! SELinux module not found. Please verify that it was installed.\n"),
++					writemsg(_("!!! Portage SELinux support enabled but not found. Please check configuration.\n"),
+ 						noiselevel=-1)
+ 					self._selinux_enabled = 0
+ 

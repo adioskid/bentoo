@@ -1,0 +1,177 @@
+diff --git a/lib/portage/dbapi/bintree.py b/lib/portage/dbapi/bintree.py
+index 9c2d877e7..48f10cc3c 100644
+--- a/lib/portage/dbapi/bintree.py
++++ b/lib/portage/dbapi/bintree.py
+@@ -390,11 +390,10 @@ class binarytree(object):
+ 		origcp = mylist[1]
+ 		newcp = mylist[2]
+ 		# sanity check
+-		for atom in (origcp, newcp):
+-			if not isjustname(atom):
+-				raise InvalidPackageName(_unicode(atom))
++		if not isjustname(newcp):
++			raise InvalidPackageName(_unicode(atom))
+ 		mynewcat = catsplit(newcp)[0]
+-		origmatches=self.dbapi.cp_list(origcp)
++		origmatches=self.dbapi.match(origcp)
+ 		moves = 0
+ 		if not origmatches:
+ 			return moves
+diff --git a/lib/portage/dbapi/vartree.py b/lib/portage/dbapi/vartree.py
+index e2fce7736..bc7aaa0e2 100644
+--- a/lib/portage/dbapi/vartree.py
++++ b/lib/portage/dbapi/vartree.py
+@@ -368,56 +368,57 @@ class vardbapi(dbapi):
+ 				return True
+ 		return False
+ 
+-	def move_ent(self, mylist, repo_match=None):
+-		origcp = mylist[1]
+-		newcp = mylist[2]
+-
+-		# sanity check
+-		for atom in (origcp, newcp):
+-			if not isjustname(atom):
+-				raise InvalidPackageName(str(atom))
+-		origmatches = self.match(origcp, use_cache=0)
++	def move_ent(self, to_from_list, repo_match=None):
++		orig_match = to_from_list[1]
++		new_cp = to_from_list[2]
++
++		# sanity check - destination must be a catpkg
++		if not isjustname(new_cp):
++			raise InvalidPackageName(str(new_cp))
++		matches = self.match(orig_match, use_cache=0)
+ 		moves = 0
+-		if not origmatches:
++		if not matches:
+ 			return moves
+-		for mycpv in origmatches:
++		for found_cpv in matches:
+ 			try:
+-				mycpv = self._pkg_str(mycpv, None)
++				found_cpv = self._pkg_str(found_cpv, None)
+ 			except (KeyError, InvalidData):
+ 				continue
+-			mycpv_cp = cpv_getkey(mycpv)
+-			if mycpv_cp != origcp:
++			orig_match_cp = cpv_getkey(found_cpv)
++			mycpv_cp = cpv_getkey(found_cpv)
++			if mycpv_cp != orig_match_cp:
+ 				# Ignore PROVIDE virtual match.
+ 				continue
+ 			if repo_match is not None \
+-				and not repo_match(mycpv.repo):
++				and not repo_match(found_cpv.repo):
+ 				continue
+ 
+ 			# Use isvalidatom() to check if this move is valid for the
+ 			# EAPI (characters allowed in package names may vary).
+-			if not isvalidatom(newcp, eapi=mycpv.eapi):
++			if not isvalidatom(new_cp, eapi=found_cpv.eapi):
+ 				continue
+ 
+-			mynewcpv = mycpv.replace(mycpv_cp, _unicode(newcp), 1)
+-			mynewcat = catsplit(newcp)[0]
+-			origpath = self.getpath(mycpv)
++			# Perform string replacement, replace old catpkg with new:
++			renamed_cpv = found_cpv.replace(mycpv_cp, _unicode(new_cp), 1)
++			renamed_cat = catsplit(new_cp)[0]
++			origpath = self.getpath(found_cpv)
+ 			if not os.path.exists(origpath):
+ 				continue
+ 			moves += 1
+-			if not os.path.exists(self.getpath(mynewcat)):
++			if not os.path.exists(self.getpath(renamed_cat)):
+ 				#create the directory
+-				ensure_dirs(self.getpath(mynewcat))
+-			newpath = self.getpath(mynewcpv)
++				ensure_dirs(self.getpath(renamed_cat))
++			newpath = self.getpath(renamed_cpv)
+ 			if os.path.exists(newpath):
+ 				#dest already exists; keep this puppy where it is.
+ 				continue
+ 			_movefile(origpath, newpath, mysettings=self.settings)
+-			self._clear_pkg_cache(self._dblink(mycpv))
+-			self._clear_pkg_cache(self._dblink(mynewcpv))
++			self._clear_pkg_cache(self._dblink(found_cpv))
++			self._clear_pkg_cache(self._dblink(renamed_cpv))
+ 
+ 			# We need to rename the ebuild now.
+-			old_pf = catsplit(mycpv)[1]
+-			new_pf = catsplit(mynewcpv)[1]
++			old_pf = catsplit(found_cpv)[1]
++			new_pf = catsplit(renamed_cpv)[1]
+ 			if new_pf != old_pf:
+ 				try:
+ 					os.rename(os.path.join(newpath, old_pf + ".ebuild"),
+@@ -427,7 +428,7 @@ class vardbapi(dbapi):
+ 						raise
+ 					del e
+ 			write_atomic(os.path.join(newpath, "PF"), new_pf+"\n")
+-			write_atomic(os.path.join(newpath, "CATEGORY"), mynewcat+"\n")
++			write_atomic(os.path.join(newpath, "CATEGORY"), renamed_cat+"\n")
+ 
+ 		return moves
+ 
+diff --git a/lib/portage/update.py b/lib/portage/update.py
+index 83fc3d2b4..815bd1f5b 100644
+--- a/lib/portage/update.py
++++ b/lib/portage/update.py
+@@ -26,6 +26,7 @@ from portage.const import USER_CONFIG_PATH, VCS_DIRS
+ from portage.eapi import _get_eapi_attrs
+ from portage.exception import DirectoryNotFound, InvalidAtom, PortageException
+ from portage.localization import _
++from portage.versions import cpv_getkey
+ 
+ if sys.hexversion >= 0x3000000:
+ 	# pylint: disable=W0622
+@@ -45,6 +46,12 @@ def update_dbentry(update_cmd, mycontent, eapi=None, parent=None):
+ 		old_value = _unicode(update_cmd[1])
+ 		new_value = _unicode(update_cmd[2])
+ 
++		if cpv_getkey(old_value) != old_value:
++			# original matched (source) package is a version range. And when handling version ranges, we don't
++			# assume that we want to perform any *DEPEND updates at all, since we aren't simply renaming a single
++			# package but splitting a single package into two packages.
++			return mycontent
++
+ 		# Use isvalidatom() to check if this move is valid for the
+ 		# EAPI (characters allowed in package names may vary).
+ 		if old_value in mycontent and isvalidatom(new_value, eapi=eapi):
+@@ -227,26 +234,32 @@ def parse_updates(mycontent):
+ 				errors.append(_("ERROR: Update command invalid '%s'") % myline)
+ 				continue
+ 			valid = True
++			reason = ""
+ 			for i in (1, 2):
+ 				try:
+ 					atom = Atom(mysplit[i])
+ 				except InvalidAtom:
+ 					atom = None
++					reason = " : '%s' is invalid." % mysplit[i]
+ 				else:
+-					if atom.blocker or atom != atom.cp:
++					if atom.blocker:
++						atom = None
++						reason = " : Operand can't be blocker"
++					elif i == 2 and atom != atom.cp:
++						reason = " : Second operand (dest) must be catpkg (no version.)"
+ 						atom = None
+ 				if atom is not None:
+ 					mysplit[i] = atom
+ 				else:
+ 					errors.append(
+-						_("ERROR: Malformed update entry '%s'") % myline)
++						_("ERROR: Malformed update entry '%s'" + reason) % myline)
+ 					valid = False
+ 					break
+ 			if not valid:
+ 				continue
+ 
+ 		if mysplit[0] == "slotmove":
+-			if len(mysplit)!=4:
++			if len(mysplit) != 4:
+ 				errors.append(_("ERROR: Update command invalid '%s'") % myline)
+ 				continue
+ 			pkg, origslot, newslot = mysplit[1], mysplit[2], mysplit[3]

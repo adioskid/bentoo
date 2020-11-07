@@ -1,0 +1,142 @@
+From bb510ed7ea82093c924b027489db6f92250a85b3 Mon Sep 17 00:00:00 2001
+From: Sergei Trofimovich <slyfox@gentoo.org>
+Date: Sat, 12 May 2018 12:56:46 +0100
+Subject: [PATCH] gcc/configure.ac: add --disable-systemtap switch
+
+Before the change systemtap probes were enabled
+if target headers had sys/sdt.h at ./configure time.
+
+After the change explicitly ask to enable or disable
+for probe support and not rely on automagic dependency
+discovery.
+
+Bug: https://bugs.gentoo.org/654748
+Bug: https://gcc.gnu.org/bugzilla/PR61257
+Signed-off-by: Sergei Trofimovich <slyfox@gentoo.org>
+---
+ gcc/configure    | 34 ++++++++++++++++++++++++++--------
+ gcc/configure.ac | 30 ++++++++++++++++++++++--------
+ 2 files changed, 48 insertions(+), 16 deletions(-)
+
+diff --git a/gcc/configure b/gcc/configure
+index 7d69faf549d..5e96c4f99fc 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -946,6 +946,7 @@ enable_gnu_unique_object
+ enable_linker_build_id
+ enable_libssp
+ enable_default_ssp
++enable_systemtap
+ with_long_double_128
+ with_long_double_format
+ with_gc
+@@ -1688,6 +1689,7 @@ Optional Features:
+                           compiler will always pass --build-id to linker
+   --enable-libssp         enable linking against libssp
+   --enable-default-ssp    enable Stack Smashing Protection as default
++  --disable-systemtap     enable systemtap static probe points [default=auto]
+   --enable-maintainer-mode
+                           enable make rules and dependencies not useful (and
+                           sometimes confusing) to the casual installer
+@@ -18448,7 +18450,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 18451 "configure"
++#line 18453 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -18554,7 +18556,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 18557 "configure"
++#line 18559 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -29297,17 +29299,33 @@ fi
+ 
+ # Test for <sys/sdt.h> on the target.
+ 
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking sys/sdt.h in the target C library" >&5
++
++# Check whether --enable-systemtap was given.
++if test "${enable_systemtap+set}" = set; then :
++  enableval=$enable_systemtap; enable_systemtap=$enableval
++else
++  enable_systemtap=auto
++fi
++
++
++if test x$enable_systemtap != xno; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: checking sys/sdt.h in the target C library" >&5
+ $as_echo_n "checking sys/sdt.h in the target C library... " >&6; }
+-have_sys_sdt_h=no
+-if test -f $target_header_dir/sys/sdt.h; then
+-  have_sys_sdt_h=yes
++  have_sys_sdt_h=no
++  if test -f $target_header_dir/sys/sdt.h ; then
++    have_sys_sdt_h=yes
+ 
+ $as_echo "#define HAVE_SYS_SDT_H 1" >>confdefs.h
+ 
+-fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_sys_sdt_h" >&5
++  fi
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_sys_sdt_h" >&5
+ $as_echo "$have_sys_sdt_h" >&6; }
++  if test x$enable_systemtap = xyes ; then
++    if test x$have_sys_sdt_h = xno ; then
++      as_fn_error "sys/sdt.h was not found" "$LINENO" 5
++    fi
++  fi
++fi
+ 
+ # Check if TFmode long double should be used by default or not.
+ # Some glibc targets used DFmode long double, but with glibc 2.4
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index 36124b8ce90..8356e579a20 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -5965,14 +5965,28 @@ AC_SUBST([enable_default_ssp])
+ 
+ # Test for <sys/sdt.h> on the target.
+ GCC_TARGET_TEMPLATE([HAVE_SYS_SDT_H])
+-AC_MSG_CHECKING(sys/sdt.h in the target C library)
+-have_sys_sdt_h=no
+-if test -f $target_header_dir/sys/sdt.h; then
+-  have_sys_sdt_h=yes
+-  AC_DEFINE(HAVE_SYS_SDT_H, 1,
+-            [Define if your target C library provides sys/sdt.h])
+-fi
+-AC_MSG_RESULT($have_sys_sdt_h)
++
++AC_ARG_ENABLE(systemtap,
++[AS_HELP_STRING([--disable-systemtap],
++  [enable systemtap static probe points [default=auto]])],
++      enable_systemtap=$enableval,
++      enable_systemtap=auto)
++
++if test x$enable_systemtap != xno; then
++  AC_MSG_CHECKING(sys/sdt.h in the target C library)
++  have_sys_sdt_h=no
++  if test -f $target_header_dir/sys/sdt.h ; then
++    have_sys_sdt_h=yes
++    AC_DEFINE(HAVE_SYS_SDT_H, 1,
++              [Define if your target C library provides sys/sdt.h])
++  fi
++  AC_MSG_RESULT($have_sys_sdt_h)
++  if test x$enable_systemtap = xyes ; then
++    if test x$have_sys_sdt_h = xno ; then
++      AC_MSG_ERROR([sys/sdt.h was not found])
++    fi
++  fi
++fi
+ 
+ # Check if TFmode long double should be used by default or not.
+ # Some glibc targets used DFmode long double, but with glibc 2.4
+-- 
+2.17.0
+

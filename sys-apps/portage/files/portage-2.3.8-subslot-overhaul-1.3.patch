@@ -1,0 +1,2583 @@
+diff -urN portage-2.3.8/pym/_emerge/depgraph.py portage-2.3.8-subslot-overhaul/pym/_emerge/depgraph.py
+--- portage-2.3.8/pym/_emerge/depgraph.py	2017-09-26 12:57:30.797564055 -0600
++++ portage-2.3.8-subslot-overhaul/pym/_emerge/depgraph.py	2017-09-26 12:44:25.053537865 -0600
+@@ -1,6 +1,36 @@
+ # Copyright 1999-2017 Gentoo Foundation
+ # Distributed under the terms of the GNU General Public License v2
+ 
++# Random thoughts and ideas on new design.
++
++# When updating the digraph and adding a new 'to be installed' package, we should determine if it will wipe out an
++# already existing package. If so, we can do one of several things:
++#
++# 1. We can remove the to-be-replaced package from the depgraph and replace it with the new package. Downside of this
++#    approach is that potentially, the new package has new deps and we are not dealing with a leaf node so updating
++#    is problematic and error-prone.
++#
++# 2. We can leave the existing package but mark it as "expired", and then add the new package and its dependencies.
++#    This takes into account potentially new dependencies but we can't be sure that the parent dependencies are still
++#    satisfied by this package.
++#
++#    a) A workaround for this is to actually record the dependency atoms in the digraph links so that we can determine
++#       if the new package satisfies existing deps. If it does not, then we have a conflict.
++#
++# 3. Building on 2, we can have a brand new digraph/package-tracker combo that will record the dep atoms connecting
++#    the nodes in the graph. This will allow for easy re-calculation of whether a package upgrade will continue to
++#    satisfy upstream deps. This seems necessary. It also seems to allow for the optimized replacement of non-leaf
++#	 nodes, if the deps match. This would also allow us to handle conditional dependencies by representing them by
++#    'soft' links that may be satisfied by another package.
++#
++# 4. As an alternative to 3, we can remove stuff from the package tracker, but not the digraph. So the package tracker
++#    will contain the authoritative list of current packages, and the digraph becomes a reference/secondary tool.
++#    This seems to be a good way to not have to deal with the complexities of updating the digraph, which isn't
++#    really a good idea. This may be a good interim option. So to do this, if we add a package and we determine that
++#    it will replace another package, we will want to remove that package from the package tracker before adding the
++#    new package. This will
++
++
+ from __future__ import division, print_function, unicode_literals
+ 
+ import collections
+@@ -207,10 +237,12 @@
+ 			self.rebuild_if_unbuilt)
+ 
+ 	def add(self, dep_pkg, dep):
++
+ 		parent = dep.collapsed_parent
+ 		priority = dep.collapsed_priority
+ 		rebuild_exclude = self._frozen_config.rebuild_exclude
+ 		rebuild_ignore = self._frozen_config.rebuild_ignore
++
+ 		if (self.rebuild and isinstance(parent, Package) and
+ 			parent.built and priority.buildtime and
+ 			isinstance(dep_pkg, Package) and
+@@ -220,6 +252,7 @@
+ 
+ 	def _needs_rebuild(self, dep_pkg):
+ 		"""Check whether packages that depend on dep_pkg need to be rebuilt."""
++
+ 		dep_root_slot = (dep_pkg.root, dep_pkg.slot_atom)
+ 		if dep_pkg.built or dep_root_slot in self.orig_rebuild_list:
+ 			return False
+@@ -248,9 +281,11 @@
+ 		return True
+ 
+ 	def _trigger_rebuild(self, parent, build_deps):
++
+ 		root_slot = (parent.root, parent.slot_atom)
+ 		if root_slot in self.rebuild_list:
+ 			return False
++
+ 		trees = self._frozen_config.trees
+ 		reinstall = False
+ 		for slot_atom, dep_pkg in build_deps.items():
+@@ -451,7 +486,7 @@
+ 		self._complete_mode = False
+ 		self._slot_operator_deps = {}
+ 		self._installed_sonames = collections.defaultdict(list)
+-		self._package_tracker = PackageTracker(
++		self._package_tracker = PackageTracker(self,
+ 			soname_deps=depgraph._frozen_config.soname_deps_enabled)
+ 		# Track missed updates caused by solved conflicts.
+ 		self._conflict_missed_update = collections.defaultdict(dict)
+@@ -476,7 +511,7 @@
+ 			self._graph_trees[myroot]["graph_db"]   = graph_tree.dbapi
+ 			self._graph_trees[myroot]["graph"]      = self.digraph
+ 			self._graph_trees[myroot]["want_update_pkg"] = depgraph._want_update_pkg
+-			self._graph_trees[myroot]["downgrade_probe"] = depgraph._downgrade_probe
++
+ 			def filtered_tree():
+ 				pass
+ 			filtered_tree.dbapi = _dep_check_composite_db(depgraph, myroot)
+@@ -504,7 +539,6 @@
+ 			self._filtered_trees[myroot]["vartree"] = \
+ 				depgraph._frozen_config.trees[myroot]["vartree"]
+ 			self._filtered_trees[myroot]["want_update_pkg"] = depgraph._want_update_pkg
+-			self._filtered_trees[myroot]["downgrade_probe"] = depgraph._downgrade_probe
+ 
+ 			dbs = []
+ 			#               (db, pkg_type, built, installed, db_keys)
+@@ -606,7 +640,7 @@
+ 
+ 				if not dynamic_deps:
+ 					for pkg in vardb:
+-						self._dynamic_config._package_tracker.add_installed_pkg(pkg)
++						self._dynamic_config._package_tracker.add_pkg(pkg)
+ 						self._add_installed_sonames(pkg)
+ 				else:
+ 					max_jobs = self._frozen_config.myopts.get("--jobs")
+@@ -625,7 +659,7 @@
+ 		portdb = fake_vartree._portdb
+ 		for pkg in fake_vartree.dbapi:
+ 			self._spinner_update()
+-			self._dynamic_config._package_tracker.add_installed_pkg(pkg)
++			self._dynamic_config._package_tracker.add_pkg(pkg)
+ 			self._add_installed_sonames(pkg)
+ 			ebuild_path, repo_path = \
+ 				portdb.findname2(pkg.cpv, myrepo=pkg.repo)
+@@ -663,187 +697,6 @@
+ 		if self._frozen_config.spinner:
+ 			self._frozen_config.spinner.update()
+ 
+-	def _compute_abi_rebuild_info(self):
+-		"""
+-		Fill self._forced_rebuilds with packages that cause rebuilds.
+-		"""
+-
+-		debug = "--debug" in self._frozen_config.myopts
+-		installed_sonames = self._dynamic_config._installed_sonames
+-		package_tracker = self._dynamic_config._package_tracker
+-
+-		# Get all atoms that might have caused a forced rebuild.
+-		atoms = {}
+-		for s in self._dynamic_config._initial_arg_list:
+-			if s.force_reinstall:
+-				root = s.root_config.root
+-				atoms.setdefault(root, set()).update(s.pset)
+-
+-		if debug:
+-			writemsg_level("forced reinstall atoms:\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-			for root in atoms:
+-				writemsg_level("   root: %s\n" % root,
+-					level=logging.DEBUG, noiselevel=-1)
+-				for atom in atoms[root]:
+-					writemsg_level("      atom: %s\n" % atom,
+-						level=logging.DEBUG, noiselevel=-1)
+-			writemsg_level("\n\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-		# Go through all slot operator deps and check if one of these deps
+-		# has a parent that is matched by one of the atoms from above.
+-		forced_rebuilds = {}
+-
+-		for root, rebuild_atoms in atoms.items():
+-
+-			for slot_atom in rebuild_atoms:
+-
+-				inst_pkg, reinst_pkg = \
+-					self._select_pkg_from_installed(root, slot_atom)
+-
+-				if inst_pkg is reinst_pkg or reinst_pkg is None:
+-					continue
+-
+-				if (inst_pkg is not None and
+-					inst_pkg.requires is not None):
+-					for atom in inst_pkg.requires:
+-						initial_providers = installed_sonames.get(
+-							(root, atom))
+-						if initial_providers is None:
+-							continue
+-						final_provider = next(
+-							package_tracker.match(root, atom),
+-							None)
+-						if final_provider:
+-							continue
+-						for provider in initial_providers:
+-							# Find the replacement child.
+-							child = next((pkg for pkg in
+-								package_tracker.match(
+-								root, provider.slot_atom)
+-								if not pkg.installed), None)
+-
+-							if child is None:
+-								continue
+-
+-							forced_rebuilds.setdefault(
+-								root, {}).setdefault(
+-								child, set()).add(inst_pkg)
+-
+-				# Generate pseudo-deps for any slot-operator deps of
+-				# inst_pkg. Its deps aren't in _slot_operator_deps
+-				# because it hasn't been added to the graph, but we
+-				# are interested in any rebuilds that it triggered.
+-				built_slot_op_atoms = []
+-				if inst_pkg is not None:
+-					selected_atoms = self._select_atoms_probe(
+-						inst_pkg.root, inst_pkg)
+-					for atom in selected_atoms:
+-						if atom.slot_operator_built:
+-							built_slot_op_atoms.append(atom)
+-
+-					if not built_slot_op_atoms:
+-						continue
+-
+-				# Use a cloned list, since we may append to it below.
+-				deps = self._dynamic_config._slot_operator_deps.get(
+-					(root, slot_atom), [])[:]
+-
+-				if built_slot_op_atoms and reinst_pkg is not None:
+-					for child in self._dynamic_config.digraph.child_nodes(
+-						reinst_pkg):
+-
+-						if child.installed:
+-							continue
+-
+-						for atom in built_slot_op_atoms:
+-							# NOTE: Since atom comes from inst_pkg, and
+-							# reinst_pkg is the replacement parent, there's
+-							# no guarantee that atom will completely match
+-							# child. So, simply use atom.cp and atom.slot
+-							# for matching.
+-							if atom.cp != child.cp:
+-								continue
+-							if atom.slot and atom.slot != child.slot:
+-								continue
+-							deps.append(Dependency(atom=atom, child=child,
+-								root=child.root, parent=reinst_pkg))
+-
+-				for dep in deps:
+-					if dep.child.installed:
+-						# Find the replacement child.
+-						child = next((pkg for pkg in
+-							self._dynamic_config._package_tracker.match(
+-							dep.root, dep.child.slot_atom)
+-							if not pkg.installed), None)
+-
+-						if child is None:
+-							continue
+-
+-						inst_child = dep.child
+-
+-					else:
+-						child = dep.child
+-						inst_child = self._select_pkg_from_installed(
+-							child.root, child.slot_atom)[0]
+-
+-					# Make sure the child's slot/subslot has changed. If it
+-					# hasn't, then another child has forced this rebuild.
+-					if inst_child and inst_child.slot == child.slot and \
+-						inst_child.sub_slot == child.sub_slot:
+-						continue
+-
+-					if dep.parent.installed:
+-						# Find the replacement parent.
+-						parent = next((pkg for pkg in
+-							self._dynamic_config._package_tracker.match(
+-							dep.parent.root, dep.parent.slot_atom)
+-							if not pkg.installed), None)
+-
+-						if parent is None:
+-							continue
+-
+-					else:
+-						parent = dep.parent
+-
+-					# The child has forced a rebuild of the parent
+-					forced_rebuilds.setdefault(root, {}
+-						).setdefault(child, set()).add(parent)
+-
+-		if debug:
+-			writemsg_level("slot operator dependencies:\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-			for (root, slot_atom), deps in self._dynamic_config._slot_operator_deps.items():
+-				writemsg_level("   (%s, %s)\n" % \
+-					(root, slot_atom), level=logging.DEBUG, noiselevel=-1)
+-				for dep in deps:
+-					writemsg_level("      parent: %s\n" % dep.parent, level=logging.DEBUG, noiselevel=-1)
+-					writemsg_level("        child: %s (%s)\n" % (dep.child, dep.priority), level=logging.DEBUG, noiselevel=-1)
+-
+-			writemsg_level("\n\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-
+-			writemsg_level("forced rebuilds:\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-			for root in forced_rebuilds:
+-				writemsg_level("   root: %s\n" % root,
+-					level=logging.DEBUG, noiselevel=-1)
+-				for child in forced_rebuilds[root]:
+-					writemsg_level("      child: %s\n" % child,
+-						level=logging.DEBUG, noiselevel=-1)
+-					for parent in forced_rebuilds[root][child]:
+-						writemsg_level("         parent: %s\n" % parent,
+-							level=logging.DEBUG, noiselevel=-1)
+-			writemsg_level("\n\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-		self._forced_rebuilds = forced_rebuilds
+-
+ 	def _show_abi_rebuild_info(self):
+ 
+ 		if not self._forced_rebuilds:
+@@ -1214,1003 +1067,6 @@
+ 			writemsg(line + '\n', noiselevel=-1)
+ 		writemsg('\n', noiselevel=-1)
+ 
+-	def _solve_non_slot_operator_slot_conflicts(self):
+-		"""
+-		This function solves slot conflicts which can
+-		be solved by simply choosing one of the conflicting
+-		and removing all the other ones.
+-		It is able to solve somewhat more complex cases where
+-		conflicts can only be solved simultaniously.
+-		"""
+-		debug = "--debug" in self._frozen_config.myopts
+-
+-		# List all conflicts. Ignore those that involve slot operator rebuilds
+-		# as the logic there needs special slot conflict behavior which isn't
+-		# provided by this function.
+-		conflicts = []
+-		for conflict in self._dynamic_config._package_tracker.slot_conflicts():
+-			slot_key = conflict.root, conflict.atom
+-			if slot_key not in self._dynamic_config._slot_operator_replace_installed:
+-				conflicts.append(conflict)
+-
+-		if not conflicts:
+-			return
+-
+-		if debug:
+-			writemsg_level(
+-				"\n!!! Slot conflict handler started.\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-		# Get a set of all conflicting packages.
+-		conflict_pkgs = set()
+-		for conflict in conflicts:
+-			conflict_pkgs.update(conflict)
+-
+-		# Get the list of other packages which are only
+-		# required by conflict packages.
+-		indirect_conflict_candidates = set()
+-		for pkg in conflict_pkgs:
+-			indirect_conflict_candidates.update(self._dynamic_config.digraph.child_nodes(pkg))
+-		indirect_conflict_candidates.difference_update(conflict_pkgs)
+-
+-		indirect_conflict_pkgs = set()
+-		while indirect_conflict_candidates:
+-			pkg = indirect_conflict_candidates.pop()
+-
+-			only_conflict_parents = True
+-			for parent, atom in self._dynamic_config._parent_atoms.get(pkg, []):
+-				if parent not in conflict_pkgs and parent not in indirect_conflict_pkgs:
+-					only_conflict_parents = False
+-					break
+-			if not only_conflict_parents:
+-				continue
+-
+-			indirect_conflict_pkgs.add(pkg)
+-			for child in self._dynamic_config.digraph.child_nodes(pkg):
+-				if child in conflict_pkgs or child in indirect_conflict_pkgs:
+-					continue
+-				indirect_conflict_candidates.add(child)
+-
+-		# Create a graph containing the conflict packages
+-		# and a special 'non_conflict_node' that represents
+-		# all non-conflict packages.
+-		conflict_graph = digraph()
+-
+-		non_conflict_node = "(non-conflict package)"
+-		conflict_graph.add(non_conflict_node, None)
+-
+-		for pkg in chain(conflict_pkgs, indirect_conflict_pkgs):
+-			conflict_graph.add(pkg, None)
+-
+-		# Add parent->child edges for each conflict package.
+-		# Parents, which aren't conflict packages are represented
+-		# by 'non_conflict_node'.
+-		# If several conflicting packages are matched, but not all,
+-		# add a tuple with the matched packages to the graph.
+-		class or_tuple(tuple):
+-			"""
+-			Helper class for debug printing.
+-			"""
+-			def __str__(self):
+-				return "(%s)" % ",".join(str(pkg) for pkg in self)
+-
+-		non_matching_forced = set()
+-		for conflict in conflicts:
+-			if debug:
+-				writemsg_level("   conflict:\n", level=logging.DEBUG, noiselevel=-1)
+-				writemsg_level("      root: %s\n" % conflict.root, level=logging.DEBUG, noiselevel=-1)
+-				writemsg_level("      atom: %s\n" % conflict.atom, level=logging.DEBUG, noiselevel=-1)
+-				for pkg in conflict:
+-					writemsg_level("      pkg: %s\n" % pkg, level=logging.DEBUG, noiselevel=-1)
+-
+-			all_parent_atoms = set()
+-			highest_pkg = None
+-			inst_pkg = None
+-			for pkg in conflict:
+-				if pkg.installed:
+-					inst_pkg = pkg
+-				if highest_pkg is None or highest_pkg < pkg:
+-					highest_pkg = pkg
+-				all_parent_atoms.update(
+-					self._dynamic_config._parent_atoms.get(pkg, []))
+-
+-			for parent, atom in all_parent_atoms:
+-				is_arg_parent = isinstance(parent, AtomArg)
+-				is_non_conflict_parent = parent not in conflict_pkgs and \
+-					parent not in indirect_conflict_pkgs
+-
+-				if debug:
+-					writemsg_level("      parent: %s\n" % parent, level=logging.DEBUG, noiselevel=-1)
+-					writemsg_level("      arg, non-conflict: %s, %s\n" % (is_arg_parent, is_non_conflict_parent),
+-						level=logging.DEBUG, noiselevel=-1)
+-					writemsg_level("         atom: %s\n" % atom, level=logging.DEBUG, noiselevel=-1)
+-
+-				if is_non_conflict_parent:
+-					parent = non_conflict_node
+-
+-				matched = []
+-				for pkg in conflict:
+-					if (pkg is highest_pkg and
+-						not highest_pkg.installed and
+-						inst_pkg is not None and
+-						inst_pkg.sub_slot != highest_pkg.sub_slot and
+-						not self._downgrade_probe(highest_pkg)):
+-						# If an upgrade is desired, force the highest
+-						# version into the graph (bug #531656).
+-						non_matching_forced.add(highest_pkg)
+-
+-					if atom.match(pkg.with_use(
+-						self._pkg_use_enabled(pkg))) and \
+-						not (is_arg_parent and pkg.installed):
+-						matched.append(pkg)
+-
+-				if debug:
+-					for match in matched:
+-						writemsg_level("         match: %s\n" % match, level=logging.DEBUG, noiselevel=-1)
+-
+-				if len(matched) > 1:
+-					# Even if all packages match, this parent must still
+-					# be added to the conflict_graph. Otherwise, we risk
+-					# removing all of these packages from the depgraph,
+-					# which could cause a missed update (bug #522084).
+-					conflict_graph.add(or_tuple(matched), parent)
+-				elif len(matched) == 1:
+-					conflict_graph.add(matched[0], parent)
+-				else:
+-					# This typically means that autounmask broke a
+-					# USE-dep, but it could also be due to the slot
+-					# not matching due to multislot (bug #220341).
+-					# Either way, don't try to solve this conflict.
+-					# Instead, force them all into the graph so that
+-					# they are protected from removal.
+-					non_matching_forced.update(conflict)
+-					if debug:
+-						for pkg in conflict:
+-							writemsg_level("         non-match: %s\n" % pkg,
+-								level=logging.DEBUG, noiselevel=-1)
+-
+-		for pkg in indirect_conflict_pkgs:
+-			for parent, atom in self._dynamic_config._parent_atoms.get(pkg, []):
+-				if parent not in conflict_pkgs and \
+-					parent not in indirect_conflict_pkgs:
+-					parent = non_conflict_node
+-				conflict_graph.add(pkg, parent)
+-
+-		if debug:
+-			writemsg_level(
+-				"\n!!! Slot conflict graph:\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-			conflict_graph.debug_print()
+-
+-		# Now select required packages. Collect them in the
+-		# 'forced' set.
+-		forced = set([non_conflict_node])
+-		forced.update(non_matching_forced)
+-		unexplored = set([non_conflict_node])
+-		# or_tuples get special handling. We first explore
+-		# all packages in the hope of having forced one of
+-		# the packages in the tuple. This way we don't have
+-		# to choose one.
+-		unexplored_tuples = set()
+-		explored_nodes = set()
+-
+-		while unexplored:
+-			# Handle all unexplored packages.
+-			while unexplored:
+-				node = unexplored.pop()
+-				for child in conflict_graph.child_nodes(node):
+-					# Don't explore a node more than once, in order
+-					# to avoid infinite recursion. The forced set
+-					# cannot be used for this purpose, since it can
+-					# contain unexplored nodes from non_matching_forced.
+-					if child in explored_nodes:
+-						continue
+-					explored_nodes.add(child)
+-					forced.add(child)
+-					if isinstance(child, Package):
+-						unexplored.add(child)
+-					else:
+-						unexplored_tuples.add(child)
+-
+-			# Now handle unexplored or_tuples. Move on with packages
+-			# once we had to choose one.
+-			while unexplored_tuples:
+-				nodes = unexplored_tuples.pop()
+-				if any(node in forced for node in nodes):
+-					# At least one of the packages in the
+-					# tuple is already forced, which means the
+-					# dependency represented by this tuple
+-					# is satisfied.
+-					continue
+-
+-				# We now have to choose one of packages in the tuple.
+-				# In theory one could solve more conflicts if we'd be
+-				# able to try different choices here, but that has lots
+-				# of other problems. For now choose the package that was
+-				# pulled first, as this should be the most desirable choice
+-				# (otherwise it wouldn't have been the first one).
+-				forced.add(nodes[0])
+-				unexplored.add(nodes[0])
+-				break
+-
+-		# Remove 'non_conflict_node' and or_tuples from 'forced'.
+-		forced = set(pkg for pkg in forced if isinstance(pkg, Package))
+-		non_forced = set(pkg for pkg in conflict_pkgs if pkg not in forced)
+-
+-		if debug:
+-			writemsg_level(
+-				"\n!!! Slot conflict solution:\n",
+-				level=logging.DEBUG, noiselevel=-1)
+-			for conflict in conflicts:
+-				writemsg_level(
+-					"   Conflict: (%s, %s)\n" % (conflict.root, conflict.atom),
+-					level=logging.DEBUG, noiselevel=-1)
+-				for pkg in conflict:
+-					if pkg in forced:
+-						writemsg_level(
+-							"      keep:   %s\n" % pkg,
+-							level=logging.DEBUG, noiselevel=-1)
+-					else:
+-						writemsg_level(
+-							"      remove: %s\n" % pkg,
+-							level=logging.DEBUG, noiselevel=-1)
+-
+-		broken_packages = set()
+-		for pkg in non_forced:
+-			for parent, atom in self._dynamic_config._parent_atoms.get(pkg, []):
+-				if isinstance(parent, Package) and parent not in non_forced:
+-					# Non-forcing set args are expected to be a parent of all
+-					# packages in the conflict.
+-					broken_packages.add(parent)
+-			self._remove_pkg(pkg)
+-
+-		# Process the dependencies of choosen conflict packages
+-		# again to  properly account for blockers.
+-		broken_packages.update(forced)
+-
+-		# Filter out broken packages which have been removed during
+-		# recursive removal in self._remove_pkg.
+-		broken_packages = list(pkg for pkg in broken_packages if pkg in broken_packages \
+-			if self._dynamic_config._package_tracker.contains(pkg, installed=False))
+-
+-		self._dynamic_config._dep_stack.extend(broken_packages)
+-
+-		if broken_packages:
+-			# Process dependencies. This cannot fail because we just ensured that
+-			# the remaining packages satisfy all dependencies.
+-			self._create_graph()
+-
+-		# Record missed updates.
+-		for conflict in conflicts:
+-			if not any(pkg in non_forced for pkg in conflict):
+-				continue
+-			for pkg in conflict:
+-				if pkg not in non_forced:
+-					continue
+-
+-				for other in conflict:
+-					if other is pkg:
+-						continue
+-
+-					for parent, atom in self._dynamic_config._parent_atoms.get(other, []):
+-						if not atom.match(pkg.with_use(self._pkg_use_enabled(pkg))):
+-							self._dynamic_config._conflict_missed_update[pkg].setdefault(
+-								"slot conflict", set())
+-							self._dynamic_config._conflict_missed_update[pkg]["slot conflict"].add(
+-								(parent, atom))
+-
+-
+-	def _process_slot_conflicts(self):
+-		"""
+-		If there are any slot conflicts and backtracking is enabled,
+-		_complete_graph should complete the graph before this method
+-		is called, so that all relevant reverse dependencies are
+-		available for use in backtracking decisions.
+-		"""
+-
+-		self._solve_non_slot_operator_slot_conflicts()
+-
+-		if not self._validate_blockers():
+-			# Blockers don't trigger the _skip_restart flag, since
+-			# backtracking may solve blockers when it solves slot
+-			# conflicts (or by blind luck).
+-			raise self._unknown_internal_error()
+-
+-		# Both _process_slot_conflict and _slot_operator_trigger_reinstalls
+-		# can call _slot_operator_update_probe, which requires that
+-		# self._dynamic_config._blocked_pkgs has been initialized by a
+-		# call to the _validate_blockers method.
+-		for conflict in self._dynamic_config._package_tracker.slot_conflicts():
+-			self._process_slot_conflict(conflict)
+-
+-		if self._dynamic_config._allow_backtracking:
+-			self._slot_operator_trigger_reinstalls()
+-
+-	def _process_slot_conflict(self, conflict):
+-		"""
+-		Process slot conflict data to identify specific atoms which
+-		lead to conflict. These atoms only match a subset of the
+-		packages that have been pulled into a given slot.
+-		"""
+-		root = conflict.root
+-		slot_atom = conflict.atom
+-		slot_nodes = conflict.pkgs
+-
+-		debug = "--debug" in self._frozen_config.myopts
+-
+-		slot_parent_atoms = set()
+-		for pkg in slot_nodes:
+-			parent_atoms = self._dynamic_config._parent_atoms.get(pkg)
+-			if not parent_atoms:
+-				continue
+-			slot_parent_atoms.update(parent_atoms)
+-
+-		conflict_pkgs = []
+-		conflict_atoms = {}
+-		for pkg in slot_nodes:
+-
+-			if self._dynamic_config._allow_backtracking and \
+-				pkg in self._dynamic_config._runtime_pkg_mask:
+-				if debug:
+-					writemsg_level(
+-						"!!! backtracking loop detected: %s %s\n" % \
+-						(pkg,
+-						self._dynamic_config._runtime_pkg_mask[pkg]),
+-						level=logging.DEBUG, noiselevel=-1)
+-
+-			parent_atoms = self._dynamic_config._parent_atoms.get(pkg)
+-			if parent_atoms is None:
+-				parent_atoms = set()
+-				self._dynamic_config._parent_atoms[pkg] = parent_atoms
+-
+-			all_match = True
+-			for parent_atom in slot_parent_atoms:
+-				if parent_atom in parent_atoms:
+-					continue
+-				parent, atom = parent_atom
+-				if atom.match(pkg.with_use(self._pkg_use_enabled(pkg))):
+-					parent_atoms.add(parent_atom)
+-				else:
+-					all_match = False
+-					conflict_atoms.setdefault(parent_atom, set()).add(pkg)
+-
+-			if not all_match:
+-				conflict_pkgs.append(pkg)
+-
+-		if conflict_pkgs and \
+-			self._dynamic_config._allow_backtracking and \
+-			not self._accept_blocker_conflicts():
+-			remaining = []
+-			for pkg in conflict_pkgs:
+-				if self._slot_conflict_backtrack_abi(pkg,
+-					slot_nodes, conflict_atoms):
+-					backtrack_infos = self._dynamic_config._backtrack_infos
+-					config = backtrack_infos.setdefault("config", {})
+-					config.setdefault("slot_conflict_abi", set()).add(pkg)
+-				else:
+-					remaining.append(pkg)
+-			if remaining:
+-				self._slot_confict_backtrack(root, slot_atom,
+-					slot_parent_atoms, remaining)
+-
+-	def _slot_confict_backtrack(self, root, slot_atom,
+-		all_parents, conflict_pkgs):
+-
+-		debug = "--debug" in self._frozen_config.myopts
+-		existing_node = next(self._dynamic_config._package_tracker.match(
+-			root, slot_atom, installed=False))
+-		# In order to avoid a missed update, first mask lower versions
+-		# that conflict with higher versions (the backtracker visits
+-		# these in reverse order).
+-		conflict_pkgs.sort(reverse=True)
+-		backtrack_data = []
+-		for to_be_masked in conflict_pkgs:
+-			# For missed update messages, find out which
+-			# atoms matched to_be_selected that did not
+-			# match to_be_masked.
+-			parent_atoms = \
+-				self._dynamic_config._parent_atoms.get(to_be_masked, set())
+-			conflict_atoms = set(parent_atom for parent_atom in all_parents \
+-				if parent_atom not in parent_atoms)
+-			backtrack_data.append((to_be_masked, conflict_atoms))
+-
+-		to_be_masked = backtrack_data[-1][0]
+-
+-		self._dynamic_config._backtrack_infos.setdefault(
+-			"slot conflict", []).append(backtrack_data)
+-		self._dynamic_config._need_restart = True
+-		if debug:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("backtracking due to slot conflict:")
+-			msg.append("   first package:  %s" % existing_node)
+-			msg.append("  package to mask: %s" % to_be_masked)
+-			msg.append("      slot: %s" % slot_atom)
+-			msg.append("   parents: %s" % ", ".join( \
+-				"(%s, '%s')" % (ppkg, atom) for ppkg, atom in all_parents))
+-			msg.append("")
+-			writemsg_level("".join("%s\n" % l for l in msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-
+-	def _slot_conflict_backtrack_abi(self, pkg, slot_nodes, conflict_atoms):
+-		"""
+-		If one or more conflict atoms have a slot/sub-slot dep that can be resolved
+-		by rebuilding the parent package, then schedule the rebuild via
+-		backtracking, and return True. Otherwise, return False.
+-		"""
+-
+-		found_update = False
+-		for parent_atom, conflict_pkgs in conflict_atoms.items():
+-			parent, atom = parent_atom
+-
+-			if not isinstance(parent, Package):
+-				continue
+-
+-			if not parent.built:
+-				continue
+-
+-			if not atom.soname and not (
+-				atom.package and atom.slot_operator_built):
+-				continue
+-
+-			for other_pkg in slot_nodes:
+-				if other_pkg in conflict_pkgs:
+-					continue
+-
+-				dep = Dependency(atom=atom, child=other_pkg,
+-					parent=parent, root=pkg.root)
+-
+-				new_dep = \
+-					self._slot_operator_update_probe_slot_conflict(dep)
+-				if new_dep is not None:
+-					self._slot_operator_update_backtrack(dep,
+-						new_dep=new_dep)
+-					found_update = True
+-
+-		return found_update
+-
+-	def _slot_change_probe(self, dep):
+-		"""
+-		@rtype: bool
+-		@return: True if dep.child should be rebuilt due to a change
+-			in sub-slot (without revbump, as in bug #456208).
+-		"""
+-		if not (isinstance(dep.parent, Package) and \
+-			not dep.parent.built and dep.child.built):
+-			return None
+-
+-		root_config = self._frozen_config.roots[dep.root]
+-		matches = []
+-		try:
+-			matches.append(self._pkg(dep.child.cpv, "ebuild",
+-				root_config, myrepo=dep.child.repo))
+-		except PackageNotFound:
+-			pass
+-
+-		for unbuilt_child in chain(matches,
+-			self._iter_match_pkgs(root_config, "ebuild",
+-			Atom("=%s" % (dep.child.cpv,)))):
+-			if unbuilt_child in self._dynamic_config._runtime_pkg_mask:
+-				continue
+-			if self._frozen_config.excluded_pkgs.findAtomForPackage(
+-				unbuilt_child,
+-				modified_use=self._pkg_use_enabled(unbuilt_child)):
+-				continue
+-			if not self._pkg_visibility_check(unbuilt_child):
+-				continue
+-			break
+-		else:
+-			return None
+-
+-		if unbuilt_child.slot == dep.child.slot and \
+-			unbuilt_child.sub_slot == dep.child.sub_slot:
+-			return None
+-
+-		return unbuilt_child
+-
+-	def _slot_change_backtrack(self, dep, new_child_slot):
+-		child = dep.child
+-		if "--debug" in self._frozen_config.myopts:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("backtracking due to slot/sub-slot change:")
+-			msg.append("   child package:  %s" % child)
+-			msg.append("      child slot:  %s/%s" %
+-				(child.slot, child.sub_slot))
+-			msg.append("       new child:  %s" % new_child_slot)
+-			msg.append("  new child slot:  %s/%s" %
+-				(new_child_slot.slot, new_child_slot.sub_slot))
+-			msg.append("   parent package: %s" % dep.parent)
+-			msg.append("   atom: %s" % dep.atom)
+-			msg.append("")
+-			writemsg_level("\n".join(msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-		backtrack_infos = self._dynamic_config._backtrack_infos
+-		config = backtrack_infos.setdefault("config", {})
+-
+-		# mask unwanted binary packages if necessary
+-		masks = {}
+-		if not child.installed:
+-			masks.setdefault(dep.child, {})["slot_operator_mask_built"] = None
+-		if masks:
+-			config.setdefault("slot_operator_mask_built", {}).update(masks)
+-
+-		# trigger replacement of installed packages if necessary
+-		reinstalls = set()
+-		if child.installed:
+-			replacement_atom = self._replace_installed_atom(child)
+-			if replacement_atom is not None:
+-				reinstalls.add((child.root, replacement_atom))
+-		if reinstalls:
+-			config.setdefault("slot_operator_replace_installed",
+-				set()).update(reinstalls)
+-
+-		self._dynamic_config._need_restart = True
+-
+-	def _slot_operator_update_backtrack(self, dep, new_child_slot=None,
+-		new_dep=None):
+-		if new_child_slot is None:
+-			child = dep.child
+-		else:
+-			child = new_child_slot
+-		if "--debug" in self._frozen_config.myopts:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("backtracking due to missed slot abi update:")
+-			msg.append("   child package:  %s" % child)
+-			if new_child_slot is not None:
+-				msg.append("   new child slot package:  %s" % new_child_slot)
+-			msg.append("   parent package: %s" % dep.parent)
+-			if new_dep is not None:
+-				msg.append("   new parent pkg: %s" % new_dep.parent)
+-			msg.append("   atom: %s" % dep.atom)
+-			msg.append("")
+-			writemsg_level("\n".join(msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-		backtrack_infos = self._dynamic_config._backtrack_infos
+-		config = backtrack_infos.setdefault("config", {})
+-
+-		# mask unwanted binary packages if necessary
+-		abi_masks = {}
+-		if new_child_slot is None:
+-			if not child.installed:
+-				abi_masks.setdefault(child, {})["slot_operator_mask_built"] = None
+-		if not dep.parent.installed:
+-			abi_masks.setdefault(dep.parent, {})["slot_operator_mask_built"] = None
+-		if abi_masks:
+-			config.setdefault("slot_operator_mask_built", {}).update(abi_masks)
+-
+-		# trigger replacement of installed packages if necessary
+-		abi_reinstalls = set()
+-		if dep.parent.installed:
+-			if new_dep is not None:
+-				replacement_atom = new_dep.parent.slot_atom
+-			else:
+-				replacement_atom = self._replace_installed_atom(dep.parent)
+-			if replacement_atom is not None:
+-				abi_reinstalls.add((dep.parent.root, replacement_atom))
+-		if new_child_slot is None and child.installed:
+-			replacement_atom = self._replace_installed_atom(child)
+-			if replacement_atom is not None:
+-				abi_reinstalls.add((child.root, replacement_atom))
+-		if abi_reinstalls:
+-			config.setdefault("slot_operator_replace_installed",
+-				set()).update(abi_reinstalls)
+-
+-		self._dynamic_config._need_restart = True
+-
+-	def _slot_operator_update_probe_slot_conflict(self, dep):
+-		new_dep = self._slot_operator_update_probe(dep, slot_conflict=True)
+-
+-		if new_dep is not None:
+-			return new_dep
+-
+-		if self._dynamic_config._autounmask is True:
+-
+-			for autounmask_level in self._autounmask_levels():
+-
+-				new_dep = self._slot_operator_update_probe(dep,
+-					slot_conflict=True, autounmask_level=autounmask_level)
+-
+-				if new_dep is not None:
+-					return new_dep
+-
+-		return None
+-
+-	def _slot_operator_update_probe(self, dep, new_child_slot=False,
+-		slot_conflict=False, autounmask_level=None):
+-		"""
+-		slot/sub-slot := operators tend to prevent updates from getting pulled in,
+-		since installed packages pull in packages with the slot/sub-slot that they
+-		were built against. Detect this case so that we can schedule rebuilds
+-		and reinstalls when appropriate.
+-		NOTE: This function only searches for updates that involve upgrades
+-			to higher versions, since the logic required to detect when a
+-			downgrade would be desirable is not implemented.
+-		"""
+-
+-		if dep.child.installed and \
+-			self._frozen_config.excluded_pkgs.findAtomForPackage(dep.child,
+-			modified_use=self._pkg_use_enabled(dep.child)):
+-			return None
+-
+-		if dep.parent.installed and \
+-			self._frozen_config.excluded_pkgs.findAtomForPackage(dep.parent,
+-			modified_use=self._pkg_use_enabled(dep.parent)):
+-			return None
+-
+-		debug = "--debug" in self._frozen_config.myopts
+-		selective = "selective" in self._dynamic_config.myparams
+-		want_downgrade = None
+-		want_downgrade_parent = None
+-
+-		def check_reverse_dependencies(existing_pkg, candidate_pkg,
+-			replacement_parent=None):
+-			"""
+-			Check if candidate_pkg satisfies all of existing_pkg's non-
+-			slot operator parents.
+-			"""
+-			built_slot_operator_parents = set()
+-			for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
+-				if atom.soname or atom.slot_operator_built:
+-					built_slot_operator_parents.add(parent)
+-
+-			for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
+-				if isinstance(parent, Package):
+-					if parent in built_slot_operator_parents:
+-						# This parent may need to be rebuilt, so its
+-						# dependencies aren't necessarily relevant.
+-						continue
+-
+-					if replacement_parent is not None and \
+-						(replacement_parent.slot_atom == parent.slot_atom
+-						or replacement_parent.cpv == parent.cpv):
+-						# This parent is irrelevant because we intend to
+-						# replace it with replacement_parent.
+-						continue
+-
+-					if any(pkg is not parent and
+-						(pkg.slot_atom == parent.slot_atom or
+-						pkg.cpv == parent.cpv) for pkg in
+-						self._dynamic_config._package_tracker.match(
+-						parent.root, Atom(parent.cp))):
+-						# This parent may need to be eliminated due to a
+-						# slot conflict,  so its dependencies aren't
+-						# necessarily relevant.
+-						continue
+-
+-					if (not self._too_deep(parent.depth) and
+-						not self._frozen_config.excluded_pkgs.
+-						findAtomForPackage(parent,
+-						modified_use=self._pkg_use_enabled(parent))):
+-						# Check for common reasons that the parent's
+-						# dependency might be irrelevant.
+-						if self._upgrade_available(parent):
+-							# This parent could be replaced by
+-							# an upgrade (bug 584626).
+-							continue
+-						if parent.installed and self._in_blocker_conflict(parent):
+-							# This parent could be uninstalled in order
+-							# to solve a blocker conflict (bug 612772).
+-							continue
+-						if self._dynamic_config.digraph.has_edge(parent,
+-							existing_pkg):
+-							# There is a direct circular dependency between
+-							# parent and existing_pkg. This type of
+-							# relationship tends to prevent updates
+-							# of packages (bug 612874). Since candidate_pkg
+-							# is available, we risk a missed update if we
+-							# don't try to eliminate this parent from the
+-							# graph. Therefore, we give candidate_pkg a
+-							# chance, and assume that it will be masked
+-							# by backtracking if necessary.
+-							continue
+-
+-				atom_set = InternalPackageSet(initial_atoms=(atom,),
+-					allow_repo=True)
+-				if not atom_set.findAtomForPackage(candidate_pkg,
+-					modified_use=self._pkg_use_enabled(candidate_pkg)):
+-					return False
+-			return True
+-
+-
+-		for replacement_parent in self._iter_similar_available(dep.parent,
+-			dep.parent.slot_atom, autounmask_level=autounmask_level):
+-
+-			if replacement_parent is dep.parent:
+-				continue
+-
+-			if replacement_parent < dep.parent:
+-				if want_downgrade_parent is None:
+-					want_downgrade_parent = self._downgrade_probe(
+-						dep.parent)
+-				if not want_downgrade_parent:
+-					continue
+-
+-			if not check_reverse_dependencies(dep.parent, replacement_parent):
+-				continue
+-
+-			selected_atoms = None
+-
+-			try:
+-				atoms = self._flatten_atoms(replacement_parent,
+-					self._pkg_use_enabled(replacement_parent))
+-			except InvalidDependString:
+-				continue
+-
+-			if replacement_parent.requires is not None:
+-				atoms = list(atoms)
+-				atoms.extend(replacement_parent.requires)
+-
+-			# List of list of child,atom pairs for each atom.
+-			replacement_candidates = []
+-			# Set of all packages all atoms can agree on.
+-			all_candidate_pkgs = None
+-
+-			for atom in atoms:
+-				# The _select_atoms_probe method is expensive, so initialization
+-				# of this variable is only performed on demand.
+-				atom_not_selected = None
+-
+-				if not atom.package:
+-					unevaluated_atom = None
+-					if atom.match(dep.child):
+-						# We are searching for a replacement_parent
+-						# atom that will pull in a different child,
+-						# so continue checking the rest of the atoms.
+-						continue
+-				else:
+-
+-					if atom.blocker or \
+-						atom.cp != dep.child.cp:
+-						continue
+-
+-					# Discard USE deps, we're only searching for an
+-					# approximate pattern, and dealing with USE states
+-					# is too complex for this purpose.
+-					unevaluated_atom = atom.unevaluated_atom
+-					atom = atom.without_use
+-
+-					if replacement_parent.built and \
+-						portage.dep._match_slot(atom, dep.child):
+-						# We are searching for a replacement_parent
+-						# atom that will pull in a different child,
+-						# so continue checking the rest of the atoms.
+-						continue
+-
+-				candidate_pkg_atoms = []
+-				candidate_pkgs = []
+-				for pkg in self._iter_similar_available(
+-					dep.child, atom):
+-					if (dep.atom.package and
+-						pkg.slot == dep.child.slot and
+-						pkg.sub_slot == dep.child.sub_slot):
+-						# If slot/sub-slot is identical, then there's
+-						# no point in updating.
+-						continue
+-					if new_child_slot:
+-						if pkg.slot == dep.child.slot:
+-							continue
+-						if pkg < dep.child:
+-							# the new slot only matters if the
+-							# package version is higher
+-							continue
+-					else:
+-						if pkg.slot != dep.child.slot:
+-							continue
+-						if pkg < dep.child:
+-							if want_downgrade is None:
+-								want_downgrade = self._downgrade_probe(dep.child)
+-							# be careful not to trigger a rebuild when
+-							# the only version available with a
+-							# different slot_operator is an older version
+-							if not want_downgrade:
+-								continue
+-						if pkg.version == dep.child.version and not dep.child.built:
+-							continue
+-
+-					insignificant = False
+-					if not slot_conflict and \
+-						selective and \
+-						dep.parent.installed and \
+-						dep.child.installed and \
+-						dep.parent >= replacement_parent and \
+-						dep.child.cpv == pkg.cpv:
+-						# Then can happen if the child's sub-slot changed
+-						# without a revision bump. The sub-slot change is
+-						# considered insignificant until one of its parent
+-						# packages needs to be rebuilt (which may trigger a
+-						# slot conflict).
+-						insignificant = True
+-
+-					if (not insignificant and
+-						unevaluated_atom is not None):
+-						# Evaluate USE conditionals and || deps, in order
+-						# to see if this atom is really desirable, since
+-						# otherwise we may trigger an undesirable rebuild
+-						# as in bug #460304.
+-						if selected_atoms is None:
+-							selected_atoms = self._select_atoms_probe(
+-								dep.child.root, replacement_parent)
+-						atom_not_selected = unevaluated_atom not in selected_atoms
+-						if atom_not_selected:
+-							break
+-
+-					if not insignificant and \
+-						check_reverse_dependencies(dep.child, pkg,
+-							replacement_parent=replacement_parent):
+-
+-						candidate_pkg_atoms.append(
+-							(pkg, unevaluated_atom or atom))
+-						candidate_pkgs.append(pkg)
+-
+-				# When unevaluated_atom is None, it means that atom is
+-				# an soname atom which is unconditionally selected, and
+-				# _select_atoms_probe is not applicable.
+-				if atom_not_selected is None and unevaluated_atom is not None:
+-					if selected_atoms is None:
+-						selected_atoms = self._select_atoms_probe(
+-							dep.child.root, replacement_parent)
+-					atom_not_selected = unevaluated_atom not in selected_atoms
+-
+-				if atom_not_selected:
+-					continue
+-				replacement_candidates.append(candidate_pkg_atoms)
+-				if all_candidate_pkgs is None:
+-					all_candidate_pkgs = set(candidate_pkgs)
+-				else:
+-					all_candidate_pkgs.intersection_update(candidate_pkgs)
+-
+-			if not all_candidate_pkgs:
+-				# If the atoms that connect parent and child can't agree on
+-				# any replacement child, we can't do anything.
+-				continue
+-
+-			# Now select one of the pkgs as replacement. This is as easy as
+-			# selecting the highest version.
+-			# The more complicated part is to choose an atom for the
+-			# new Dependency object. Choose the one which ranked the selected
+-			# parent highest.
+-			selected = None
+-			for candidate_pkg_atoms in replacement_candidates:
+-				for i, (pkg, atom) in enumerate(candidate_pkg_atoms):
+-					if pkg not in all_candidate_pkgs:
+-						continue
+-					if selected is None or \
+-						selected[0] < pkg or \
+-						(selected[0] is pkg and i < selected[2]):
+-						selected = (pkg, atom, i)
+-
+-			if debug:
+-				msg = []
+-				msg.append("")
+-				msg.append("")
+-				msg.append("slot_operator_update_probe:")
+-				msg.append("   existing child package:  %s" % dep.child)
+-				msg.append("   existing parent package: %s" % dep.parent)
+-				msg.append("   new child package:  %s" % selected[0])
+-				msg.append("   new parent package: %s" % replacement_parent)
+-				msg.append("")
+-				writemsg_level("\n".join(msg),
+-					noiselevel=-1, level=logging.DEBUG)
+-
+-			return Dependency(parent=replacement_parent,
+-				child=selected[0], atom=selected[1])
+-
+-		if debug:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("slot_operator_update_probe:")
+-			msg.append("   existing child package:  %s" % dep.child)
+-			msg.append("   existing parent package: %s" % dep.parent)
+-			msg.append("   new child package:  %s" % None)
+-			msg.append("   new parent package: %s" % None)
+-			msg.append("")
+-			writemsg_level("\n".join(msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-
+-		return None
+-
+-	def _slot_operator_unsatisfied_probe(self, dep):
+-
+-		if dep.parent.installed and \
+-			self._frozen_config.excluded_pkgs.findAtomForPackage(dep.parent,
+-			modified_use=self._pkg_use_enabled(dep.parent)):
+-			return False
+-
+-		debug = "--debug" in self._frozen_config.myopts
+-
+-		for replacement_parent in self._iter_similar_available(dep.parent,
+-			dep.parent.slot_atom):
+-
+-			for atom in replacement_parent.validated_atoms:
+-				if not atom.slot_operator == "=" or \
+-					atom.blocker or \
+-					atom.cp != dep.atom.cp:
+-					continue
+-
+-				# Discard USE deps, we're only searching for an approximate
+-				# pattern, and dealing with USE states is too complex for
+-				# this purpose.
+-				atom = atom.without_use
+-
+-				pkg, existing_node = self._select_package(dep.root, atom,
+-					onlydeps=dep.onlydeps)
+-
+-				if pkg is not None:
+-
+-					if debug:
+-						msg = []
+-						msg.append("")
+-						msg.append("")
+-						msg.append("slot_operator_unsatisfied_probe:")
+-						msg.append("   existing parent package: %s" % dep.parent)
+-						msg.append("   existing parent atom: %s" % dep.atom)
+-						msg.append("   new parent package: %s" % replacement_parent)
+-						msg.append("   new child package:  %s" % pkg)
+-						msg.append("")
+-						writemsg_level("\n".join(msg),
+-							noiselevel=-1, level=logging.DEBUG)
+-
+-					return True
+-
+-		if debug:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("slot_operator_unsatisfied_probe:")
+-			msg.append("   existing parent package: %s" % dep.parent)
+-			msg.append("   existing parent atom: %s" % dep.atom)
+-			msg.append("   new parent package: %s" % None)
+-			msg.append("   new child package:  %s" % None)
+-			msg.append("")
+-			writemsg_level("\n".join(msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-
+-		return False
+-
+-	def _slot_operator_unsatisfied_backtrack(self, dep):
+-
+-		parent = dep.parent
+-
+-		if "--debug" in self._frozen_config.myopts:
+-			msg = []
+-			msg.append("")
+-			msg.append("")
+-			msg.append("backtracking due to unsatisfied "
+-				"built slot-operator dep:")
+-			msg.append("   parent package: %s" % parent)
+-			msg.append("   atom: %s" % dep.atom)
+-			msg.append("")
+-			writemsg_level("\n".join(msg),
+-				noiselevel=-1, level=logging.DEBUG)
+-
+-		backtrack_infos = self._dynamic_config._backtrack_infos
+-		config = backtrack_infos.setdefault("config", {})
+-
+-		# mask unwanted binary packages if necessary
+-		masks = {}
+-		if not parent.installed:
+-			masks.setdefault(parent, {})["slot_operator_mask_built"] = None
+-		if masks:
+-			config.setdefault("slot_operator_mask_built", {}).update(masks)
+-
+-		# trigger replacement of installed packages if necessary
+-		reinstalls = set()
+-		if parent.installed:
+-			replacement_atom = self._replace_installed_atom(parent)
+-			if replacement_atom is not None:
+-				reinstalls.add((parent.root, replacement_atom))
+-		if reinstalls:
+-			config.setdefault("slot_operator_replace_installed",
+-				set()).update(reinstalls)
+-
+-		self._dynamic_config._need_restart = True
+-
+ 	def _in_blocker_conflict(self, pkg):
+ 		"""
+ 		Check if pkg is involved in a blocker conflict. This method
+@@ -2241,21 +1097,6 @@
+ 
+ 		return False
+ 
+-	def _downgrade_probe(self, pkg):
+-		"""
+-		Detect cases where a downgrade of the given package is considered
+-		desirable due to the current version being masked or unavailable.
+-		"""
+-		available_pkg = None
+-		for available_pkg in self._iter_similar_available(pkg,
+-			pkg.slot_atom):
+-			if available_pkg >= pkg:
+-				# There's an available package of the same or higher
+-				# version, so downgrade seems undesirable.
+-				return False
+-
+-		return available_pkg is not None
+-
+ 	def _select_atoms_probe(self, root, pkg):
+ 		selected_atoms = []
+ 		use = self._pkg_use_enabled(pkg)
+@@ -2377,45 +1218,6 @@
+ 
+ 		return None
+ 
+-	def _slot_operator_trigger_reinstalls(self):
+-		"""
+-		Search for packages with slot-operator deps on older slots, and schedule
+-		rebuilds if they can link to a newer slot that's in the graph.
+-		"""
+-
+-		rebuild_if_new_slot = self._dynamic_config.myparams.get(
+-			"rebuild_if_new_slot", "y") == "y"
+-
+-		for slot_key, slot_info in self._dynamic_config._slot_operator_deps.items():
+-
+-			for dep in slot_info:
+-
+-				atom = dep.atom
+-
+-				if not (atom.soname or atom.slot_operator_built):
+-					new_child_slot = self._slot_change_probe(dep)
+-					if new_child_slot is not None:
+-						self._slot_change_backtrack(dep, new_child_slot)
+-					continue
+-
+-				if not (dep.parent and
+-					isinstance(dep.parent, Package) and dep.parent.built):
+-					continue
+-
+-				# Check for slot update first, since we don't want to
+-				# trigger reinstall of the child package when a newer
+-				# slot will be used instead.
+-				if rebuild_if_new_slot and dep.want_update:
+-					new_dep = self._slot_operator_update_probe(dep,
+-						new_child_slot=True)
+-					if new_dep is not None:
+-						self._slot_operator_update_backtrack(dep,
+-							new_child_slot=new_dep.child)
+-
+-				if dep.want_update:
+-					if self._slot_operator_update_probe(dep):
+-						self._slot_operator_update_backtrack(dep)
+-
+ 	def _reinstall_for_flags(self, pkg, forced_flags,
+ 		orig_use, orig_iuse, cur_use, cur_iuse):
+ 		"""Return a set of flags that trigger reinstallation, or None if there
+@@ -2593,13 +1395,14 @@
+ 
+ 			# Slot collision nodes are not allowed to block other packages since
+ 			# blocker validation is only able to account for one package per slot.
+-			is_slot_conflict_parent = any(dep.parent in conflict.pkgs[1:] for conflict in \
+-				self._dynamic_config._package_tracker.slot_conflicts())
++
++			# Disabling this until I can validate that it is working correctly with new code:
++			# is_slot_conflict_parent = any(dep.parent in conflict.pkgs[1:] for conflict in \
++			#	self._dynamic_config._package_tracker.slot_conflicts())
+ 			if not buildpkgonly and \
+ 				not nodeps and \
+ 				not dep.collapsed_priority.ignored and \
+-				not dep.collapsed_priority.optional and \
+-				not is_slot_conflict_parent:
++				not dep.collapsed_priority.optional:
+ 				if dep.parent.onlydeps:
+ 					# It's safe to ignore blockers if the
+ 					# parent is an --onlydeps node.
+@@ -2615,17 +1418,15 @@
+ 		if dep.child is None:
+ 			dep_pkg, existing_node = self._select_package(dep.root, dep.atom,
+ 				onlydeps=dep.onlydeps)
++
+ 		else:
+ 			# The caller has selected a specific package
+ 			# via self._minimize_packages().
+ 			dep_pkg = dep.child
+-			existing_node = next(self._dynamic_config._package_tracker.match(
+-				dep.root, dep_pkg.slot_atom, installed=False), None)
+ 
+ 		if not dep_pkg:
+ 			if (dep.collapsed_priority.optional or
+ 				dep.collapsed_priority.ignored):
+-				# This is an unnecessary build-time dep.
+ 				return 1
+ 
+ 			# NOTE: For removal actions, allow_unsatisfied is always
+@@ -2636,87 +1437,7 @@
+ 				self._dynamic_config._unsatisfied_deps.append(dep)
+ 				return 1
+ 
+-			# The following case occurs when
+-			# _solve_non_slot_operator_slot_conflicts calls
+-			# _create_graph. In this case, ignore unsatisfied deps for
+-			# installed packages only if their depth is beyond the depth
+-			# requested by the user and the dep was initially
+-			# unsatisfied (not broken by a slot conflict in the current
+-			# graph). See bug #520950.
+-			# NOTE: The value of dep.parent.depth is guaranteed to be
+-			# either an integer or _UNREACHABLE_DEPTH, where
+-			# _UNREACHABLE_DEPTH indicates that the parent has been
+-			# pulled in by the _complete_graph method (rather than by
+-			# explicit arguments or their deep dependencies). These
+-			# cases must be distinguished because depth is meaningless
+-			# for packages that are not reachable as deep dependencies
+-			# of arguments.
+-			if (self._dynamic_config._complete_mode and
+-				isinstance(dep.parent, Package) and
+-				dep.parent.installed and
+-				(dep.parent.depth is self._UNREACHABLE_DEPTH or
+-				(self._frozen_config.requested_depth is not True and
+-				dep.parent.depth >= self._frozen_config.requested_depth))):
+-				inst_pkg, in_graph = \
+-					self._select_pkg_from_installed(dep.root, dep.atom)
+-				if inst_pkg is None:
+-					self._dynamic_config._initially_unsatisfied_deps.append(dep)
+-					return 1
+-
+-			self._dynamic_config._unsatisfied_deps_for_display.append(
+-				((dep.root, dep.atom), {"myparent":dep.parent}))
+-
+-			# The parent node should not already be in
+-			# runtime_pkg_mask, since that would trigger an
+-			# infinite backtracking loop.
+-			if self._dynamic_config._allow_backtracking:
+-				if (dep.parent not in self._dynamic_config._runtime_pkg_mask and
+-					dep.atom.package and dep.atom.slot_operator_built and
+-					self._slot_operator_unsatisfied_probe(dep)):
+-					self._slot_operator_unsatisfied_backtrack(dep)
+-					return 1
+-				else:
+-					# This is for backward-compatibility with previous
+-					# behavior, so that installed packages with unsatisfied
+-					# dependencies trigger an error message but do not
+-					# cause the dependency calculation to fail. Only do
+-					# this if the parent is already in the runtime package
+-					# mask, since otherwise we need to backtrack.
+-					if (dep.parent.installed and
+-						dep.parent in self._dynamic_config._runtime_pkg_mask and
+-						not any(self._iter_match_pkgs_any(
+-						dep.parent.root_config, dep.atom))):
+-						self._dynamic_config._initially_unsatisfied_deps.append(dep)
+-						return 1
+-
+-					# Do not backtrack if only USE have to be changed in
+-					# order to satisfy the dependency. Note that when
+-					# want_restart_for_use_change sets the need_restart
+-					# flag, it causes _select_pkg_highest_available to
+-					# return None, and eventually we come through here
+-					# and skip the "missing dependency" backtracking path.
+-					dep_pkg, existing_node = \
+-						self._select_package(dep.root,
+-							dep.atom.without_use if dep.atom.package
+-							else dep.atom, onlydeps=dep.onlydeps)
+-					if dep_pkg is None:
+-						self._dynamic_config._backtrack_infos["missing dependency"] = dep
+-						self._dynamic_config._need_restart = True
+-						if debug:
+-							msg = []
+-							msg.append("")
+-							msg.append("")
+-							msg.append("backtracking due to unsatisfied dep:")
+-							msg.append("    parent: %s" % dep.parent)
+-							msg.append("  priority: %s" % dep.priority)
+-							msg.append("      root: %s" % dep.root)
+-							msg.append("      atom: %s" % dep.atom)
+-							msg.append("")
+-							writemsg_level("".join("%s\n" % l for l in msg),
+-								noiselevel=-1, level=logging.DEBUG)
+-
+ 			return 0
+-
+ 		self._rebuild.add(dep_pkg, dep)
+ 
+ 		ignore = dep.collapsed_priority.ignored and \
+@@ -2725,25 +1446,12 @@
+ 			return 0
+ 		return 1
+ 
+-	def _check_slot_conflict(self, pkg, atom):
+-		existing_node = next(self._dynamic_config._package_tracker.match(
+-			pkg.root, pkg.slot_atom, installed=False), None)
+-
+-		matches = None
+-		if existing_node:
+-			matches = pkg.cpv == existing_node.cpv
+-			if pkg != existing_node and \
+-				atom is not None:
+-				matches = atom.match(existing_node.with_use(
+-					self._pkg_use_enabled(existing_node)))
+-
+-		return (existing_node, matches)
+-
+ 	def _add_pkg(self, pkg, dep):
+ 		"""
+ 		Adds a package to the depgraph, queues dependencies, and handles
+ 		slot conflicts.
+ 		"""
++
+ 		debug = "--debug" in self._frozen_config.myopts
+ 		myparent = None
+ 		priority = None
+@@ -2785,7 +1493,6 @@
+ 		# Ensure that the dependencies of the same package
+ 		# are never processed more than once.
+ 		previously_added = pkg in self._dynamic_config.digraph
+-
+ 		pkgsettings = self._frozen_config.pkgsettings[pkg.root]
+ 
+ 		arg_atoms = None
+@@ -2815,7 +1522,6 @@
+ 
+ 				if arg_atoms:
+ 					for parent_atom in arg_atoms:
+-						parent, atom = parent_atom
+ 						self._add_parent_atom(pkg, parent_atom)
+ 
+ 				atom = dep.atom
+@@ -2830,39 +1536,6 @@
+ 
+ 		if not pkg.onlydeps:
+ 
+-			existing_node, existing_node_matches = \
+-				self._check_slot_conflict(pkg, dep.atom)
+-			if existing_node:
+-				if existing_node_matches:
+-					# The existing node can be reused.
+-					if pkg != existing_node:
+-						pkg = existing_node
+-						previously_added = True
+-						try:
+-							arg_atoms = list(self._iter_atoms_for_pkg(pkg))
+-						except InvalidDependString as e:
+-							if not pkg.installed:
+-								# should have been masked before
+-								# it was selected
+-								raise
+-
+-						if debug:
+-							writemsg_level(
+-								"%s%s %s\n" % ("Re-used Child:".ljust(15),
+-								pkg, pkg_use_display(pkg,
+-								self._frozen_config.myopts,
+-								modified_use=self._pkg_use_enabled(pkg))),
+-								level=logging.DEBUG, noiselevel=-1)
+-
+-				else:
+-					if debug:
+-						writemsg_level(
+-							"%s%s %s\n" % ("Slot Conflict:".ljust(15),
+-							existing_node, pkg_use_display(existing_node,
+-							self._frozen_config.myopts,
+-							modified_use=self._pkg_use_enabled(existing_node))),
+-							level=logging.DEBUG, noiselevel=-1)
+-
+ 			if not previously_added:
+ 				self._dynamic_config._package_tracker.add_pkg(pkg)
+ 				self._dynamic_config._filtered_trees[pkg.root]["porttree"].dbapi._clear_cache()
+@@ -2902,6 +1575,7 @@
+ 			if dep.atom is not None and dep.parent is not None:
+ 				self._add_parent_atom(pkg, (dep.parent, dep.atom))
+ 
++		# WTF
+ 		if arg_atoms:
+ 			for parent_atom in arg_atoms:
+ 				parent, atom = parent_atom
+@@ -2985,65 +1659,6 @@
+ 					return False
+ 		return True
+ 
+-	def _remove_pkg(self, pkg):
+-		"""
+-		Remove a package and all its then parentless digraph
+-		children from all depgraph datastructures.
+-		"""
+-		debug = "--debug" in self._frozen_config.myopts
+-		if debug:
+-			writemsg_level(
+-				"Removing package: %s\n" % pkg,
+-				level=logging.DEBUG, noiselevel=-1)
+-
+-		try:
+-			children = [child for child in self._dynamic_config.digraph.child_nodes(pkg) \
+-				if child is not pkg]
+-			self._dynamic_config.digraph.remove(pkg)
+-		except KeyError:
+-			children = []
+-
+-		self._dynamic_config._package_tracker.discard_pkg(pkg)
+-
+-		self._dynamic_config._parent_atoms.pop(pkg, None)
+-		self._dynamic_config._set_nodes.discard(pkg)
+-
+-		for child in children:
+-			try:
+-				self._dynamic_config._parent_atoms[child] = set((parent, atom) \
+-					for (parent, atom) in self._dynamic_config._parent_atoms[child] \
+-					if parent is not pkg)
+-			except KeyError:
+-				pass
+-
+-		# Remove slot operator dependencies.
+-		slot_key = (pkg.root, pkg.slot_atom)
+-		if slot_key in self._dynamic_config._slot_operator_deps:
+-			self._dynamic_config._slot_operator_deps[slot_key] = \
+-				[dep for dep in self._dynamic_config._slot_operator_deps[slot_key] \
+-				if dep.child is not pkg]
+-			if not self._dynamic_config._slot_operator_deps[slot_key]:
+-				del self._dynamic_config._slot_operator_deps[slot_key]
+-
+-		# Remove blockers.
+-		self._dynamic_config._blocker_parents.discard(pkg)
+-		self._dynamic_config._irrelevant_blockers.discard(pkg)
+-		self._dynamic_config._unsolvable_blockers.discard(pkg)
+-		if self._dynamic_config._blocked_pkgs is not None:
+-			self._dynamic_config._blocked_pkgs.discard(pkg)
+-		self._dynamic_config._blocked_world_pkgs.pop(pkg, None)
+-
+-		for child in children:
+-			if child in self._dynamic_config.digraph and \
+-				not self._dynamic_config.digraph.parent_nodes(child):
+-				self._remove_pkg(child)
+-
+-		# Clear caches.
+-		self._dynamic_config._filtered_trees[pkg.root]["porttree"].dbapi._clear_cache()
+-		self._dynamic_config._highest_pkg_cache.clear()
+-		self._dynamic_config._highest_pkg_cache_cp_map.clear()
+-
+-
+ 	def _check_masks(self, pkg):
+ 
+ 		slot_key = (pkg.root, pkg.slot_atom)
+@@ -3257,6 +1872,7 @@
+ 		Don't ignore dependencies if pkg has a slot operator dependency on the child
+ 		and the child has changed slot/sub_slot.
+ 		"""
++
+ 		if not mypriority.satisfied:
+ 			return False
+ 		slot_operator_rebuild = False
+@@ -3324,7 +1940,6 @@
+ 		reinstall_atoms = self._frozen_config.reinstall_atoms
+ 		for atom, child in self._minimize_children(
+ 			pkg, dep_priority, root_config, selected_atoms[pkg]):
+-
+ 			# If this was a specially generated virtual atom
+ 			# from dep_check, map it back to the original, in
+ 			# order to avoid distortion in places like display
+@@ -3364,7 +1979,6 @@
+ 			dep = Dependency(atom=atom,
+ 				blocker=atom.blocker, child=child, depth=depth, parent=pkg,
+ 				priority=mypriority, root=dep_root)
+-
+ 			# In some cases, dep_check will return deps that shouldn't
+ 			# be processed any further, so they are identified and
+ 			# discarded here. Try to discard as few as possible since
+@@ -3511,11 +2125,11 @@
+ 		"""
+ 		Selects packages to satisfy the given atoms, and minimizes the
+ 		number of selected packages. This serves to identify and eliminate
+-		redundant package selections when multiple atoms happen to specify
++		invalid package selections when multiple atoms happen to specify
+ 		a version range.
+ 		"""
+ 
+-		atom_pkg_map = {}
++		# TODO: reimplement for version range support?
+ 
+ 		for atom in atoms:
+ 			if atom.blocker:
+@@ -3526,80 +2140,8 @@
+ 			if dep_pkg is None:
+ 				yield (atom, None)
+ 				continue
+-			atom_pkg_map[atom] = dep_pkg
+-
+-		if len(atom_pkg_map) < 2:
+-			for item in atom_pkg_map.items():
+-				yield item
+-			return
+-
+-		cp_pkg_map = {}
+-		pkg_atom_map = {}
+-		for atom, pkg in atom_pkg_map.items():
+-			pkg_atom_map.setdefault(pkg, set()).add(atom)
+-			cp_pkg_map.setdefault(pkg.cp, set()).add(pkg)
+-
+-		for pkgs in cp_pkg_map.values():
+-			if len(pkgs) < 2:
+-				for pkg in pkgs:
+-					for atom in pkg_atom_map[pkg]:
+-						yield (atom, pkg)
+-				continue
+-
+-			# Use a digraph to identify and eliminate any
+-			# redundant package selections.
+-			atom_pkg_graph = digraph()
+-			cp_atoms = set()
+-			for pkg1 in pkgs:
+-				for atom in pkg_atom_map[pkg1]:
+-					cp_atoms.add(atom)
+-					atom_pkg_graph.add(pkg1, atom)
+-					atom_set = InternalPackageSet(initial_atoms=(atom,),
+-						allow_repo=True)
+-					for pkg2 in pkgs:
+-						if pkg2 is pkg1:
+-							continue
+-						if atom_set.findAtomForPackage(pkg2, modified_use=self._pkg_use_enabled(pkg2)):
+-							atom_pkg_graph.add(pkg2, atom)
+-
+-			for pkg in pkgs:
+-				eliminate_pkg = True
+-				for atom in atom_pkg_graph.parent_nodes(pkg):
+-					if len(atom_pkg_graph.child_nodes(atom)) < 2:
+-						eliminate_pkg = False
+-						break
+-				if eliminate_pkg:
+-					atom_pkg_graph.remove(pkg)
+-
+-			# Yield ~, =*, < and <= atoms first, since those are more likely to
+-			# cause slot conflicts, and we want those atoms to be displayed
+-			# in the resulting slot conflict message (see bug #291142).
+-			# Give similar treatment to slot/sub-slot atoms.
+-			conflict_atoms = []
+-			normal_atoms = []
+-			abi_atoms = []
+-			for atom in cp_atoms:
+-				if atom.slot_operator_built:
+-					abi_atoms.append(atom)
+-					continue
+-				conflict = False
+-				for child_pkg in atom_pkg_graph.child_nodes(atom):
+-					existing_node, matches = \
+-						self._check_slot_conflict(child_pkg, atom)
+-					if existing_node and not matches:
+-						conflict = True
+-						break
+-				if conflict:
+-					conflict_atoms.append(atom)
+-				else:
+-					normal_atoms.append(atom)
+-
+-			for atom in chain(abi_atoms, conflict_atoms, normal_atoms):
+-				child_pkgs = atom_pkg_graph.child_nodes(atom)
+-				# if more than one child, yield highest version
+-				if len(child_pkgs) > 1:
+-					child_pkgs.sort()
+-				yield (atom, child_pkgs[-1])
++			else:
++				yield (atom, dep_pkg)
+ 
+ 	def _queue_disjunctive_deps(self, pkg, dep_root, dep_priority, dep_struct):
+ 		"""
+@@ -4097,7 +2639,7 @@
+ 
+ 	def _resolve(self, myfavorites):
+ 		"""Given self._dynamic_config._initial_arg_list, pull in the root nodes,
+-		call self._creategraph to process theier deps and return
++		call self._creategraph to process their deps and return
+ 		a favorite list."""
+ 		debug = "--debug" in self._frozen_config.myopts
+ 		onlydeps = "--onlydeps" in self._frozen_config.myopts
+@@ -4485,6 +3027,7 @@
+ 		added to the graph or those that are installed and have
+ 		not been scheduled for replacement.
+ 		"""
++
+ 		kwargs["trees"] = self._dynamic_config._graph_trees
+ 		return self._select_atoms_highest_available(*pargs, **kwargs)
+ 
+@@ -4493,6 +3036,9 @@
+ 		"""This will raise InvalidDependString if necessary. If trees is
+ 		None then self._dynamic_config._filtered_trees is used."""
+ 
++		# This is a huge wrapper around dep_check(). This evaluates || dependencies and then generates new
++		# Dependency objects that have info in them that emerge needs, like depth. Virtuals are also expanded.
++
+ 		if not isinstance(depstring, list):
+ 			eapi = None
+ 			is_valid_flag = None
+@@ -4618,7 +3164,6 @@
+ 							# when necessary.
+ 							continue
+ 						node_stack.append((child_node, node, child_atom))
+-
+ 		return selected_atoms
+ 
+ 	def _expand_virt_from_graph(self, root, atom):
+@@ -5449,9 +3994,9 @@
+ 		# the newly built package still won't have the expected slot.
+ 		# Therefore, assume that such SLOT dependencies are already
+ 		# satisfied rather than forcing a rebuild.
++
+ 		if not matched_something and installed and \
+ 			atom.slot is not None and not atom.slot_operator_built:
+-
+ 			if "remove" in self._dynamic_config.myparams:
+ 				# We need to search the portdbapi, which is not in our
+ 				# normal dbs list, in order to find the real SLOT.
+@@ -5555,6 +4100,13 @@
+ 
+ 	def _want_update_pkg(self, parent, pkg):
+ 
++		# give a parent 'parent' that has a depth setting, we are probably going to want to process its dependencies.
++		# Well, maybe. We may want to ignore them. How to tell? That's what this function is for :) Given a parent
++		# package 'parent' (which needs to have a valid 'depth' setting) and a potential child package 'pkg', this
++		# method will return True if we want to add 'pkg' to the digraph for dep processing and False if we should
++		# not. _want_update_pkg() looks at a variety of factors including depth, the --update setting, and whether
++		# the package was specified as a command-line argument to emerge.
++
+ 		if self._frozen_config.excluded_pkgs.findAtomForPackage(pkg,
+ 			modified_use=self._pkg_use_enabled(pkg)):
+ 			return False
+@@ -5767,7 +4319,6 @@
+ 			# This ensures that we can fall back to an installed package
+ 			# that may have been rejected in the autounmask path above.
+ 			return default_selection
+-
+ 		return pkg, existing
+ 
+ 	def _pkg_visibility_check(self, pkg, autounmask_level=None, trust_graph=True):
+@@ -5964,6 +4515,9 @@
+ 		return new_use
+ 
+ 	def _wrapped_select_pkg_highest_available_imp(self, root, atom, onlydeps=False, autounmask_level=None, parent=None):
++
++		# This bad boy does the heavy lifting of finding the right package for a particular dependency atom :)
++
+ 		root_config = self._frozen_config.roots[root]
+ 		pkgsettings = self._frozen_config.pkgsettings[root]
+ 		dbs = self._dynamic_config._filtered_trees[root]["dbs"]
+@@ -6007,7 +4561,7 @@
+ 		# represented by the found_available_arg flag.
+ 		found_available_arg = False
+ 		packages_with_invalid_use_config = []
+-		for find_existing_node in True, False:
++		for find_existing_node in [True,False]:
+ 			if existing_node:
+ 				break
+ 			for db, pkg_type, built, installed, db_keys in dbs:
+@@ -6031,6 +4585,7 @@
+ 					if pkg in self._dynamic_config._runtime_pkg_mask:
+ 						# The package has been masked by the backtracking logic
+ 						continue
++
+ 					root_slot = (pkg.root, pkg.slot_atom)
+ 					if pkg.built and root_slot in self._rebuild.rebuild_list:
+ 						continue
+@@ -6223,37 +4778,8 @@
+ 					# from this repo are ignored, so this so the loop
+ 					# will always end with a break statement below
+ 					# this point.
+-					if find_existing_node:
+-						# Use reversed iteration in order to get
+-						# descending order here, so that the highest
+-						# version involved in a slot conflict is
+-						# selected. This is needed for correct operation
+-						# of conflict_downgrade logic in the dep_zapdeps
+-						# function (see bug 554070).
+-						e_pkg = next(reversed(list(
+-							self._dynamic_config._package_tracker.match(
+-							root, pkg.slot_atom, installed=False))), None)
+-
+-						if not e_pkg:
+-							break
+-
+-						# Use PackageSet.findAtomForPackage()
+-						# for PROVIDE support.
+-						if atom.match(e_pkg.with_use(
+-							self._pkg_use_enabled(e_pkg))):
+-							if highest_version and \
+-								(atom_cp is None or
+-								e_pkg.cp == atom_cp) and \
+-								e_pkg < highest_version and \
+-								e_pkg.slot_atom != highest_version.slot_atom:
+-								# There is a higher version available in a
+-								# different slot, so this existing node is
+-								# irrelevant.
+-								pass
+-							else:
+-								matched_packages.append(e_pkg)
+-								existing_node = e_pkg
+-						break
++					if highest_version.cp in [ "dev-python/flake8", "dev-python/pyflakes" ]:
++						print('highest', highest_version)
+ 					# Compare built package to current config and
+ 					# reject the built package if necessary.
+ 					reinstall_use = ("--newuse" in self._frozen_config.myopts or \
+@@ -6352,12 +4878,6 @@
+ 		if not matched_packages:
+ 			return None, None
+ 
+-		if "--debug" in self._frozen_config.myopts:
+-			for pkg in matched_packages:
+-				portage.writemsg("%s %s%s%s\n" % \
+-					((pkg.type_name + ":").rjust(10),
+-					pkg.cpv, _repo_separator, pkg.repo), noiselevel=-1)
+-
+ 		# Filter out any old-style virtual matches if they are
+ 		# mixed with new-style virtual matches.
+ 		cp = atom_cp
+@@ -6700,20 +5220,6 @@
+ 				# (possibly solvable via backtracking).
+ 				pkg = matches[-1] # highest match
+ 
+-				if (self._dynamic_config._allow_backtracking and
+-					not self._want_installed_pkg(pkg) and (dep.atom.soname or (
+-					dep.atom.package and dep.atom.slot_operator_built))):
+-					# If pkg was already scheduled for rebuild by the previous
+-					# calculation, then pulling in the installed instance will
+-					# trigger a slot conflict that may go unsolved. Therefore,
+-					# trigger a rebuild of the parent if appropriate.
+-					dep.child = pkg
+-					new_dep = self._slot_operator_update_probe(dep)
+-					if new_dep is not None:
+-						self._slot_operator_update_backtrack(
+-							dep, new_dep=new_dep)
+-						continue
+-
+ 				if not self._add_pkg(pkg, dep):
+ 					return 0
+ 				if not self._create_graph(allow_unsatisfied=True):
+@@ -7155,7 +5661,25 @@
+ 				DeprecationWarning, stacklevel=2)
+ 
+ 		while self._dynamic_config._serialized_tasks_cache is None:
+-			self._resolve_conflicts()
++
++			# The following code scans for sub-slot rebuilds, and populates self._forced_rebuilds
++			# so that rebuild information is shown at the end of the emerge merge list.
++
++			self._forced_rebuilds = {}
++			for dep_pkg, pkg in self._dynamic_config._package_tracker.get_subslot_rebuilds():
++				self._forced_rebuilds[dep_pkg] = []
++				for pkg2 in self._iter_similar_available(pkg, pkg.slot_atom):
++					self._dynamic_config._dep_stack.append(pkg2)
++					if pkg2.root not in self._forced_rebuilds:
++						self._forced_rebuilds[pkg2.root] = {}
++					if dep_pkg not in self._forced_rebuilds[pkg2.root]:
++						self._forced_rebuilds[pkg2.root][dep_pkg] = []
++					self._forced_rebuilds[pkg2.root][dep_pkg].append(pkg2)
++					break
++
++			# Call _create_graph() to process the new additions to _dep_stack, above:
++			self._create_graph()
++
+ 			try:
+ 				self._dynamic_config._serialized_tasks_cache, self._dynamic_config._scheduler_graph = \
+ 					self._serialize_tasks()
+@@ -7271,19 +5795,6 @@
+ 			self._frozen_config._trees_orig[
+ 				root_config.root]["root_config"] = root_config
+ 
+-	def _resolve_conflicts(self):
+-
+-		if "complete" not in self._dynamic_config.myparams and \
+-			self._dynamic_config._allow_backtracking and \
+-			any(self._dynamic_config._package_tracker.slot_conflicts()) and \
+-			not self._accept_blocker_conflicts():
+-			self._dynamic_config.myparams["complete"] = True
+-
+-		if not self._complete_graph():
+-			raise self._unknown_internal_error()
+-
+-		self._process_slot_conflicts()
+-
+ 	def _serialize_tasks(self):
+ 
+ 		debug = "--debug" in self._frozen_config.myopts
+@@ -8654,8 +7165,7 @@
+ 		if not unresolved_conflicts:
+ 			self._show_missed_update()
+ 
+-		if self._frozen_config.myopts.get("--verbose-slot-rebuilds", 'y') != 'n':
+-			self._compute_abi_rebuild_info()
++		if self._frozen_config.myopts.get("--verbose-slot-rebuilds", 'n') != 'n':
+ 			self._show_abi_rebuild_info()
+ 
+ 		self._show_ignored_binaries()
+@@ -9155,23 +7665,6 @@
+ 				# are more likely to be useful.
+ 				return True
+ 
+-		if (self._dynamic_config._allow_backtracking and
+-			self._frozen_config.myopts.get("--autounmask-backtrack") != 'y' and
+-			self._have_autounmask_changes()):
+-
+-			if (self._frozen_config.myopts.get("--autounmask-continue") is True and
+-				self._frozen_config.myopts.get("--autounmask-backtrack") != 'n'):
+-				# --autounmask-continue implies --autounmask-backtrack=y behavior,
+-				# for backward compatibility.
+-				return False
+-
+-			# This disables backtracking when there are autounmask
+-			# config changes. The display_problems method will notify
+-			# the user that --autounmask-backtrack=y can be used to
+-			# force backtracking in this case.
+-			self._dynamic_config._autounmask_backtrack_disabled = True
+-			return True
+-
+ 		return False
+ 
+ 	def _have_autounmask_changes(self):
+@@ -9251,76 +7744,9 @@
+ 		atom_set = InternalPackageSet(initial_atoms=(atom,))
+ 		ret = []
+ 		pkg, existing = self._depgraph._select_package(self._root, atom)
+-
+ 		if pkg is not None and self._visible(pkg, atom_set):
+ 			ret.append(pkg)
+ 
+-		if pkg is not None and \
+-			atom.sub_slot is None and \
+-			pkg.cp.startswith("virtual/") and \
+-			(("remove" not in self._depgraph._dynamic_config.myparams and
+-			"--update" not in self._depgraph._frozen_config.myopts) or
+-			not ret):
+-			# For new-style virtual lookahead that occurs inside dep_check()
+-			# for bug #141118, examine all slots. This is needed so that newer
+-			# slots will not unnecessarily be pulled in when a satisfying lower
+-			# slot is already installed. For example, if virtual/jdk-1.5 is
+-			# satisfied via gcj-jdk then there's no need to pull in a newer
+-			# slot to satisfy a virtual/jdk dependency, unless --update is
+-			# enabled.
+-			sub_slots = set()
+-			resolved_sub_slots = set()
+-			for virt_pkg in self._depgraph._iter_match_pkgs_any(
+-				self._depgraph._frozen_config.roots[self._root], atom):
+-				if virt_pkg.cp != pkg.cp:
+-					continue
+-				sub_slots.add((virt_pkg.slot, virt_pkg.sub_slot))
+-
+-			sub_slot_key = (pkg.slot, pkg.sub_slot)
+-			if ret:
+-				# We've added pkg to ret already, and only one package
+-				# per slot/sub_slot is desired here.
+-				sub_slots.discard(sub_slot_key)
+-				resolved_sub_slots.add(sub_slot_key)
+-			else:
+-				sub_slots.add(sub_slot_key)
+-
+-			while sub_slots:
+-				slot, sub_slot = sub_slots.pop()
+-				slot_atom = atom.with_slot("%s/%s" % (slot, sub_slot))
+-				pkg, existing = self._depgraph._select_package(
+-					self._root, slot_atom)
+-				if not pkg:
+-					continue
+-				if not self._visible(pkg, atom_set,
+-					avoid_slot_conflict=False):
+-					# Try to force a virtual update to be pulled in
+-					# when appropriate for bug #526160.
+-					selected = pkg
+-					for candidate in \
+-						self._iter_virt_update(pkg, atom_set):
+-
+-						if candidate.slot != slot:
+-							continue
+-
+-						if (candidate.slot, candidate.sub_slot) in \
+-							resolved_sub_slots:
+-							continue
+-
+-						if selected is None or \
+-							selected < candidate:
+-							selected = candidate
+-
+-					if selected is pkg:
+-						continue
+-					pkg = selected
+-
+-				resolved_sub_slots.add((pkg.slot, pkg.sub_slot))
+-				ret.append(pkg)
+-
+-			if len(ret) > 1:
+-				ret = sorted(set(ret))
+-
+ 		self._match_cache[cache_key] = ret
+ 		for pkg in ret:
+ 			self._cpv_pkg_map[pkg.cpv] = pkg
+@@ -9360,42 +7786,6 @@
+ 				# for bug #526160.
+ 				return False
+ 
+-		if not avoid_slot_conflict:
+-			# This is useful when trying to pull in virtual updates,
+-			# since we don't want another instance that was previously
+-			# pulled in to mask an update that we're trying to pull
+-			# into the same slot.
+-			return True
+-
+-		# Use reversed iteration in order to get descending order here,
+-		# so that the highest version involved in a slot conflict is
+-		# selected (see bug 554070).
+-		in_graph = next(reversed(list(
+-			self._depgraph._dynamic_config._package_tracker.match(
+-			self._root, pkg.slot_atom, installed=False))), None)
+-
+-		if in_graph is None:
+-			# Mask choices for packages which are not the highest visible
+-			# version within their slot (since they usually trigger slot
+-			# conflicts).
+-			highest_visible, in_graph = self._depgraph._select_package(
+-				self._root, pkg.slot_atom)
+-			# Note: highest_visible is not necessarily the real highest
+-			# visible, especially when --update is not enabled, so use
+-			# < operator instead of !=.
+-			if (highest_visible is not None and pkg < highest_visible
+-				and atom_set.findAtomForPackage(highest_visible,
+-				modified_use=self._depgraph._pkg_use_enabled(highest_visible))):
+-				return False
+-		elif in_graph != pkg:
+-			# Mask choices for packages that would trigger a slot
+-			# conflict with a previously selected package.
+-			if not atom_set.findAtomForPackage(in_graph,
+-				modified_use=self._depgraph._pkg_use_enabled(in_graph)):
+-				# Only mask if the graph package matches the given
+-				# atom (fixes bug #515230).
+-				return True
+-			return False
+ 		return True
+ 
+ 	def _iter_virt_update(self, pkg, atom_set):
+@@ -9544,50 +7934,14 @@
+ 
+ 		mydepgraph = depgraph(settings, trees, myopts, myparams, spinner,
+ 			frozen_config=frozen_config,
+-			allow_backtracking=allow_backtracking,
+-			backtrack_parameters=backtrack_parameters)
+-		success, favorites = mydepgraph.select_files(myfiles)
+-
+-		if success or mydepgraph.need_config_change():
+-			break
+-		elif not allow_backtracking:
+-			break
+-		elif backtracked >= max_retries:
+-			break
+-		elif mydepgraph.need_restart():
+-			backtracked += 1
+-			backtracker.feedback(mydepgraph.get_backtrack_infos())
+-		else:
+-			break
+-
+-	if not (success or mydepgraph.need_config_change()) and backtracked:
+-
+-		if debug:
+-			writemsg_level(
+-				"\n\nbacktracking aborted after %s tries\n\n" % \
+-				backtracked, noiselevel=-1, level=logging.DEBUG)
+-			mydepgraph.display_problems()
+-
+-		mydepgraph = depgraph(settings, trees, myopts, myparams, spinner,
+-			frozen_config=frozen_config,
+ 			allow_backtracking=False,
+-			backtrack_parameters=backtracker.get_best_run())
++			backtrack_parameters=backtrack_parameters)
+ 		success, favorites = mydepgraph.select_files(myfiles)
+ 
+-	if not success and mydepgraph.autounmask_breakage_detected():
+-		if debug:
+-			writemsg_level(
+-				"\n\nautounmask breakage detected\n\n",
+-				noiselevel=-1, level=logging.DEBUG)
+-			mydepgraph.display_problems()
+-		myopts["--autounmask"] = "n"
+-		mydepgraph = depgraph(settings, trees, myopts, myparams, spinner,
+-			frozen_config=frozen_config, allow_backtracking=False)
+-		success, favorites = mydepgraph.select_files(myfiles)
++		break
+ 
+ 	return (success, mydepgraph, favorites)
+ 
+-
+ def resume_depgraph(settings, trees, mtimedb, myopts, myparams, spinner):
+ 	"""
+ 	Raises PackageSetNotFound if myfiles contains a missing package set.
+diff -urN portage-2.3.8/pym/_emerge/resolver/package_tracker.py portage-2.3.8-subslot-overhaul/pym/_emerge/resolver/package_tracker.py
+--- portage-2.3.8/pym/_emerge/resolver/package_tracker.py	2017-08-16 18:06:53.000000000 -0600
++++ portage-2.3.8-subslot-overhaul/pym/_emerge/resolver/package_tracker.py	2017-09-26 12:33:19.225515671 -0600
+@@ -7,6 +7,7 @@
+ import collections
+ 
+ import portage
++from _emerge.Package import Package
+ portage.proxy.lazyimport.lazyimport(globals(),
+ 	'portage.dep:Atom,match_from_list',
+ 	'portage.util:cmp_sort_key',
+@@ -30,153 +31,85 @@
+ 
+ 
+ class PackageTracker(object):
+-	"""
+-	This class tracks packages which are currently
+-	installed and packages which have been pulled into
+-	the dependency graph.
+-
+-	It automatically tracks conflicts between packages.
+-
+-	Possible conflicts:
+-		1) Packages that share the same SLOT.
+-		2) Packages with the same cpv.
+-		Not yet implemented:
+-		3) Packages that block each other.
+-	"""
+ 
+-	def __init__(self, soname_deps=False):
++	def __init__(self, dynamic_config, soname_deps=False):
+ 		"""
+ 		@param soname_deps: enable soname match support
+ 		@type soname_deps: bool
+ 		"""
+-		# Mapping from package keys to set of packages.
+-		self._cp_pkg_map = collections.defaultdict(list)
+-		self._cp_vdb_pkg_map = collections.defaultdict(list)
++		self._dynamic_config = dynamic_config
++
++		# _installed_map records the list of to-be-merged packages.
++		self._installed_map = collections.defaultdict(list)
++
++		# _queued_map records the list of already-installed packages.
++		self._queued_map = collections.defaultdict(list)
++
+ 		# List of package keys that may contain conflicts.
+-		# The insetation order must be preserved.
++		# The insertion order is used to track first potential conflict, second potential, etc.
+ 		self._multi_pkgs = []
+ 
+-		# Cache for result of conflicts().
+-		self._conflicts_cache = None
++		self._subslot_rebuilds = []
+ 
+-		# Records for each pulled package which installed package
+-		# are replaced.
+-		self._replacing = collections.defaultdict(list)
+-		# Records which pulled packages replace this package.
+-		self._replaced_by = collections.defaultdict(list)
+-
+-		self._match_cache = collections.defaultdict(dict)
+ 		if soname_deps:
+ 			self._provides_index = collections.defaultdict(list)
+ 		else:
+ 			self._provides_index = None
+ 
+ 	def add_pkg(self, pkg):
+-		"""
+-		Add a new package to the tracker. Records conflicts as necessary.
+-		"""
++
+ 		cp_key = pkg.root, pkg.cp
+ 
+-		if any(other is pkg for other in self._cp_pkg_map[cp_key]):
++		if pkg.installed:
++			target = self._installed_map
++			other = self._queued_map
++		else:
++			target = self._queued_map
++			other = self._installed_map
++
++		# don't add multiple copies of the same package
++		if any(foo is pkg for foo in target):
+ 			return
+ 
+-		self._cp_pkg_map[cp_key].append(pkg)
++		# add package
++		target[cp_key].append(pkg)
+ 
+-		if len(self._cp_pkg_map[cp_key]) > 1:
+-			self._conflicts_cache = None
+-			if len(self._cp_pkg_map[cp_key]) == 2:
++		if not pkg.installed:
++			if len(target[cp_key]) == 2:
+ 				self._multi_pkgs.append(cp_key)
+ 
+-		self._replacing[pkg] = []
+-		for installed in self._cp_vdb_pkg_map.get(cp_key, []):
+-			if installed.slot_atom == pkg.slot_atom or \
+-				installed.cpv == pkg.cpv:
+-				self._replacing[pkg].append(installed)
+-				self._replaced_by[installed].append(pkg)
+-
+-		self._add_provides(pkg)
+-
+-		self._match_cache.pop(cp_key, None)
+-
+-	def _add_provides(self, pkg):
+-		if (self._provides_index is not None and
+-			pkg.provides is not None):
+-			index = self._provides_index
+-			root = pkg.root
+-			for atom in pkg.provides:
+-				# Use bisect.insort for ordered match results.
+-				bisect.insort(index[(root, atom)], pkg)
++		to_remove = []
+ 
+-	def add_installed_pkg(self, installed):
+-		"""
+-		Add an installed package during vdb load. These packages
+-		are not returned by matched_pull as long as add_pkg hasn't
+-		been called with them. They are only returned by match_final.
+-		"""
+-		cp_key = installed.root, installed.cp
+-		if any(other is installed for other in self._cp_vdb_pkg_map[cp_key]):
+-			return
++		for other_pkg in other.get(cp_key, []):
++			if pkg.slot_atom == other_pkg.slot_atom:
++				if pkg.cpv == other_pkg.cpv:
+ 
+-		self._cp_vdb_pkg_map[cp_key].append(installed)
++					# adding an installed package will wipe out the matching to-be-merged package, and vice-versa:
++					to_remove.append(other_pkg)
+ 
+-		for pkg in self._cp_pkg_map.get(cp_key, []):
+-			if installed.slot_atom == pkg.slot_atom or \
+-				installed.cpv == pkg.cpv:
+-				self._replacing[pkg].append(installed)
+-				self._replaced_by[installed].append(pkg)
++				if not pkg.installed and pkg.sub_slot != other_pkg.sub_slot:
+ 
+-		self._match_cache.pop(cp_key, None)
++					# found sub-slot rebuild! The to-be-merged pkg replaces another in same slot, and sub-slots differ:
++					self._subslot_rebuilds.append(cp_key)
+ 
+-	def remove_pkg(self, pkg):
+-		"""
+-		Removes the package from the tracker.
+-		Raises KeyError if it isn't present.
+-		"""
+-		cp_key = pkg.root, pkg.cp
+-		try:
+-			self._cp_pkg_map.get(cp_key, []).remove(pkg)
+-		except ValueError:
+-			raise KeyError(pkg)
+-
+-		if self._cp_pkg_map[cp_key]:
+-			self._conflicts_cache = None
+-
+-		if not self._cp_pkg_map[cp_key]:
+-			del self._cp_pkg_map[cp_key]
+-		elif len(self._cp_pkg_map[cp_key]) == 1:
+-			self._multi_pkgs = [other_cp_key for other_cp_key in self._multi_pkgs \
+-			if other_cp_key != cp_key]
+-
+-		for installed in self._replacing[pkg]:
+-			self._replaced_by[installed].remove(pkg)
+-			if not self._replaced_by[installed]:
+-				del self._replaced_by[installed]
+-		del self._replacing[pkg]
++		for other_pkg in to_remove:
++			other[cp_key].remove(other_pkg)
+ 
+-		if self._provides_index is not None:
++		if (self._provides_index is not None and pkg.provides is not None):
+ 			index = self._provides_index
+ 			root = pkg.root
+ 			for atom in pkg.provides:
+-				key = (root, atom)
+-				items = index[key]
+-				try:
+-					items.remove(pkg)
+-				except ValueError:
+-					pass
+-				if not items:
+-					del index[key]
+-
+-		self._match_cache.pop(cp_key, None)
+-
+-	def discard_pkg(self, pkg):
+-		"""
+-		Removes the package from the tracker.
+-		Does not raises KeyError if it is not present.
+-		"""
+-		try:
+-			self.remove_pkg(pkg)
+-		except KeyError:
+-			pass
++				# Use bisect.insort for ordered match results.
++				bisect.insort(index[(root, atom)], pkg)
++
++	def get_subslot_rebuilds(self):
++
++		out = []
++		for root, pkg in self._subslot_rebuilds:
++			for node in self._dynamic_config.digraph.parent_nodes(pkg):
++				if isinstance(node, Package):
++					out.append((pkg,node))
++		return out
+ 
+ 	def match(self, root, atom, installed=True):
+ 		"""
+@@ -184,74 +117,74 @@
+ 		If 'installed' is True, installed non-replaced
+ 		packages may also be returned.
+ 		"""
++
++		# TODO: add caching back
++
+ 		if atom.soname:
+ 			return iter(self._provides_index.get((root, atom), []))
+ 
+ 		cp_key = root, atom.cp
+-		cache_key = root, atom, atom.unevaluated_atom, installed
+-		try:
+-			return iter(self._match_cache.get(cp_key, {})[cache_key])
+-		except KeyError:
+-			pass
+-
+-		candidates = self._cp_pkg_map.get(cp_key, [])[:]
++		candidates = self._queued_map.get(cp_key, [])[:]
+ 
+ 		if installed:
+-			for installed in self._cp_vdb_pkg_map.get(cp_key, []):
+-				if installed not in self._replaced_by:
+-					candidates.append(installed)
++			candidates.extend(self._installed_map.get(cp_key, []))
+ 
+ 		ret = match_from_list(atom, candidates)
+ 		ret.sort(key=cmp_sort_key(lambda x, y: vercmp(x.version, y.version)))
+-		self._match_cache[cp_key][cache_key] = ret
+ 
+ 		return iter(ret)
+ 
+ 	def conflicts(self):
+ 		"""
+-		Iterates over the curently existing conflicts.
++		Iterates over the currently existing conflicts.
+ 		"""
+-		if self._conflicts_cache is None:
+-			self._conflicts_cache = []
++		out = []
+ 
+-			for cp_key in self._multi_pkgs:
++		for cp_key in self._multi_pkgs:
+ 
+-				# Categorize packages according to cpv and slot.
+-				slot_map = collections.defaultdict(list)
+-				cpv_map = collections.defaultdict(list)
+-				for pkg in self._cp_pkg_map[cp_key]:
+-					slot_key = pkg.root, pkg.slot_atom
+-					cpv_key = pkg.root, pkg.cpv
+-					slot_map[slot_key].append(pkg)
+-					cpv_map[cpv_key].append(pkg)
+-
+-				# Slot conflicts.
+-				for slot_key in slot_map:
+-					slot_pkgs = slot_map[slot_key]
+-					if len(slot_pkgs) > 1:
+-						self._conflicts_cache.append(PackageConflict(
+-							description = "slot conflict",
+-							root = slot_key[0],
+-							atom = slot_key[1],
+-							pkgs = tuple(slot_pkgs),
+-							))
++			# A cp_key in _multi_pkgs has a /potential/ conflict. We need to interrogate the contents of the
++			# cp_key to see.
+ 
+-				# CPV conflicts.
+-				for cpv_key in cpv_map:
+-					cpv_pkgs = cpv_map[cpv_key]
+-					if len(cpv_pkgs) > 1:
+-						# Make sure this cpv conflict is not a slot conflict at the same time.
+-						# Ignore it if it is.
+-						slots = set(pkg.slot for pkg in cpv_pkgs)
+-						if len(slots) > 1:
+-							self._conflicts_cache.append(PackageConflict(
+-								description = "cpv conflict",
+-								root = cpv_key[0],
+-								atom = cpv_key[1],
+-								pkgs = tuple(cpv_pkgs),
+-								))
++			# Categorize packages according to cpv and slot.
++			slot_map = collections.defaultdict(list)
++			cpv_map = collections.defaultdict(list)
++			# for each to-be-merged package:
++			for pkg in self._queued_map[cp_key]:
++				# confusing: note that pkg.slot_atom actually contains "catpkg:slot"
++				slot_key = pkg.root, pkg.slot_atom
++				cpv_key = pkg.root, pkg.cpv
++				slot_map[slot_key].append(pkg)
++				cpv_map[cpv_key].append(pkg)
++
++
++			# for each "catpkg:slot" value:
++			for slot_key in slot_map:
++				# slot_pkgs = all packages to-be-installed in the same slot
++				slot_pkgs = slot_map[slot_key]
++				if len(slot_pkgs) > 1:
++					out.append(PackageConflict(
++						description = "slot conflict",
++						root = slot_key[0],
++						atom = slot_key[1],
++						pkgs = tuple(slot_pkgs),
++					))
++
++			# CPV conflicts. This is where we have two different versions in the same slot.
++			for cpv_key in cpv_map:
++				cpv_pkgs = cpv_map[cpv_key]
++				if len(cpv_pkgs) > 1:
++					# Make sure this cpv conflict is not a slot conflict at the same time.
++					# Ignore it if it is.
++					slots = set(pkg.slot for pkg in cpv_pkgs)
++					if len(slots) > 1:
++						out.append(PackageConflict(
++							description = "cpv conflict",
++							root = cpv_key[0],
++							atom = cpv_key[1],
++							pkgs = tuple(cpv_pkgs),
++							))
+ 
+-		return iter(self._conflicts_cache)
++		return out
+ 
+ 	def slot_conflicts(self):
+ 		"""
+@@ -269,16 +202,12 @@
+ 		present in the tracker, including the installed
+ 		packages.
+ 		"""
+-		for cp_key in self._cp_pkg_map:
+-			if cp_key[0] == root:
+-				for pkg in self._cp_pkg_map[cp_key]:
+-					yield pkg
+-
+-		for cp_key in self._cp_vdb_pkg_map:
+-			if cp_key[0] == root:
+-				for installed in self._cp_vdb_pkg_map[cp_key]:
+-					if installed not in self._replaced_by:
+-						yield installed
++
++		for mymap in [ self._queued_map, self._installed_map ]:
++			for cp_key in mymap:
++				if cp_key[0] == root:
++					for pkg in mymap[cp_key]:
++						yield pkg
+ 
+ 	def contains(self, pkg, installed=True):
+ 		"""
+@@ -287,14 +216,14 @@
+ 		non-replaced installed packages.
+ 		"""
+ 		cp_key = pkg.root, pkg.cp
+-		for other in self._cp_pkg_map.get(cp_key, []):
++
++		for other in self._queued_map.get(cp_key, []):
+ 			if other is pkg:
+ 				return True
+ 
+ 		if installed:
+-			for installed in self._cp_vdb_pkg_map.get(cp_key, []):
+-				if installed is pkg and \
+-					installed not in self._replaced_by:
++			for installed in self._installed_map.get(cp_key, []):
++				if installed is pkg:
+ 					return True
+ 
+ 		return False

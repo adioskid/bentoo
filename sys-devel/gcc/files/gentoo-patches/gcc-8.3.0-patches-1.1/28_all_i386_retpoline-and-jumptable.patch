@@ -1,0 +1,64 @@
+https://gcc.gnu.org/PR86952
+https://bugs.gentoo.org/682218
+
+From 4fa11b10fc05a132b68b6df198706a97c3f4d61e Mon Sep 17 00:00:00 2001
+From: marxin <marxin@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Mon, 11 Mar 2019 09:38:06 +0000
+Subject: [PATCH] Backport r269492
+
+2019-03-11  Martin Liska  <mliska@suse.cz>
+
+	Backport from mainline
+	2019-03-08  Martin Liska  <mliska@suse.cz>
+
+	PR target/86952
+	* config/i386/i386.c (ix86_option_override_internal): Disable
+	jump tables when retpolines are used.
+2019-03-11  Martin Liska  <mliska@suse.cz>
+
+	Backport from mainline
+	2019-03-08  Martin Liska  <mliska@suse.cz>
+
+	PR target/86952
+	* gcc.target/i386/indirect-thunk-7.c: Use jump tables to match
+	scanned pattern.
+	* gcc.target/i386/indirect-thunk-inline-7.c: Likewise.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-8-branch@269572 138bc75d-0d04-0410-961f-82ee72b054a4
+--- a/gcc/config/i386/i386.c
++++ b/gcc/config/i386/i386.c
+@@ -4958,6 +4958,12 @@ ix86_option_override_internal (bool main_args_p,
+ 			   opts->x_param_values,
+ 			   opts_set->x_param_values);
+ 
++  /* PR86952: jump table usage with retpolines is slow.
++     The PR provides some numbers about the slowness.  */
++  if (ix86_indirect_branch != indirect_branch_keep
++      && !opts_set->x_flag_jump_tables)
++    opts->x_flag_jump_tables = 0;
++
+   return true;
+ }
+ 
+--- a/gcc/testsuite/gcc.target/i386/indirect-thunk-7.c
++++ b/gcc/testsuite/gcc.target/i386/indirect-thunk-7.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -mno-indirect-branch-register -mfunction-return=keep -mindirect-branch=thunk -fno-pic" } */
++/* { dg-options "-O2 -mno-indirect-branch-register -mfunction-return=keep -mindirect-branch=thunk -fno-pic -fjump-tables" } */
+ 
+ void func0 (void);
+ void func1 (void);
+--- a/gcc/testsuite/gcc.target/i386/indirect-thunk-inline-7.c
++++ b/gcc/testsuite/gcc.target/i386/indirect-thunk-inline-7.c
+@@ -1,5 +1,5 @@
+ /* { dg-do compile } */
+-/* { dg-options "-O2 -mno-indirect-branch-register -mfunction-return=keep -mindirect-branch=thunk-inline -fno-pic" } */
++/* { dg-options "-O2 -mno-indirect-branch-register -mfunction-return=keep -mindirect-branch=thunk-inline -fno-pic -fjump-tables" } */
+ 
+ void func0 (void);
+ void func1 (void);
+-- 
+2.21.0
+

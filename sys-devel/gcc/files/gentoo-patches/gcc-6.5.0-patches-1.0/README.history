@@ -1,0 +1,23 @@
+1		27 Oct 2018
+	+ 01_all_default-fortify-source.patch
+	+ 02_all_default-warn-format-security.patch
+	+ 03_all_default-warn-trampolines.patch
+	+ 04_all_default-ssp-fix.patch
+	+ 05_all_alpha-mieee-default.patch
+	+ 06_all_arm_armv4t-default.patch
+	+ 07_all_ia64_note.GNU-stack.patch
+	+ 08_all_superh_default-multilib.patch
+	+ 09_all_libiberty-asprintf.patch
+	+ 10_all_libiberty-pic.patch
+	+ 11_all_nopie-all-flags.patch
+	+ 12_all_extra-options.patch
+	+ 13_all_pr55930-dependency-tracking.patch
+	+ 14_all_asan-signal_h.patch
+	+ 15_all_respect-build-cxxflags.patch
+	+ 16_all_libgfortran-Werror.patch
+	+ 17_all_libgomp-Werror.patch
+	+ 18_all_libitm-Werror.patch
+	+ 19_all_libatomic-Werror.patch
+	+ 20_all_libbacktrace-Werror.patch
+	+ 21_all_libsanitizer-libbacktrace-Werror.patch
+	+ 22_all_libstdcxx-no-vtv.patch

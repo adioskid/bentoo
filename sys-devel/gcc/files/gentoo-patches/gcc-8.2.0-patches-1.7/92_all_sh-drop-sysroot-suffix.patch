@@ -1,0 +1,32 @@
+From 5eeeff19bb4978a8d3c0d53bc81744bc25d82993 Mon Sep 17 00:00:00 2001
+From: Sergei Trofimovich <slyfox@gentoo.org>
+Date: Sat, 14 Apr 2018 13:07:39 +0100
+Subject: [PATCH] gcc/config.gcc: sh-*: Disable sysroot-suffix (PR42947)
+
+sh-* is a multilib target. It is also one of 2 sysroot-prefix targets.
+Unfortunately two options do not mix well. Attempt to use default
+multilib flavour always prepends sysroot-prefix.
+
+Bug: https://bugs.gentoo.org/511548
+Bug: https://gcc.gnu.org/PR42947
+Signed-off-by: Sergei Trofimovich <slyfox@gentoo.org>
+---
+ gcc/config.gcc | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 55c314afdbd..c320f24f123 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -2866,8 +2866,6 @@ sh-*-elf* | sh[12346l]*-*-elf* | \
+ 	if test x${enable_incomplete_targets} = xyes ; then
+ 		tm_defines="$tm_defines SUPPORT_SH1=1 SUPPORT_SH2E=1 SUPPORT_SH4=1 SUPPORT_SH4_SINGLE=1 SUPPORT_SH2A=1 SUPPORT_SH2A_SINGLE=1"
+ 	fi
+-	tm_file="$tm_file ./sysroot-suffix.h"
+-	tmake_file="$tmake_file t-sysroot-suffix"
+ 	;;
+ sh-*-rtems*)
+ 	tmake_file="${tmake_file} sh/t-sh sh/t-rtems"
+-- 
+2.17.0
+

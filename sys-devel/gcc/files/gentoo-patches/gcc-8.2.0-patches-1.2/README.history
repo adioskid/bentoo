@@ -1,0 +1,25 @@
+1.2		12 Aug 2018
+	- 100_all-isl-include.patch
+	+ 100_all_isl-include.patch
+1.1		12 Aug 2018
+	+ 98_all_sh_textrel-on-libitm.patch
+	+ 99_all_m68k-textrel-on-libgcc.patch
+	+ 100_all-isl-include.patch
+1.0		08 Aug 2018
+	+ 95_all_ia64-TEXTREL.patch
+	+ 97_all_disable-systemtap-switch.patch
+	+ 94_all_mips-o32-asan.patch
+	+ 13_all_default-ssp-fix.patch
+	+ 35_all_i386_libgcc_note.GNU-stack.patch
+	+ 55_all_extra-options.patch
+	+ 92_all_sh-drop-sysroot-suffix.patch
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 13_all_default-ssp-fix.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 54_all_nopie-all-flags.patch
+	+ 90_all_pr55930-dependency-tracking.patch

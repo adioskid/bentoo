@@ -1,0 +1,5263 @@
+Index: libitm/ChangeLog
+===================================================================
+diff --git a/libitm/ChangeLog b/libitm/ChangeLog
+--- a/libitm/ChangeLog	(revision 268128)
++++ b/libitm/ChangeLog	(revision 268128)
+@@ -1,3 +1,11 @@
++2018-12-13  Peter Bergner  <bergner@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-13  Peter Bergner  <bergner@linux.ibm.com>
++
++	* config/powerpc/target.h (htm_available):  Add support for
++	PPC_FEATURE2_HTM_NO_SUSPEND.  Use __builtin_cpu_supports if available.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: libitm/config/powerpc/target.h
+===================================================================
+diff --git a/libitm/config/powerpc/target.h b/libitm/config/powerpc/target.h
+--- a/libitm/config/powerpc/target.h	(revision 268128)
++++ b/libitm/config/powerpc/target.h	(revision 268128)
+@@ -81,7 +81,20 @@
+ static inline bool
+ htm_available (void)
+ {
+-  return (getauxval (AT_HWCAP2) & PPC_FEATURE2_HAS_HTM) ? true : false;
++#ifdef __BUILTIN_CPU_SUPPORTS__
++  if (__builtin_cpu_supports ("htm-no-suspend")
++      || __builtin_cpu_supports ("htm"))
++    return true;
++#else
++  unsigned long htm_flags = PPC_FEATURE2_HAS_HTM
++#ifdef PPC_FEATURE2_HTM_NO_SUSPEND
++			    | PPC_FEATURE2_HTM_NO_SUSPEND
++#endif
++			    | 0;
++  if (getauxval (AT_HWCAP2) & htm_flags)
++    return true;
++#endif
++  return false;
+ }
+ 
+ static inline uint32_t
+Index: libstdc++-v3/scripts/make_exports.pl
+===================================================================
+diff --git a/libstdc++-v3/scripts/make_exports.pl b/libstdc++-v3/scripts/make_exports.pl
+--- a/libstdc++-v3/scripts/make_exports.pl	(revision 268128)
++++ b/libstdc++-v3/scripts/make_exports.pl	(revision 268128)
+@@ -103,6 +103,14 @@
+     # Ignore undefined and local symbols.
+     next if (/^([^ ]+) [Ua-z] /);
+ 
++    # GCC does not export construction vtables from shared libraries.
++    # However the symbols are marked hidden, for Darwin that makes them
++    # also external "private_extern", which means that they show up in
++    # this list.  When ld64 encounters them it generates a warning that
++    # they cannot be exported, so trim them from the set now.
++    next if (/^construction vtable.*$/);
++    next if (/^__ZTC.*$/);
++
+     # $sym is the name of the symbol, $noeh_sym is the same thing with
+     # any '.eh' suffix removed.
+     die "unknown nm output $_" if (! /^([^ ]+) [A-Z] /);
+Index: libstdc++-v3/configure.host
+===================================================================
+diff --git a/libstdc++-v3/configure.host b/libstdc++-v3/configure.host
+--- a/libstdc++-v3/configure.host	(revision 268128)
++++ b/libstdc++-v3/configure.host	(revision 268128)
+@@ -230,16 +230,15 @@
+     os_include_dir="os/newlib"
+     OPT_LDFLAGS="${OPT_LDFLAGS} \$(lt_host_flags)"
+     ;;
+-  darwin | darwin[1-7] | darwin[1-7].*)
+-    # On Darwin, performance is improved if libstdc++ is single-module.
+-    # Up to at least 10.3.7, -flat_namespace is required for proper
+-    # treatment of coalesced symbols.
++  darwin[4-7] | darwin[4-7].*)
++    # For earlier Darwin, performance is improved if libstdc++ is
++    # single-module. Up to at least 10.3.7, -flat_namespace is required
++    # for proper treatment of coalesced symbols.
+     OPT_LDFLAGS="${OPT_LDFLAGS} -Wl,-single_module -Wl,-flat_namespace"
+     os_include_dir="os/bsd/darwin"
+     ;;
+-  darwin[89] | darwin[89].* | darwin[1-9][0-9]* )
+-    # On Darwin, performance is improved if libstdc++ is single-module,
+-    # and on 8+ compatibility is better if not -flat_namespace.
++  darwin8 | darwin8.* )
++    # For 8+ compatibility is better if not -flat_namespace.
+     OPT_LDFLAGS="${OPT_LDFLAGS} -Wl,-single_module"
+     case "${host_cpu}" in
+       i[34567]86 | x86_64)
+@@ -248,6 +247,10 @@
+     esac
+     os_include_dir="os/bsd/darwin"
+     ;;
++  darwin*)
++    # Post Darwin8, defaults should be sufficient.
++    os_include_dir="os/bsd/darwin"
++    ;;
+   *djgpp*)      # leading * picks up "msdosdjgpp"
+     os_include_dir="os/djgpp"
+     error_constants_dir="os/djgpp"
+Index: libstdc++-v3/ChangeLog
+===================================================================
+diff --git a/libstdc++-v3/ChangeLog b/libstdc++-v3/ChangeLog
+--- a/libstdc++-v3/ChangeLog	(revision 268128)
++++ b/libstdc++-v3/ChangeLog	(revision 268128)
+@@ -1,3 +1,34 @@
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-12-06  Iain Sandoe  <iain@sandoe.co.uk>
++
++	* scripts/make_exports.pl (check names): Don’t try to export
++	construction vtable symbols.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-12-06  Jonathan Wakely  <jwakely@redhat.com>
++		    Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR libstdc++/64883
++	* testsuite/17_intro/headers/c++1998/all_attributes.cc: Don't test
++	always_inline on Darwin.
++	* testsuite/17_intro/headers/c++2011/all_attributes.cc: Likewise.
++	* testsuite/17_intro/headers/c++2014/all_attributes.cc: Likewise.
++	* testsuite/17_intro/headers/c++2017/all_attributes.cc: Likewise.
++	* testsuite/17_intro/headers/c++2020/all_attributes.cc: Likewise.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-08-25  Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR libstdc++/70694
++	* configure.host (OPT_LDFLAGS): Don't append
++	-fvisibility-inlines-hidden for newer Darwin.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: libstdc++-v3/testsuite/17_intro/headers/c++2014/all_attributes.cc
+===================================================================
+diff --git a/libstdc++-v3/testsuite/17_intro/headers/c++2014/all_attributes.cc b/libstdc++-v3/testsuite/17_intro/headers/c++2014/all_attributes.cc
+--- a/libstdc++-v3/testsuite/17_intro/headers/c++2014/all_attributes.cc	(revision 268128)
++++ b/libstdc++-v3/testsuite/17_intro/headers/c++2014/all_attributes.cc	(revision 268128)
+@@ -21,9 +21,9 @@
+ // Ensure the library only uses the __name__ form for attributes.
+ // Don't test 'const' and 'noreturn' because they are reserved anyway.
+ #define abi_tag 1
+-#define always_inline 1
+ #ifndef __APPLE__
+ // darwin headers use these, see PR 64883
++# define always_inline 1
+ # define deprecated 1
+ # define visibility 1
+ #endif
+Index: libstdc++-v3/testsuite/17_intro/headers/c++1998/all_attributes.cc
+===================================================================
+diff --git a/libstdc++-v3/testsuite/17_intro/headers/c++1998/all_attributes.cc b/libstdc++-v3/testsuite/17_intro/headers/c++1998/all_attributes.cc
+--- a/libstdc++-v3/testsuite/17_intro/headers/c++1998/all_attributes.cc	(revision 268128)
++++ b/libstdc++-v3/testsuite/17_intro/headers/c++1998/all_attributes.cc	(revision 268128)
+@@ -21,9 +21,9 @@
+ // Ensure the library only uses the __name__ form for attributes.
+ // Don't test 'const' because it is reserved anyway.
+ #define abi_tag 1
+-#define always_inline 1
+ #ifndef __APPLE__
+ // darwin headers use these, see PR 64883
++# define always_inline 1
+ # define deprecated 1
+ # define noreturn 1
+ # define visibility 1
+Index: libstdc++-v3/testsuite/17_intro/headers/c++2011/all_attributes.cc
+===================================================================
+diff --git a/libstdc++-v3/testsuite/17_intro/headers/c++2011/all_attributes.cc b/libstdc++-v3/testsuite/17_intro/headers/c++2011/all_attributes.cc
+--- a/libstdc++-v3/testsuite/17_intro/headers/c++2011/all_attributes.cc	(revision 268128)
++++ b/libstdc++-v3/testsuite/17_intro/headers/c++2011/all_attributes.cc	(revision 268128)
+@@ -21,11 +21,11 @@
+ // Ensure the library only uses the __name__ form for attributes.
+ // Don't test 'const' and 'noreturn' because they are reserved anyway.
+ #define abi_tag 1
+-#define always_inline 1
+ #ifndef __APPLE__
+ // darwin headers use these, see PR 64883
++# define always_inline 1
++# define deprecated 1
+ # define visibility 1
+-# define deprecated 1
+ #endif
+ #define packed 1
+ #define pure 1
+Index: gcc/doc/extend.texi
+===================================================================
+diff --git a/gcc/doc/extend.texi b/gcc/doc/extend.texi
+--- a/gcc/doc/extend.texi	(revision 268128)
++++ b/gcc/doc/extend.texi	(revision 268128)
+@@ -7710,7 +7710,7 @@
+ A basic @code{asm} statement has the following syntax:
+ 
+ @example
+-asm @r{[} volatile @r{]} ( @var{AssemblerInstructions} )
++asm @var{asm-qualifiers} ( @var{AssemblerInstructions} )
+ @end example
+ 
+ The @code{asm} keyword is a GNU extension.
+@@ -7723,6 +7723,10 @@
+ @item volatile
+ The optional @code{volatile} qualifier has no effect. 
+ All basic @code{asm} blocks are implicitly volatile.
++
++@item inline
++If you use the @code{inline} qualifier, then for inlining purposes the size
++of the asm is taken as the smallest size possible (@pxref{Size of an asm}).
+ @end table
+ 
+ @subsubheading Parameters
+@@ -7838,17 +7842,19 @@
+ the operand parameters after the assembler template:
+ 
+ @example
+-asm @r{[}volatile@r{]} ( @var{AssemblerTemplate} 
++asm @var{asm-qualifiers} ( @var{AssemblerTemplate} 
+                  : @var{OutputOperands} 
+                  @r{[} : @var{InputOperands}
+                  @r{[} : @var{Clobbers} @r{]} @r{]})
+ 
+-asm @r{[}volatile@r{]} goto ( @var{AssemblerTemplate} 
++asm @var{asm-qualifiers} ( @var{AssemblerTemplate} 
+                       : 
+                       : @var{InputOperands}
+                       : @var{Clobbers}
+                       : @var{GotoLabels})
+ @end example
++where in the last form, @var{asm-qualifiers} contains @code{goto} (and in the
++first form, not).
+ 
+ The @code{asm} keyword is a GNU extension.
+ When writing code that can be compiled with @option{-ansi} and the
+@@ -7864,6 +7870,10 @@
+ also produce side effects. If so, you may need to use the @code{volatile} 
+ qualifier to disable certain optimizations. @xref{Volatile}.
+ 
++@item inline
++If you use the @code{inline} qualifier, then for inlining purposes the size
++of the asm is taken as the smallest size possible (@pxref{Size of an asm}).
++
+ @item goto
+ This qualifier informs the compiler that the @code{asm} statement may 
+ perform a jump to one of the labels listed in the @var{GotoLabels}.
+@@ -9146,7 +9156,7 @@
+ @code{asm} and multiplying that by the length of the longest
+ instruction supported by that processor.  (When working out the number
+ of instructions, it assumes that any occurrence of a newline or of
+-whatever statement separator character is supported by the assembler --
++whatever statement separator character is supported by the assembler ---
+ typically @samp{;} --- indicates the end of an instruction.)
+ 
+ Normally, GCC's estimate is adequate to ensure that correct
+@@ -9157,6 +9167,11 @@
+ If this happens then the assembler may produce a diagnostic saying that
+ a label is unreachable.
+ 
++@cindex @code{asm inline}
++This size is also used for inlining decisions.  If you use @code{asm inline}
++instead of just @code{asm}, then for inlining purposes the size of the asm
++is taken as the minimum size, ignoring how many instructions GCC thinks it is.
++
+ @node Alternate Keywords
+ @section Alternate Keywords
+ @cindex alternate keywords
+@@ -15566,9 +15581,32 @@
+ 
+ @item
+ GCC allows using a @code{typedef} name as the type specifier for a
+-vector type.
++vector type, but only under the following circumstances:
+ 
++@itemize @bullet
++
+ @item
++When using @code{__vector} instead of @code{vector}; for example,
++
++@smallexample
++typedef signed short int16;
++__vector int16 data;
++@end smallexample
++
++@item
++When using @code{vector} in keyword-and-predefine mode; for example,
++
++@smallexample
++typedef signed short int16;
++vector int16 data;
++@end smallexample
++
++Note that keyword-and-predefine mode is enabled by disabling GNU
++extensions (e.g., by using @code{-std=c11}) and including
++@code{<altivec.h>}.
++@end itemize
++
++@item
+ For C, overloaded functions are implemented with macros so the following
+ does not work:
+ 
+Index: gcc/doc/invoke.texi
+===================================================================
+diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
+--- a/gcc/doc/invoke.texi	(revision 268128)
++++ b/gcc/doc/invoke.texi	(revision 268128)
+@@ -7136,8 +7136,7 @@
+ @item -Os
+ @opindex Os
+ Optimize for size.  @option{-Os} enables all @option{-O2} optimizations that
+-do not typically increase code size.  It also performs further
+-optimizations designed to reduce code size.
++do not typically increase code size.
+ 
+ @option{-Os} disables the following optimization flags:
+ @gccoptlist{-falign-functions  -falign-jumps  -falign-loops @gol
+@@ -7144,6 +7143,10 @@
+ -falign-labels  -freorder-blocks  -freorder-blocks-algorithm=stc @gol
+ -freorder-blocks-and-partition  -fprefetch-loop-arrays}
+ 
++It also enables @option{-finline-functions}, causes the compiler to tune for
++code size rather than execution speed, and performs further optimizations
++designed to reduce code size.
++
+ @item -Ofast
+ @opindex Ofast
+ Disregard strict standards compliance.  @option{-Ofast} enables all
+@@ -7261,7 +7264,7 @@
+ in this way.  This inlining applies to all functions, even those not declared
+ inline.
+ 
+-Enabled at level @option{-O2}.
++Enabled at level @option{-O2}, @option{-O3}, @option{-Os}.
+ 
+ @item -findirect-inlining
+ @opindex findirect-inlining
+@@ -7270,7 +7273,7 @@
+ when inlining itself is turned on by the @option{-finline-functions}
+ or @option{-finline-small-functions} options.
+ 
+-Enabled at level @option{-O2}.
++Enabled at level @option{-O2}, @option{-O3}, @option{-Os}.
+ 
+ @item -finline-functions
+ @opindex finline-functions
+@@ -7282,7 +7285,8 @@
+ declared @code{static}, then the function is normally not output as
+ assembler code in its own right.
+ 
+-Enabled at level @option{-O3}.
++Enabled at levels @option{-O3}, @option{-Os}.  Also enabled
++by @option{-fprofile-use} and @option{-fauto-profile}.
+ 
+ @item -finline-functions-called-once
+ @opindex finline-functions-called-once
+@@ -21937,12 +21941,14 @@
+ @item -mabi=ibmlongdouble
+ @opindex mabi=ibmlongdouble
+ Change the current ABI to use IBM extended-precision long double.
+-This is a PowerPC 32-bit SYSV ABI option.
++This is a PowerPC 32-bit SYSV ABI option.  Requires @option{-mlong-double-128}
++to be enabled.
+ 
+ @item -mabi=ieeelongdouble
+ @opindex mabi=ieeelongdouble
+ Change the current ABI to use IEEE extended-precision long double.
+-This is a PowerPC 32-bit Linux ABI option.
++This is a PowerPC 32-bit Linux ABI option.  Requires @option{-mlong-double-128}
++to be enabled.
+ 
+ @item -mabi=elfv1
+ @opindex mabi=elfv1
+Index: gcc/ipa-icf-gimple.c
+===================================================================
+diff --git a/gcc/ipa-icf-gimple.c b/gcc/ipa-icf-gimple.c
+--- a/gcc/ipa-icf-gimple.c	(revision 268128)
++++ b/gcc/ipa-icf-gimple.c	(revision 268128)
+@@ -994,6 +994,9 @@
+   if (gimple_asm_input_p (g1) != gimple_asm_input_p (g2))
+     return false;
+ 
++  if (gimple_asm_inline_p (g1) != gimple_asm_inline_p (g2))
++    return false;
++
+   if (gimple_asm_ninputs (g1) != gimple_asm_ninputs (g2))
+     return false;
+ 
+Index: gcc/c/ChangeLog
+===================================================================
+diff --git a/gcc/c/ChangeLog b/gcc/c/ChangeLog
+--- a/gcc/c/ChangeLog	(revision 268128)
++++ b/gcc/c/ChangeLog	(revision 268128)
+@@ -1,3 +1,67 @@
++2019-01-16  Joseph Myers  <joseph@codesourcery.com>
++
++	Backport from mainline
++	2019-01-07  Joseph Myers  <joseph@codesourcery.com>
++
++	PR c/88720
++	PR c/88726
++	* c-decl.c (pop_scope): Use TREE_PUBLIC and b->nested to determine
++	whether a function is nested, not DECL_EXTERNAL.  Diagnose inline
++	functions declared but never defined only for external scope, not
++	for other scopes.
++
++2018-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR inline-asm/55681
++	* c-parser.c (c_parser_asm_statement): Update grammar.  Allow any
++	combination of volatile and goto, in any order, without repetitions.
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser.c (c_parser_asm_statement): Detect the inline keyword
++	after asm.  Pass a flag for it to build_asm_expr.
++	* c-tree.h (build_asm_expr): Update declaration.
++	* c-typeck.c (build_asm_stmt): Add is_inline parameter.  Use it to
++	set ASM_INLINE_P.
++
++	Backport from trunk
++	2018-12-08  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser (c_parser_asm_statement) [RID_INLINE]: Delete stray line
++	setting "quals".
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser.c (c_parser_asm_statement): Rewrite the loop to work without
++	"done" boolean variable.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser.c (c_parser_asm_statement): Keep track of the location each
++	asm qualifier is first seen; use that to give nicer "duplicate asm
++	qualifier" messages.  Delete 'quals" variable, instead pass the
++	"is_volatile_ flag to build_asm_stmt directly.
++	* c-tree.h (build_asm_stmt): Make the first arg bool instead of tree.
++	* c-typeck.c (build_asm_stmt): Ditto; adjust.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser.c (c_parser_asm_statement) <RID_CONST, RID_RESTRICT>: Give
++	a more specific error message (instead of just falling through).
++
++	And extra for the backport
++	2019-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-parser.c (c_parser_asm_statement): Output a warning instead of an
++	error for const and restrict.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: gcc/c/c-parser.c
+===================================================================
+diff --git a/gcc/c/c-parser.c b/gcc/c/c-parser.c
+--- a/gcc/c/c-parser.c	(revision 268128)
++++ b/gcc/c/c-parser.c	(revision 268128)
+@@ -6089,61 +6089,104 @@
+ }
+ 
+ /* Parse an asm statement, a GNU extension.  This is a full-blown asm
+-   statement with inputs, outputs, clobbers, and volatile tag
+-   allowed.
++   statement with inputs, outputs, clobbers, and volatile, inline, and goto
++   tags allowed.
+ 
++   asm-qualifier:
++     volatile
++     inline
++     goto
++
++   asm-qualifier-list:
++     asm-qualifier-list asm-qualifier
++     asm-qualifier
++
+    asm-statement:
+-     asm type-qualifier[opt] ( asm-argument ) ;
+-     asm type-qualifier[opt] goto ( asm-goto-argument ) ;
++     asm asm-qualifier-list[opt] ( asm-argument ) ;
+ 
+    asm-argument:
+      asm-string-literal
+      asm-string-literal : asm-operands[opt]
+      asm-string-literal : asm-operands[opt] : asm-operands[opt]
+-     asm-string-literal : asm-operands[opt] : asm-operands[opt] : asm-clobbers[opt]
+-
+-   asm-goto-argument:
++     asm-string-literal : asm-operands[opt] : asm-operands[opt] \
++       : asm-clobbers[opt]
+      asm-string-literal : : asm-operands[opt] : asm-clobbers[opt] \
+        : asm-goto-operands
+ 
+-   Qualifiers other than volatile are accepted in the syntax but
+-   warned for.  */
++   The form with asm-goto-operands is valid if and only if the
++   asm-qualifier-list contains goto, and is the only allowed form in that case.
++   Duplicate asm-qualifiers are not allowed.  */
+ 
+ static tree
+ c_parser_asm_statement (c_parser *parser)
+ {
+-  tree quals, str, outputs, inputs, clobbers, labels, ret;
+-  bool simple, is_goto;
++  tree str, outputs, inputs, clobbers, labels, ret;
++  bool simple;
+   location_t asm_loc = c_parser_peek_token (parser)->location;
+   int section, nsections;
+ 
+   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ASM));
+   c_parser_consume_token (parser);
+-  if (c_parser_next_token_is_keyword (parser, RID_VOLATILE))
++
++  /* Handle the asm-qualifier-list.  */
++  location_t volatile_loc = UNKNOWN_LOCATION;
++  location_t inline_loc = UNKNOWN_LOCATION;
++  location_t goto_loc = UNKNOWN_LOCATION;
++  for (;;)
+     {
+-      quals = c_parser_peek_token (parser)->value;
+-      c_parser_consume_token (parser);
+-    }
+-  else if (c_parser_next_token_is_keyword (parser, RID_CONST)
+-	   || c_parser_next_token_is_keyword (parser, RID_RESTRICT))
+-    {
+-      warning_at (c_parser_peek_token (parser)->location,
+-		  0,
+-		  "%E qualifier ignored on asm",
+-		  c_parser_peek_token (parser)->value);
+-      quals = NULL_TREE;
+-      c_parser_consume_token (parser);
+-    }
+-  else
+-    quals = NULL_TREE;
++      c_token *token = c_parser_peek_token (parser);
++      location_t loc = token->location;
++      switch (token->keyword)
++	{
++	case RID_VOLATILE:
++	  if (volatile_loc)
++	    {
++	      error_at (loc, "duplicate asm qualifier %qE", token->value);
++	      inform (volatile_loc, "first seen here");
++	    }
++	  else
++	    volatile_loc = loc;
++	  c_parser_consume_token (parser);
++	  continue;
+ 
+-  is_goto = false;
+-  if (c_parser_next_token_is_keyword (parser, RID_GOTO))
+-    {
+-      c_parser_consume_token (parser);
+-      is_goto = true;
++	case RID_INLINE:
++	  if (inline_loc)
++	    {
++	      error_at (loc, "duplicate asm qualifier %qE", token->value);
++	      inform (inline_loc, "first seen here");
++	    }
++	  else
++	    inline_loc = loc;
++	  c_parser_consume_token (parser);
++	  continue;
++
++	case RID_GOTO:
++	  if (goto_loc)
++	    {
++	      error_at (loc, "duplicate asm qualifier %qE", token->value);
++	      inform (goto_loc, "first seen here");
++	    }
++	  else
++	    goto_loc = loc;
++	  c_parser_consume_token (parser);
++	  continue;
++
++	case RID_CONST:
++	case RID_RESTRICT:
++	  warning_at (loc, 0, "%qE is not an asm qualifier", token->value);
++	  c_parser_consume_token (parser);
++	  continue;
++
++	default:
++	  break;
++	}
++      break;
+     }
+ 
++  bool is_volatile = (volatile_loc != UNKNOWN_LOCATION);
++  bool is_inline = (inline_loc != UNKNOWN_LOCATION);
++  bool is_goto = (goto_loc != UNKNOWN_LOCATION);
++
+   /* ??? Follow the C++ parser rather than using the
+      lex_untranslated_string kludge.  */
+   parser->lex_untranslated_string = true;
+@@ -6216,8 +6259,9 @@
+   if (!c_parser_require (parser, CPP_SEMICOLON, "expected %<;%>"))
+     c_parser_skip_to_end_of_block_or_statement (parser);
+ 
+-  ret = build_asm_stmt (quals, build_asm_expr (asm_loc, str, outputs, inputs,
+-					       clobbers, labels, simple));
++  ret = build_asm_stmt (is_volatile,
++			build_asm_expr (asm_loc, str, outputs, inputs,
++					clobbers, labels, simple, is_inline));
+ 
+  error:
+   parser->lex_untranslated_string = false;
+Index: gcc/c/c-typeck.c
+===================================================================
+diff --git a/gcc/c/c-typeck.c b/gcc/c/c-typeck.c
+--- a/gcc/c/c-typeck.c	(revision 268128)
++++ b/gcc/c/c-typeck.c	(revision 268128)
+@@ -9669,9 +9669,9 @@
+    (guaranteed to be 'volatile' or null) and ARGS (represented using
+    an ASM_EXPR node).  */
+ tree
+-build_asm_stmt (tree cv_qualifier, tree args)
++build_asm_stmt (bool is_volatile, tree args)
+ {
+-  if (!ASM_VOLATILE_P (args) && cv_qualifier)
++  if (is_volatile)
+     ASM_VOLATILE_P (args) = 1;
+   return add_stmt (args);
+ }
+@@ -9680,10 +9680,12 @@
+    some INPUTS, and some CLOBBERS.  The latter three may be NULL.
+    SIMPLE indicates whether there was anything at all after the
+    string in the asm expression -- asm("blah") and asm("blah" : )
+-   are subtly different.  We use a ASM_EXPR node to represent this.  */
++   are subtly different.  We use a ASM_EXPR node to represent this.
++   LOC is the location of the asm, and IS_INLINE says whether this
++   is asm inline.  */
+ tree
+ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
+-		tree clobbers, tree labels, bool simple)
++		tree clobbers, tree labels, bool simple, bool is_inline)
+ {
+   tree tail;
+   tree args;
+@@ -9801,6 +9803,7 @@
+      as volatile.  */
+   ASM_INPUT_P (args) = simple;
+   ASM_VOLATILE_P (args) = (noutputs == 0);
++  ASM_INLINE_P (args) = is_inline;
+ 
+   return args;
+ }
+Index: gcc/c/c-tree.h
+===================================================================
+diff --git a/gcc/c/c-tree.h b/gcc/c/c-tree.h
+--- a/gcc/c/c-tree.h	(revision 268128)
++++ b/gcc/c/c-tree.h	(revision 268128)
+@@ -659,8 +659,9 @@
+ extern void check_compound_literal_type (location_t, struct c_type_name *);
+ extern tree c_start_case (location_t, location_t, tree, bool);
+ extern void c_finish_case (tree, tree);
+-extern tree build_asm_expr (location_t, tree, tree, tree, tree, tree, bool);
+-extern tree build_asm_stmt (tree, tree);
++extern tree build_asm_expr (location_t, tree, tree, tree, tree, tree, bool,
++			    bool);
++extern tree build_asm_stmt (bool, tree);
+ extern int c_types_compatible_p (tree, tree);
+ extern tree c_begin_compound_stmt (bool);
+ extern tree c_end_compound_stmt (location_t, tree, bool);
+Index: gcc/c/c-decl.c
+===================================================================
+diff --git a/gcc/c/c-decl.c b/gcc/c/c-decl.c
+--- a/gcc/c/c-decl.c	(revision 268128)
++++ b/gcc/c/c-decl.c	(revision 268128)
+@@ -1235,8 +1235,9 @@
+ 	      && DECL_ABSTRACT_ORIGIN (p) != 0
+ 	      && DECL_ABSTRACT_ORIGIN (p) != p)
+ 	    TREE_ADDRESSABLE (DECL_ABSTRACT_ORIGIN (p)) = 1;
+-	  if (!DECL_EXTERNAL (p)
++	  if (!TREE_PUBLIC (p)
+ 	      && !DECL_INITIAL (p)
++	      && !b->nested
+ 	      && scope != file_scope
+ 	      && scope != external_scope)
+ 	    {
+@@ -1252,7 +1253,7 @@
+ 		 in the same translation unit."  */
+ 	      if (!flag_gnu89_inline
+ 		  && !lookup_attribute ("gnu_inline", DECL_ATTRIBUTES (p))
+-		  && scope != external_scope)
++		  && scope == external_scope)
+ 		pedwarn (input_location, 0,
+ 			 "inline function %q+D declared but never defined", p);
+ 	      DECL_EXTERNAL (p) = 1;
+Index: gcc/DATESTAMP
+===================================================================
+diff --git a/gcc/DATESTAMP b/gcc/DATESTAMP
+--- a/gcc/DATESTAMP	(revision 268128)
++++ b/gcc/DATESTAMP	(revision 268128)
+@@ -1 +1 @@
+-20181206
++20190121
+Index: gcc/tree.h
+===================================================================
+diff --git a/gcc/tree.h b/gcc/tree.h
+--- a/gcc/tree.h	(revision 268128)
++++ b/gcc/tree.h	(revision 268128)
+@@ -1231,6 +1231,9 @@
+    ASM_OPERAND with no operands.  */
+ #define ASM_INPUT_P(NODE) (ASM_EXPR_CHECK (NODE)->base.static_flag)
+ #define ASM_VOLATILE_P(NODE) (ASM_EXPR_CHECK (NODE)->base.public_flag)
++/* Nonzero if we want to consider this asm as minimum length and cost
++   for inlining decisions.  */
++#define ASM_INLINE_P(NODE) (ASM_EXPR_CHECK (NODE)->base.protected_flag)
+ 
+ /* COND_EXPR accessors.  */
+ #define COND_EXPR_COND(NODE)	(TREE_OPERAND (COND_EXPR_CHECK (NODE), 0))
+Index: gcc/ChangeLog
+===================================================================
+diff --git a/gcc/ChangeLog b/gcc/ChangeLog
+--- a/gcc/ChangeLog	(revision 268128)
++++ b/gcc/ChangeLog	(revision 268128)
+@@ -1,3 +1,280 @@
++2019-01-18  Uroš Bizjak  <ubizjak@gmail.com>
++
++	* config/alpha/alpha.c (alpha_gimplify_va_arg):
++	Handle split indirect COMPLEX_TYPE arguments.
++
++2019-01-16  Martin Jambor  <mjambor@suse.cz>
++
++	Backported from mainline
++	2018-12-10  Martin Jambor  <mjambor@suse.cz>
++
++	PR ipa/88214
++	* ipa-prop.c (determine_locally_known_aggregate_parts): Make sure
++	we check pointers against pointers.
++
++2019-01-09  Eric Botcazou  <ebotcazou@adacore.com>
++	    James Clarke  <jrtc27@jrtc27.com>
++
++	PR target/84010
++	* config/sparc/sparc.c (sparc_legitimize_tls_address): Only use Pmode
++	consistently in TLS address generation and adjust code to the renaming
++	of patterns.  Mark calls to __tls_get_addr as const.
++	* config/sparc/sparc.md (tgd_hi22): Turn into...
++	(tgd_hi22<P:mode>): ...this and use Pmode throughout.
++	(tgd_lo10): Turn into...
++	(tgd_lo10<P:mode>): ...this and use Pmode throughout.
++	(tgd_add32): Merge into...
++	(tgd_add64): Likewise.
++	(tgd_add<P:mode>): ...this and use Pmode throughout.
++	(tldm_hi22): Turn into...
++	(tldm_hi22<P:mode>): ...this and use Pmode throughout.
++	(tldm_lo10): Turn into...
++	(tldm_lo10<P:mode>): ...this and use Pmode throughout.
++	(tldm_add32): Merge into...
++	(tldm_add64): Likewise.
++	(tldm_add<P:mode>): ...this and use Pmode throughout.
++	(tldm_call32): Merge into...
++	(tldm_call64): Likewise.
++	(tldm_call<P:mode>): ...this and use Pmode throughout.
++	(tldo_hix22): Turn into...
++	(tldo_hix22<P:mode>): ...this and use Pmode throughout.
++	(tldo_lox10): Turn into...
++	(tldo_lox10<P:mode>): ...this and use Pmode throughout.
++	(tldo_add32): Merge into...
++	(tldo_add64): Likewise.
++	(tldo_add<P:mode>): ...this and use Pmode throughout.
++	(tie_hi22): Turn into...
++	(tie_hi22<P:mode>): ...this and use Pmode throughout.
++	(tie_lo10): Turn into...
++	(tie_lo10<P:mode>): ...this and use Pmode throughout.
++	(tie_ld64): Use DImode throughout.
++	(tie_add32): Merge into...
++	(tie_add64): Likewise.
++	(tie_add<P:mode>): ...this and use Pmode throughout.
++	(tle_hix22_sp32): Merge into...
++	(tle_hix22_sp64): Likewise.
++	(tle_hix22<P:mode>): ...this and use Pmode throughout.
++	(tle_lox22_sp32): Merge into...
++	(tle_lox22_sp64): Likewise.
++	(tle_lox22<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldub_sp32): Merge into...
++	(*tldo_ldub_sp64): Likewise.
++	(*tldo_ldub<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldub1_sp32): Merge into...
++	(*tldo_ldub1_sp64): Likewise.
++	(*tldo_ldub1<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldub2_sp32): Merge into...
++	(*tldo_ldub2_sp64): Likewise.
++	(*tldo_ldub2<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldsb1_sp32): Merge into...
++	(*tldo_ldsb1_sp64): Likewise.
++	(*tldo_ldsb1<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldsb2_sp32): Merge into...
++	(*tldo_ldsb2_sp64): Likewise.
++	(*tldo_ldsb2<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldub3_sp64): Use DImode throughout.
++	(*tldo_ldsb3_sp64): Likewise.
++	(*tldo_lduh_sp32): Merge into...
++	(*tldo_lduh_sp64): Likewise.
++	(*tldo_lduh<P:mode>): ...this and use Pmode throughout.
++	(*tldo_lduh1_sp32): Merge into...
++	(*tldo_lduh1_sp64): Likewise.
++	(*tldo_lduh1<P:mode>): ...this and use Pmode throughout.
++	(*tldo_ldsh1_sp32): Merge into...
++	(*tldo_ldsh1_sp64): Likewise.
++	(*tldo_ldsh1<P:mode>): ...this and use Pmode throughout.
++	(*tldo_lduh2_sp64): Use DImode throughout.
++	(*tldo_ldsh2_sp64): Likewise.
++	(*tldo_lduw_sp32): Merge into...
++	(*tldo_lduw_sp64): Likewise.
++	(*tldo_lduw<P:mode>): ...this and use Pmode throughout.
++	(*tldo_lduw1_sp64): Use DImode throughout.
++	(*tldo_ldsw1_sp64): Likewise.
++	(*tldo_ldx_sp64): Likewise.
++	(*tldo_stb_sp32): Merge into...
++	(*tldo_stb_sp64): Likewise.
++	(*tldo_stb<P:mode>): ...this and use Pmode throughout.
++	(*tldo_sth_sp32): Merge into...
++	(*tldo_sth_sp64): Likewise.
++	(*tldo_sth<P:mode>): ...this and use Pmode throughout.
++	(*tldo_stw_sp32): Merge into...
++	(*tldo_stw_sp64): Likewise.
++	(*tldo_stw<P:mode>): ...this and use Pmode throughout.
++	(*tldo_stx_sp64): Use DImode throughout.
++
++2019-01-09  Eric Botcazou  <ebotcazou@adacore.com>
++
++	* doc/invoke.texi (-Os): Add reference to -finline-functions.
++	(-finline-small-functions): Add references to -O3 and -Os.
++	(-findirect-inlining): Likewise.
++	(-finline-functions): Add references to -Os, -fprofile-use and
++	-fauto-profile.
++
++2019-01-03  Iain Sandoe  <iain@sandoe.co.uk>
++
++	revert:
++	2018-12-30  Iain Sandoe  <iain@sandoe.co.uk>
++
++	backport from mainline.
++	2018-12-12 Segher Boessenkool  <segher@kernel.crashing.org>
++		   Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR target/88343
++	* config/rs6000/rs6000.c (save_reg_p): Do not save the picbase reg
++	unless it has been used.
++	(first_reg_to_save): Remove dead code.
++
++2019-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR inline-asm/55681
++	* doc/extend.texi (Basic Asm): Update grammar.
++	(Extended Asm): Update grammar.
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* doc/extend.texi (Using Assembly Language with C): Document asm inline.
++	(Size of an asm): Fix typo.  Document asm inline.
++	* gimple-pretty-print.c (dump_gimple_asm): Handle asm inline.
++	* gimple.h (enum gf_mask): Add GF_ASM_INLINE.
++	(gimple_asm_set_volatile): Fix typo.
++	(gimple_asm_inline_p): New.
++	(gimple_asm_set_inline): New.
++	* gimplify.c (gimplify_asm_expr): Propagate the asm inline flag from
++	tree to gimple.
++	* ipa-icf-gimple.c (func_checker::compare_gimple_asm): Compare the
++	gimple_asm_inline_p flag, too.
++	* tree-core.h (tree_base): Document that protected_flag is ASM_INLINE_P
++	in an ASM_EXPR.
++	* tree-inline.c (estimate_num_insns): If gimple_asm_inline_p return
++	a minimum size for an asm.
++	* tree.h (ASM_INLINE_P): New.
++
++2018-12-30  Iain Sandoe  <iain@sandoe.co.uk>
++
++	backport from mainline.
++	2018-12-12 Segher Boessenkool  <segher@kernel.crashing.org>
++		   Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR target/88343
++	* config/rs6000/rs6000.c (save_reg_p): Do not save the picbase reg
++	unless it has been used.
++	(first_reg_to_save): Remove dead code.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-12-06  Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR c++/87380
++	* config/darwin.h (TARGET_WEAK_NOT_IN_ARCHIVE_TOC) Remove, use the
++	default.
++	* config/rs6000/darwin7.h (TARGET_WEAK_NOT_IN_ARCHIVE_TOC): New.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-12-06  Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR target/78444
++	* config/i386/darwin.h (STACK_BOUNDARY): Remove macro.
++	* config/i386/i386.c (ix86_compute_frame_layout): Ensure at least 128b
++	stack alignment in non-leaf functions.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-08-15  Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR target/81685
++	* config/darwin.h: (DEBUG_STR_OFFSETS_SECTION, DEBUG_LOCLISTS_SECTION,
++	DEBUG_RNGLISTS_SECTION) new macros.  (DEBUG_PUBNAMES_SECTION,
++	DEBUG_PUBTYPES_SECTION) update to include GNU variant.
++
++2018-12-21  Uros Bizjak  <ubizjak@gmail.com>
++
++	Backport from mainline
++	2018-12-10  Uros Bizjak  <ubizjak@gmail.com>
++
++	PR target/88418
++	* config/i386/i386.c (ix86_expand_sse_cmp): For vector modes,
++	check operand 1 with vector_operand predicate.
++	(ix86_expand_sse_movcc): For vector modes, check op_true with
++	vector_operand, not nonimmediate_operand.
++
++2018-12-19  Bill Schmidt  <wschmidt@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-18  Bill Schmidt  <wschmidt@linux.ibm.com>
++
++	* doc/extend.texi (PowerPC Altivec/VSX Built-in Functions):
++	Describe when a typedef name can be used as the type specifier for
++	a vector type, and when it cannot.
++
++2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR target/88213
++	* config/rs6000/vsx.md (*vsx_extract_<P:mode>_<VSX_D:mode>_load):
++	Require TARGET_POWERPC64.
++
++2018-12-17  Senthil Kumar Selvaraj  <senthilkumar.selvaraj@microchip.com>
++
++	Backport from trunk
++	2018-12-17  Senthil Kumar Selvaraj  <senthilkumar.selvaraj@microchip.com>
++
++	PR rtl-optimization/88253
++	* combine.c (combine_simplify_rtx): Test for side-effects before
++	substituting by zero.
++
++2018-12-15  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-14  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR rtl-optimization/88001
++	* function.c (match_asm_constraints_1): Don't invalidly share RTL.
++
++2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	* config/s390/s390-builtins.def (s390_vec_double_s64): Map to
++	s390_vec_double_s64 instead of s390_vcdgb.
++	(s390_vec_double_u64): Map to s390_vec_double_u64 instead of
++	s390_vcdlgb.
++
++2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	* config/s390/vx-builtins.md ("vec_ctd_s64", "vec_ctd_u64")
++	("vec_ctsl", "vec_ctul"): Replace 0 with VEC_NOINEXACT.
++	("vec_double_s64", "vec_double_u64"): Replace 4 with VEC_INEXACT.
++
++2018-12-12  Peter Bergner  <bergner@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-07  Peter Bergner  <bergner@linux.ibm.com>
++
++	PR target/87496
++	* config/rs6000/rs6000.c (rs6000_option_override_internal): Disallow
++	-mabi=ieeelongdouble and -mabi=ibmlongdouble without -mlong-double-128.
++	Do not error for -mabi=ibmlongdouble and no ISA 2.06 support.
++	* doc/invoke.texi: Document -mabi=ibmlongdouble and -mabi=ieeelongdouble
++	require -mlong-double-128.
++
++2018-12-06  Richard Biener  <rguenther@suse.de>
++
++	* BASE-VER: Increment to 7.4.1.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+@@ -19,13 +296,13 @@
+ 	* gcc/dwarf2out.c (FUNC_SECOND_SECT_LABEL): New.
+ 	(dwarf2out_switch_text_section): Generate a local label for the second
+ 	function sub-section and apply it as the second FDE start label.
+-	* gcc/final.c (final_scan_insn_1): Emit second FDE label after the second
+-	sub-section start.
++	* gcc/final.c (final_scan_insn_1): Emit second FDE label after the
++	second sub-section start.
+ 
+ 2018-11-26  Iain Sandoe  <iain@sandoe.co.uk>
+ 
+ 	2018-08-15  Iain Sandoe  <iain@sandoe.co.uk>
+- 
++
+ 	* config/darwin.c
+ 	(darwin_function_switched_text_sections): Delete.
+ 	* gcc/config/darwin.h
+Index: gcc/testsuite/gcc.target/powerpc/pr87496-2.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/powerpc/pr87496-2.c b/gcc/testsuite/gcc.target/powerpc/pr87496-2.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/powerpc/pr87496-2.c	(revision 268128)
+@@ -0,0 +1,10 @@
++/* PR target/87496 */
++/* { dg-do compile { target { powerpc*-*-* } } } */
++/* { dg-skip-if "" { powerpc*-*-darwin* } } */
++/* { dg-skip-if "do not override -mcpu" { powerpc*-*-* } { "-mcpu=*" } { "-mcpu=power7" } } */
++/* { dg-options "-O2 -mcpu=power7 -mabi=ieeelongdouble -mlong-double-64 -Wno-psabi" } */
++
++int i;
++
++/* { dg-error "'-mabi=ieeelongdouble' requires '-mlong-double-128'" "PR87496" { target *-*-* } 0 } */
++/* { dg-warning "using IEEE extended precision long double" "" { target *-*-* } 0 } */
+Index: gcc/testsuite/gcc.target/powerpc/pr87496-3.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/powerpc/pr87496-3.c b/gcc/testsuite/gcc.target/powerpc/pr87496-3.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/powerpc/pr87496-3.c	(revision 268128)
+@@ -0,0 +1,9 @@
++/* PR target/87496 */
++/* { dg-do compile { target { powerpc*-*-* } } } */
++/* { dg-skip-if "" { powerpc*-*-darwin* } } */
++/* { dg-options "-O2 -mabi=ibmlongdouble -mlong-double-64 -Wno-psabi" } */
++
++int i;
++
++/* { dg-error "'-mabi=ibmlongdouble' requires '-mlong-double-128'" "PR87496" { target *-*-* } 0 } */
++/* { dg-warning "using IBM extended precision long double" "" { target *-*-* } 0 } */
+Index: gcc/testsuite/gcc.target/powerpc/pr87496-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/powerpc/pr87496-1.c b/gcc/testsuite/gcc.target/powerpc/pr87496-1.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/powerpc/pr87496-1.c	(revision 268128)
+@@ -0,0 +1,11 @@
++/* PR target/87496 */
++/* { dg-do compile { target { powerpc*-*-* && lp64 } } } */
++/* { dg-skip-if "" { powerpc*-*-darwin* } } */
++/* { dg-skip-if "do not override -mcpu" { powerpc*-*-* } { "-mcpu=*" } { "-mcpu=power7" } } */
++/* { dg-require-effective-target longdouble128 } */
++/* { dg-options "-O2 -mcpu=power7 -mabi=ieeelongdouble -mno-popcntd -Wno-psabi" } */
++
++int i;
++
++/* { dg-error "'-mabi=ieeelongdouble' requires full ISA 2.06 support" "PR87496" { target *-*-* } 0 } */
++/* { dg-warning "using IEEE extended precision long double" "" { target *-*-* } 0 } */
+Index: gcc/testsuite/gcc.target/avr/pr88253.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/avr/pr88253.c b/gcc/testsuite/gcc.target/avr/pr88253.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/avr/pr88253.c	(revision 268128)
+@@ -0,0 +1,16 @@
++/* { dg-do compile } */
++/* { dg-options "-Os -w" } */
++ 
++static int aRead() __attribute__((always_inline));
++static int aRead() {
++    unsigned char h,l;
++    l = (*(volatile unsigned char *)(0x78)) ;
++    h = (*(volatile unsigned char *)(0x79)) ;
++    return (h<<8) | l;
++}
++ 
++int main() {
++    volatile unsigned char x;
++     x = aRead()^42;
++ }
++ /* { dg-final { scan-assembler "lds r\\d+,121" } } */
+Index: gcc/testsuite/gcc.target/s390/zvector/vec-double-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/s390/zvector/vec-double-1.c b/gcc/testsuite/gcc.target/s390/zvector/vec-double-1.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/s390/zvector/vec-double-1.c	(revision 268128)
+@@ -0,0 +1,12 @@
++/* { dg-do compile } */
++/* { dg-options "-O3 -mzarch -march=z13 -mzvector" } */
++
++#include <vecintrin.h>
++
++vector double
++test (vector unsigned long long x)
++{
++  return vec_double (x);
++}
++
++/* { dg-final { scan-assembler-times "vcdlgb\t" 1 } } */
+Index: gcc/testsuite/gcc.target/s390/zvector/vec-double-2.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/s390/zvector/vec-double-2.c b/gcc/testsuite/gcc.target/s390/zvector/vec-double-2.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/s390/zvector/vec-double-2.c	(revision 268128)
+@@ -0,0 +1,12 @@
++/* { dg-do compile } */
++/* { dg-options "-O3 -mzarch -march=z13 -mzvector" } */
++
++#include <vecintrin.h>
++
++vector double
++test (vector long long x)
++{
++  return vec_double (x);
++}
++
++/* { dg-final { scan-assembler-times "vcdgb\t" 1 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-int64.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-int64.c b/gcc/testsuite/gcc.target/sparc/tls-ld-int64.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-int64.c	(revision 268128)
+@@ -0,0 +1,24 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++/* { dg-require-effective-target lp64 } */
++
++#include <stdint.h>
++
++__thread int64_t var1 __attribute__((tls_model("local-dynamic")));
++__thread int64_t var2 __attribute__((tls_model("local-dynamic")));
++
++int64_t sum (void)
++{
++  return var1 + var2;
++}
++
++void set (int64_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 2 } } */
++/* { dg-final { scan-assembler-times "ldx\t\[^\n\]*tldo_add" 2 } } */
++/* { dg-final { scan-assembler-times "stx\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-uint16.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-uint16.c b/gcc/testsuite/gcc.target/sparc/tls-ld-uint16.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-uint16.c	(revision 268128)
+@@ -0,0 +1,33 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread uint16_t var1 __attribute__((tls_model("local-dynamic")));
++__thread uint16_t var2 __attribute__((tls_model("local-dynamic")));
++
++uint16_t sum (void)
++{
++  return var1 + var2;
++}
++
++uint32_t ext32_sum (void)
++{
++  return (uint32_t)var1 + (uint32_t)var2;
++}
++
++unsigned long ext_sum (void)
++{
++  return (unsigned long)var1 + (unsigned long)var2;
++}
++
++void set (uint16_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 4 } } */
++/* { dg-final { scan-assembler-times "lduh\t\[^\n\]*tldo_add" 6 } } */
++/* { dg-final { scan-assembler-times "sth\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-int32.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-int32.c b/gcc/testsuite/gcc.target/sparc/tls-ld-int32.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-int32.c	(revision 268128)
+@@ -0,0 +1,36 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread int32_t var1 __attribute__((tls_model("local-dynamic")));
++__thread int32_t var2 __attribute__((tls_model("local-dynamic")));
++
++int32_t sum (void)
++{
++  return var1 + var2;
++}
++
++#if defined(__sparcv9) || defined(__arch64__)
++long ext_sum (void)
++{
++  return (long)var1 + (long)var2;
++}
++#else
++void *addr (void)
++{
++  return &var1;
++}
++#endif
++
++void set (int32_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 3 } } */
++/* { dg-final { scan-assembler-times "ld\t\[^\n\]*tldo_add" 2 } } */
++/* { dg-final { scan-assembler-times "ldsw\t\[^\n\]*tldo_add" 2 { target lp64 } } } */
++/* { dg-final { scan-assembler-times "st\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-uint8.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-uint8.c b/gcc/testsuite/gcc.target/sparc/tls-ld-uint8.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-uint8.c	(revision 268128)
+@@ -0,0 +1,38 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread uint8_t var1 __attribute__((tls_model("local-dynamic")));
++__thread uint8_t var2 __attribute__((tls_model("local-dynamic")));
++
++uint8_t sum (void)
++{
++  return var1 + var2;
++}
++
++uint16_t ext16_sum (void)
++{
++  return (uint16_t)var1 + (uint16_t)var2;
++}
++
++uint32_t ext32_sum (void)
++{
++  return (uint32_t)var1 + (uint32_t)var2;
++}
++
++unsigned long ext_sum (void)
++{
++  return (unsigned long)var1 + (unsigned long)var2;
++}
++
++void set (uint8_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 5 } } */
++/* { dg-final { scan-assembler-times "ldub\t\[^\n\]*tldo_add" 8 } } */
++/* { dg-final { scan-assembler-times "stb\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-int8.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-int8.c b/gcc/testsuite/gcc.target/sparc/tls-ld-int8.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-int8.c	(revision 268128)
+@@ -0,0 +1,39 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread int8_t var1 __attribute__((tls_model("local-dynamic")));
++__thread int8_t var2 __attribute__((tls_model("local-dynamic")));
++
++int8_t sum (void)
++{
++  return var1 + var2;
++}
++
++int16_t ext16_sum (void)
++{
++  return (int16_t)var1 + (int16_t)var2;
++}
++
++int32_t ext32_sum (void)
++{
++  return (int32_t)var1 + (int32_t)var2;
++}
++
++long ext_sum (void)
++{
++  return (long)var1 + (long)var2;
++}
++
++void set (int8_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 5 } } */
++/* { dg-final { scan-assembler-times "ldub\t\[^\n\]*tldo_add" 2 } } */
++/* { dg-final { scan-assembler-times "ldsb\t\[^\n\]*tldo_add" 6 } } */
++/* { dg-final { scan-assembler-times "stb\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-int16.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-int16.c b/gcc/testsuite/gcc.target/sparc/tls-ld-int16.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-int16.c	(revision 268128)
+@@ -0,0 +1,34 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread int16_t var1 __attribute__((tls_model("local-dynamic")));
++__thread int16_t var2 __attribute__((tls_model("local-dynamic")));
++
++int16_t sum (void)
++{
++  return var1 + var2;
++}
++
++int32_t ext32_sum (void)
++{
++  return (int32_t)var1 + (int32_t)var2;
++}
++
++long ext_sum (void)
++{
++  return (long)var1 + (long)var2;
++}
++
++void set (int16_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 4 } } */
++/* { dg-final { scan-assembler-times "lduh\t\[^\n\]*tldo_add" 2 } } */
++/* { dg-final { scan-assembler-times "ldsh\t\[^\n\]*tldo_add" 4 } } */
++/* { dg-final { scan-assembler-times "sth\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/sparc/tls-ld-uint32.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/sparc/tls-ld-uint32.c b/gcc/testsuite/gcc.target/sparc/tls-ld-uint32.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/sparc/tls-ld-uint32.c	(revision 268128)
+@@ -0,0 +1,36 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" }
++/* { dg-add-options tls } */
++
++#include <stdint.h>
++
++__thread uint32_t var1 __attribute__((tls_model("local-dynamic")));
++__thread uint32_t var2 __attribute__((tls_model("local-dynamic")));
++
++uint32_t sum (void)
++{
++  return var1 + var2;
++}
++
++#if defined(__sparcv9) || defined(__arch64__)
++unsigned long ext_sum (void)
++{
++  return (unsigned long)var1 + (unsigned long)var2;
++}
++#else
++void *addr (void)
++{
++  return &var1;
++}
++#endif
++
++void set (int32_t i)
++{
++  var1 = i;
++  var2 = i;
++}
++
++/* { dg-final { scan-assembler-times "__tls_get_addr" 3 } } */
++/* { dg-final { scan-assembler-times "ld\t\[^\n\]*tldo_add" 2 } } */
++/* { dg-final { scan-assembler-times "lduw\t\[^\n\]*tldo_add" 2 { target lp64 } } } */
++/* { dg-final { scan-assembler-times "st\t\[^\n\]*tldo_add" 2 } } */
+Index: gcc/testsuite/gcc.target/i386/pr88418.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/i386/pr88418.c b/gcc/testsuite/gcc.target/i386/pr88418.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/i386/pr88418.c	(revision 268128)
+@@ -0,0 +1,15 @@
++/* PR target/88418 */
++/* { dg-do compile } */
++/* { dg-options "-O1 -fpack-struct -msse4.1 -mno-avx" } */
++
++typedef long long v2di __attribute__ ((__vector_size__ (16)));
++
++union df {
++  v2di se[2];
++};
++
++void
++qg (union df *jz, union df *pl)
++{
++  jz->se[0] = jz->se[0] == pl->se[0];
++}
+Index: gcc/testsuite/gcc.target/x86_64/abi/avx/asm-support-darwin.s
+===================================================================
+diff --git a/gcc/testsuite/gcc.target/x86_64/abi/avx/asm-support-darwin.s b/gcc/testsuite/gcc.target/x86_64/abi/avx/asm-support-darwin.s
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.target/x86_64/abi/avx/asm-support-darwin.s	(revision 268128)
+@@ -0,0 +1,77 @@
++	.file	"asm-support-darwin.s"
++	.text
++	.p2align 4,,15
++	.globl _snapshot
++_snapshot:
++LFB3:
++	movq	%rax, _rax(%rip)
++	movq	%rbx, _rbx(%rip)
++	movq	%rcx, _rcx(%rip)
++	movq	%rdx, _rdx(%rip)
++	movq	%rdi, _rdi(%rip)
++	movq	%rsi, _rsi(%rip)
++	movq	%rbp, _rbp(%rip)
++	movq	%rsp, _rsp(%rip)
++	movq	%r8, _r8(%rip)
++	movq	%r9, _r9(%rip)
++	movq	%r10, _r10(%rip)
++	movq	%r11, _r11(%rip)
++	movq	%r12, _r12(%rip)
++	movq	%r13, _r13(%rip)
++	movq	%r14, _r14(%rip)
++	movq	%r15, _r15(%rip)
++	vmovdqu	%ymm0, _ymm_regs+0(%rip)
++	vmovdqu	%ymm1, _ymm_regs+32(%rip)
++	vmovdqu	%ymm2, _ymm_regs+64(%rip)
++	vmovdqu	%ymm3, _ymm_regs+96(%rip)
++	vmovdqu	%ymm4, _ymm_regs+128(%rip)
++	vmovdqu	%ymm5, _ymm_regs+160(%rip)
++	vmovdqu	%ymm6, _ymm_regs+192(%rip)
++	vmovdqu	%ymm7, _ymm_regs+224(%rip)
++	vmovdqu	%ymm8, _ymm_regs+256(%rip)
++	vmovdqu	%ymm9, _ymm_regs+288(%rip)
++	vmovdqu	%ymm10, _ymm_regs+320(%rip)
++	vmovdqu	%ymm11, _ymm_regs+352(%rip)
++	vmovdqu	%ymm12, _ymm_regs+384(%rip)
++	vmovdqu	%ymm13, _ymm_regs+416(%rip)
++	vmovdqu	%ymm14, _ymm_regs+448(%rip)
++	vmovdqu	%ymm15, _ymm_regs+480(%rip)
++	jmp	*_callthis(%rip)
++LFE3:
++	.p2align 4,,15
++	.globl _snapshot_ret
++_snapshot_ret:
++	movq	%rdi, _rdi(%rip)
++	subq	$8, %rsp
++	call	*_callthis(%rip)
++	addq	$8, %rsp
++	movq	%rax, _rax(%rip)
++	movq	%rdx, _rdx(%rip)
++	vmovdqu	%ymm0, _ymm_regs+0(%rip)
++	vmovdqu	%ymm1, _ymm_regs+32(%rip)
++	fstpt	_x87_regs(%rip)
++	fstpt	_x87_regs+16(%rip)
++	fldt	_x87_regs+16(%rip)
++	fldt	_x87_regs(%rip)
++	ret
++
++	.comm	_callthis,8,3
++	.comm	_rax,8,3
++	.comm	_rbx,8,3
++	.comm	_rcx,8,3
++	.comm	_rdx,8,3
++	.comm	_rsi,8,3
++	.comm	_rdi,8,3
++	.comm	_rsp,8,3
++	.comm	_rbp,8,3
++	.comm	_r8,8,3
++	.comm	_r9,8,3
++	.comm	_r10,8,3
++	.comm	_r11,8,3
++	.comm	_r12,8,3
++	.comm	_r13,8,3
++	.comm	_r14,8,3
++	.comm	_r15,8,3
++	.comm	_ymm_regs,512,5
++	.comm	_x87_regs,128,5
++	.comm   _volatile_var,8,3
+Index: gcc/testsuite/gfortran.dg/pr85798.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr85798.f90 b/gcc/testsuite/gfortran.dg/pr85798.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr85798.f90	(revision 268128)
+@@ -0,0 +1,14 @@
++! { dg-do compile }
++program p
++   type t
++      integer, allocatable :: a(:)
++   end type
++   type u
++      real x
++      type(t) y
++   end type
++   type(t) :: z
++   type(u) :: q
++   data z%a(1) / 789 /     ! { dg-error "Allocatable component" }
++   data q%y%a(1) / 789 /   ! { dg-error "Allocatable component" }
++end
+Index: gcc/testsuite/gfortran.dg/pr88169_2.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88169_2.f90 b/gcc/testsuite/gfortran.dg/pr88169_2.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88169_2.f90	(revision 268128)
+@@ -0,0 +1,31 @@
++! { dg-do run }
++module foo_nml
++   implicit none
++   real :: x = -1
++   namelist /foo/ x
++end module
++!
++! Yes, implicit typing of local variable 'x'.
++!
++program main
++   use foo_nml, only: bar => foo
++   integer fd
++   x = 42
++   open(newunit=fd, file='tmp.dat', status='replace')
++   write(fd,nml=bar)
++   close(fd)
++   open(newunit=fd, file='tmp.dat', status='old')
++   read(fd,nml=bar)
++   close(fd)
++   call bah
++   if (x /= 42) stop 1
++end program
++
++subroutine bah
++   use foo_nml
++   integer fd
++   open(newunit=fd, file='tmp.dat', status='old')
++   read(fd,nml=foo)
++   if (x /= -1) stop 2
++   close(fd, status='delete')
++end subroutine bah
+Index: gcc/testsuite/gfortran.dg/pr35031.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr35031.f90 b/gcc/testsuite/gfortran.dg/pr35031.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr35031.f90	(revision 268128)
+@@ -0,0 +1,10 @@
++! { dg-do compile }
++elemental subroutine sub2(x)
++   integer, intent(in) :: x
++   entry sub2_c(x) bind(c)    ! { dg-error "prohibited in an elemental" }
++end subroutine sub2
++
++elemental function func2(x)
++   integer, intent(in) :: x
++   entry func2_c(x) bind(c)   ! { dg-error "prohibited in an elemental" }
++end function func2
+Index: gcc/testsuite/gfortran.dg/pr88155.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88155.f90 b/gcc/testsuite/gfortran.dg/pr88155.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88155.f90	(revision 268128)
+@@ -0,0 +1,9 @@
++! { dg-do compile }
++program p
++   type t
++      integer :: a
++   end type
++   type(t) :: x
++   data x /t()1/     ! { dg-error "No initializer for component" }
++   print *, x
++end
+Index: gcc/testsuite/gfortran.dg/pr88169_1.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88169_1.f90 b/gcc/testsuite/gfortran.dg/pr88169_1.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88169_1.f90	(revision 268128)
+@@ -0,0 +1,21 @@
++! { dg-do run }
++module foo_nml
++   implicit none
++   real :: x = -1
++   namelist /foo/ x
++end module
++
++program main
++   use foo_nml, only: bar => foo, x
++   implicit none
++   integer fd
++   x = 42
++   open(newunit=fd, file='tmp.dat', status='replace')
++   write(fd,nml=bar)
++   close(fd)
++   open(newunit=fd, file='tmp.dat', status='old')
++   read(fd,nml=bar)
++   if (x /= 42) stop 1
++   close(fd)
++end program
++! { dg-final { cleanup-modules "foo_nml" } }
+Index: gcc/testsuite/gfortran.dg/pr88269.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88269.f90 b/gcc/testsuite/gfortran.dg/pr88269.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88269.f90	(revision 268128)
+@@ -0,0 +1,6 @@
++! { dg-do compile }
++! PR fortran/88269
++program p
++   write (end=1e1) ! { dg-error "tag not allowed" }
++end
++
+Index: gcc/testsuite/gfortran.dg/pr88206.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88206.f90 b/gcc/testsuite/gfortran.dg/pr88206.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88206.f90	(revision 268128)
+@@ -0,0 +1,8 @@
++! { dg-do compile }
++! PR fortran/88206
++program p
++   integer, parameter :: z(4) = [1,2,3,4]
++   integer :: k = 2
++   print *, [real(z(k))]
++end
++
+Index: gcc/testsuite/gfortran.dg/pr88228.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88228.f90 b/gcc/testsuite/gfortran.dg/pr88228.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88228.f90	(revision 268128)
+@@ -0,0 +1,8 @@
++! { dg-do compile }
++! { dg-options "-fdec" }
++! PR fortran/88228
++program p
++   integer :: n = .not. 1
++   integer :: j = .true. .or. 1
++end
++
+Index: gcc/testsuite/gfortran.dg/pr70870_1.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr70870_1.f90 b/gcc/testsuite/gfortran.dg/pr70870_1.f90
+--- a/gcc/testsuite/gfortran.dg/pr70870_1.f90	(revision 268128)
++++ b/gcc/testsuite/gfortran.dg/pr70870_1.f90	(revision 268128)
+@@ -1,4 +1,5 @@
+ ! { dg-do compile }
++! { dg-options "-std=gnu" }
+ ! PR fortran/70870
+ ! Contributed by Vittorio Zecca <zeccav at gmail dot com >
+       type t
+Index: gcc/testsuite/gfortran.dg/power_7.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/power_7.f90 b/gcc/testsuite/gfortran.dg/power_7.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/power_7.f90	(revision 268128)
+@@ -0,0 +1,27 @@
++! { dg-do run }
++! { dg-additional-options "-fdump-tree-original" }
++! PR 85544 - this used to ICE.
++program p
++   integer, parameter :: na = -3, ne = 10
++   integer :: i, a(na:ne), b(na:ne)
++   integer :: v
++   a = [(i, i=na, ne)]
++   b = [2**a]
++   if (any (b /= [0,0,0,1,2,4,8,16,32,64,128,256,512,1024])) stop 1
++   b = [1**a]
++   if (any (b /= 1)) stop 2
++   b = [(-1)**a]
++   if (any (b /= [-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1]) )stop 3
++   b = [8**a]
++   if (any (b /= [0,0,0,1,8,64,512,4096,32768,262144,2097152,16777216,&
++        134217728,1073741824])) stop 4
++   b = [4**a]
++   if (any (b /= [0,0,0,1,4,16,64,256,1024,4096,16384,65536,262144,1048576])) stop 5
++   
++   v = 1
++   do i=1,6
++      v = v * 16
++      if (v /= 16**i) stop 6 
++   end do
++ end program p
++! { dg-final { scan-tree-dump-not "_gfortran_pow" "original" } }
+Index: gcc/testsuite/gfortran.dg/pr81849.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr81849.f90 b/gcc/testsuite/gfortran.dg/pr81849.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr81849.f90	(revision 268128)
+@@ -0,0 +1,16 @@
++! { dg-do run }
++! PR fortran/81849
++program p
++   implicit none
++   integer  :: n=3
++   if (any(g() /= f())) stop 1
++   contains
++      function g()
++         real g(n)
++         g = 7
++      end function g
++      function f() result(r)
++         real r(n)
++         r = 7
++      end function f
++end program
+Index: gcc/testsuite/gfortran.dg/ptr_func_assign_5.f08
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/ptr_func_assign_5.f08 b/gcc/testsuite/gfortran.dg/ptr_func_assign_5.f08
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/ptr_func_assign_5.f08	(revision 268128)
+@@ -0,0 +1,45 @@
++! { dg-do run }
++!
++! Test the fix for PR77703, in which calls of the pointer function
++! caused an ICE in 'gfc_trans_auto_character_variable'.
++!
++! Contributed by Gerhard Steinmetz  <gerhard.steinmetz.fortran@t-online.de>
++!
++module m
++   implicit none
++   private
++   integer, parameter, public :: n = 2
++   integer, parameter :: ell = 6
++
++   character(len=n*ell), target, public :: s
++
++   public :: t
++contains
++   function t( idx ) result( substr )
++      integer, intent(in) :: idx
++      character(len=ell), pointer  :: substr
++
++      if ( (idx < 0).or.(idx > n) ) then
++         error stop
++      end if
++      substr => s((idx-1)*ell+1:idx*ell)
++   end function t
++end module m
++
++program p
++   use m, only : s, t, n
++   integer :: i
++
++   ! Define 's'
++   s = "123456789012"
++
++   ! Then perform operations involving 't'
++   if (t(1) .ne. "123456") stop 1
++   if (t(2) .ne. "789012") stop 2
++
++   ! Do the pointer function assignments
++   t(1) = "Hello "
++   if (s .ne. "Hello 789012") Stop 3
++   t(2) = "World!"
++   if (s .ne. "Hello World!") Stop 4
++end program p
+Index: gcc/testsuite/gfortran.dg/pr88205.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88205.f90 b/gcc/testsuite/gfortran.dg/pr88205.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88205.f90	(revision 268128)
+@@ -0,0 +1,14 @@
++! { dg-do compile }
++! PR fortran/88205
++subroutine s1
++   real, parameter :: status = 0
++   open (newunit=n, status=status)        ! { dg-error "STATUS requires" }
++end
++subroutine s2
++   complex, parameter :: status = 0
++   open (newunit=n, status=status)        ! { dg-error "STATUS requires" }
++end
++program p
++  logical, parameter :: status = .false.
++  open (newunit=a, status=status)         ! { dg-error "STATUS requires" }
++end
+Index: gcc/testsuite/gfortran.dg/pr88169_3.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88169_3.f90 b/gcc/testsuite/gfortran.dg/pr88169_3.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88169_3.f90	(revision 268128)
+@@ -0,0 +1,15 @@
++! { dg-do compile }
++! { dg-options "-std=f95" }
++module foo_nml
++   implicit none
++   real :: x = -1
++   namelist /foo/ x
++end module
++
++program main
++   use foo_nml, only: bar => foo, x
++   implicit none
++   real a
++   namelist /bar/a  ! { dg-error "already is USE associated" }
++end program
++! { dg-final { cleanup-modules "foo_nml" } }
+Index: gcc/testsuite/gfortran.dg/pr88249.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88249.f90 b/gcc/testsuite/gfortran.dg/pr88249.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88249.f90	(revision 268128)
+@@ -0,0 +1,7 @@
++! { dg-do compile }
++program p
++   backspace (err=1) ! { dg-error "UNIT number missing" }
++   endfile (err=1)   ! { dg-error "UNIT number missing" }
++   flush (err=1)     ! { dg-error "UNIT number missing" }
++   rewind (err=1)    ! { dg-error "UNIT number missing" }
++end
+Index: gcc/testsuite/gfortran.dg/submodule_30.f08
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/submodule_30.f08 b/gcc/testsuite/gfortran.dg/submodule_30.f08
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/submodule_30.f08	(revision 268128)
+@@ -0,0 +1,42 @@
++! { dg-do run }
++!
++! Test the fix for PR82550 in which the reference to 'p' in 'foo'
++! was not being correctly handled.
++!
++! Contributed by Reinhold Bader  <Bader@lrz.de>
++!
++module m_subm_18_pos
++  implicit none
++  integer :: i = 0
++  interface
++    module subroutine foo(fun_ptr)
++      procedure(p), pointer, intent(out) :: fun_ptr
++    end subroutine
++  end interface
++contains
++  subroutine p()
++    i = 1
++  end subroutine p
++end module m_subm_18_pos
++submodule (m_subm_18_pos) subm_18_pos
++    implicit none
++contains
++    module subroutine foo(fun_ptr)
++      procedure(p), pointer, intent(out) :: fun_ptr
++      fun_ptr => p
++    end subroutine
++end submodule
++program p_18_pos
++  use m_subm_18_pos
++  implicit none
++  procedure(), pointer :: x
++  call foo(x)
++  call x()
++  if (i == 1) then
++     write(*,*) 'OK'
++  else
++     write(*,*) 'FAIL'
++     STOP 1
++  end if
++end program p_18_pos
++
+Index: gcc/testsuite/gfortran.dg/pr88138.f90
+===================================================================
+diff --git a/gcc/testsuite/gfortran.dg/pr88138.f90 b/gcc/testsuite/gfortran.dg/pr88138.f90
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gfortran.dg/pr88138.f90	(revision 268128)
+@@ -0,0 +1,9 @@
++! { dg-do compile }
++program p
++   type t
++      character :: c = 'c'
++   end type
++   type(t), parameter :: x  = 1.e1  ! { dg-error "Incompatible initialization between a" }s
++   print *, 'a' // x%c
++end
++! { dg-prune-output "has no IMPLICIT type" }
+Index: gcc/testsuite/gcc.dg/asm-qual-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/asm-qual-1.c b/gcc/testsuite/gcc.dg/asm-qual-1.c
+--- a/gcc/testsuite/gcc.dg/asm-qual-1.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/asm-qual-1.c	(revision 268128)
+@@ -1,4 +1,4 @@
+-/* Test that qualifiers other than volatile are ignored on asm.  */
++/* Test that qualifiers other than volatile are disallowed on asm.  */
+ /* Origin: Joseph Myers <joseph@codesourcery.com> */
+ /* { dg-do compile } */
+ /* { dg-options "-std=gnu99" } */
+@@ -7,6 +7,8 @@
+ f (void)
+ {
+   asm volatile ("");
+-  asm const (""); /* { dg-warning "const qualifier ignored on asm" } */
+-  asm restrict (""); /* { dg-warning "restrict qualifier ignored on asm" } */
++
++  asm const (""); /* { dg-warning {'const' is not an asm qualifier} } */
++
++  asm restrict (""); /* { dg-warning {'restrict' is not an asm qualifier} } */
+ }
+Index: gcc/testsuite/gcc.dg/asm-qual-2.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/asm-qual-2.c b/gcc/testsuite/gcc.dg/asm-qual-2.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.dg/asm-qual-2.c	(revision 268128)
+@@ -0,0 +1,46 @@
++/* Test that qualifiers on asm are allowed in any order.  */
++/* { dg-do compile } */
++/* { dg-options "-std=gnu99" } */
++
++void
++f (void)
++{
++  asm volatile goto ("" :::: lab);
++  asm volatile inline ("" :::);
++  asm inline volatile ("" :::);
++  asm inline goto ("" :::: lab);
++  asm goto volatile ("" :::: lab);
++  asm goto inline ("" :::: lab);
++
++  asm volatile inline goto ("" :::: lab);
++  asm volatile goto inline ("" :::: lab);
++  asm inline volatile goto ("" :::: lab);
++  asm inline goto volatile ("" :::: lab);
++  asm goto volatile inline ("" :::: lab);
++  asm goto inline volatile ("" :::: lab);
++
++  /* Duplicates are not allowed.  */
++  asm goto volatile volatile ("" :::: lab);  /* { dg-error "" } */
++  asm volatile goto volatile ("" :::: lab);  /* { dg-error "" } */
++  asm volatile volatile goto ("" :::: lab);  /* { dg-error "" } */
++  asm goto goto volatile ("" :::: lab);  /* { dg-error "" } */
++  asm goto volatile goto ("" :::: lab);  /* { dg-error "" } */
++  asm volatile goto goto ("" :::: lab);  /* { dg-error "" } */
++
++  asm inline volatile volatile ("" :::);  /* { dg-error "" } */
++  asm volatile inline volatile ("" :::);  /* { dg-error "" } */
++  asm volatile volatile inline ("" :::);  /* { dg-error "" } */
++  asm inline inline volatile ("" :::);  /* { dg-error "" } */
++  asm inline volatile inline ("" :::);  /* { dg-error "" } */
++  asm volatile inline inline ("" :::);  /* { dg-error "" } */
++
++  asm goto inline inline ("" :::: lab);  /* { dg-error "" } */
++  asm inline goto inline ("" :::: lab);  /* { dg-error "" } */
++  asm inline inline goto ("" :::: lab);  /* { dg-error "" } */
++  asm goto goto inline ("" :::: lab);  /* { dg-error "" } */
++  asm goto inline goto ("" :::: lab);  /* { dg-error "" } */
++  asm inline goto goto ("" :::: lab);  /* { dg-error "" } */
++
++lab:
++  ;
++}
+Index: gcc/testsuite/gcc.dg/asan/pr81923.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/asan/pr81923.c b/gcc/testsuite/gcc.dg/asan/pr81923.c
+--- a/gcc/testsuite/gcc.dg/asan/pr81923.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/asan/pr81923.c	(revision 268128)
+@@ -1,8 +1,11 @@
+ /* PR sanitizer/81923 */
+ /* { dg-do link } */
+ 
+-int foobar __asm (__USER_LABEL_PREFIX__ "barbaz") = 34;
++#define STR1(X) #X
++#define STR2(X) STR1(X)
+ 
++int foobar __asm (STR2(__USER_LABEL_PREFIX__) "barbaz") = 34;
++
+ int
+ main ()
+ {
+Index: gcc/testsuite/gcc.dg/inline-40.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/inline-40.c b/gcc/testsuite/gcc.dg/inline-40.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.dg/inline-40.c	(revision 268128)
+@@ -0,0 +1,49 @@
++/* Test inline functions declared in inner scopes.  Bugs 88720 and 88726.  */
++/* { dg-do compile } */
++/* { dg-options "" } */
++
++void
++inline_1 (void)
++{
++}
++
++void
++inline_2 (void)
++{
++}
++
++static void
++inline_static_1 (void)
++{
++}
++
++static void
++inline_static_2 (void)
++{
++}
++
++static void inline_static_3 (void);
++static void inline_static_4 (void);
++
++static void
++test (void)
++{
++  inline void inline_1 (void);
++  extern inline void inline_2 (void);
++  inline void inline_3 (void);
++  extern inline void inline_4 (void);
++  inline void inline_static_1 (void);
++  extern inline void inline_static_2 (void);
++  inline void inline_static_3 (void);
++  extern inline void inline_static_4 (void);
++}
++
++void
++inline_3 (void)
++{
++}
++
++void
++inline_4 (void)
++{
++}
+Index: gcc/testsuite/gcc.dg/asm-qual-3.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/asm-qual-3.c b/gcc/testsuite/gcc.dg/asm-qual-3.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.dg/asm-qual-3.c	(revision 268128)
+@@ -0,0 +1,9 @@
++/* Test that asm-qualifiers are not allowed on toplevel asm.  */
++/* { dg-do compile } */
++/* { dg-options "-std=gnu99" } */
++
++asm const ("");    /* { dg-error {expected '\(' before 'const'} } */
++asm volatile (""); /* { dg-error {expected '\(' before 'volatile'} } */
++asm restrict (""); /* { dg-error {expected '\(' before 'restrict'} } */
++asm inline ("");   /* { dg-error {expected '\(' before 'inline'} } */
++asm goto ("");     /* { dg-error {expected '\(' before 'goto'} } */
+Index: gcc/testsuite/gcc.dg/lto/pr85248_0.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/lto/pr85248_0.c b/gcc/testsuite/gcc.dg/lto/pr85248_0.c
+--- a/gcc/testsuite/gcc.dg/lto/pr85248_0.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/lto/pr85248_0.c	(revision 268128)
+@@ -2,8 +2,13 @@
+ /* { dg-lto-do run } */
+ /* { dg-lto-options { { -flto -O2 } } } */
+ 
+-extern void test_alias (int s, int e) __asm__ (__USER_LABEL_PREFIX__ "test");
+-extern void test_noreturn (int s, int e) __asm__ (__USER_LABEL_PREFIX__ "test")
++#define STR1(X) #X
++#define STR2(X) STR1(X)
++
++extern void test_alias (int s, int e) 
++  __asm__ (STR2(__USER_LABEL_PREFIX__) "test");
++extern void test_noreturn (int s, int e)
++  __asm__ (STR2(__USER_LABEL_PREFIX__)  "test")
+   __attribute__ ((__noreturn__));
+ 
+ extern inline __attribute__ ((__always_inline__, __gnu_inline__)) void
+Index: gcc/testsuite/gcc.dg/torture/pr68037-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/torture/pr68037-1.c b/gcc/testsuite/gcc.dg/torture/pr68037-1.c
+--- a/gcc/testsuite/gcc.dg/torture/pr68037-1.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/torture/pr68037-1.c	(revision 268128)
+@@ -1,4 +1,5 @@
+ /* { dg-do run { target i?86-*-* x86_64-*-* } } */
++/* { dg-skip-if "PR81210 sp not aligned to 16 bytes" { *-*-darwin* } } */
+ /* { dg-options "-mgeneral-regs-only" } */
+ 
+ extern void exit (int);
+Index: gcc/testsuite/gcc.dg/torture/pr68037-3.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/torture/pr68037-3.c b/gcc/testsuite/gcc.dg/torture/pr68037-3.c
+--- a/gcc/testsuite/gcc.dg/torture/pr68037-3.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/torture/pr68037-3.c	(revision 268128)
+@@ -1,4 +1,5 @@
+ /* { dg-do run { target i?86-*-* x86_64-*-* } } */
++/* { dg-skip-if "PR81210 sp not aligned to 16 bytes" { *-*-darwin* } } */
+ /* { dg-options "-mgeneral-regs-only" } */
+ 
+ #include <stddef.h>
+Index: gcc/testsuite/gcc.dg/torture/pr68264.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/torture/pr68264.c b/gcc/testsuite/gcc.dg/torture/pr68264.c
+--- a/gcc/testsuite/gcc.dg/torture/pr68264.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/torture/pr68264.c	(revision 268128)
+@@ -1,4 +1,5 @@
+ /* { dg-do run } */
++/* { dg-skip-if "PR68356 no math-errno on darwin" { "*-*-darwin*" } } */
+ /* { dg-add-options ieee } */
+ /* { dg-require-effective-target fenv_exceptions } */
+ 
+Index: gcc/testsuite/gcc.dg/torture/pr68037-2.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/torture/pr68037-2.c b/gcc/testsuite/gcc.dg/torture/pr68037-2.c
+--- a/gcc/testsuite/gcc.dg/torture/pr68037-2.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/torture/pr68037-2.c	(revision 268128)
+@@ -1,4 +1,5 @@
+ /* { dg-do run { target i?86-*-* x86_64-*-* } } */
++/* { dg-skip-if "PR81210 sp not aligned to 16 bytes" { *-*-darwin* } } */
+ /* { dg-options "-mgeneral-regs-only" } */
+ 
+ extern void exit (int);
+Index: gcc/testsuite/gcc.dg/memcmp-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/memcmp-1.c b/gcc/testsuite/gcc.dg/memcmp-1.c
+--- a/gcc/testsuite/gcc.dg/memcmp-1.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/memcmp-1.c	(revision 268128)
+@@ -8,9 +8,14 @@
+ #include <string.h>
+ #include <stdint.h>
+ 
+-int lib_memcmp(const void *a, const void *b, size_t n) asm("memcmp");
+-int lib_strncmp(const char *a, const char *b, size_t n) asm("strncmp");
++#define STR1(X) #X
++#define STR2(X) STR1(X)
+ 
++int lib_memcmp(const void *a, const void *b, size_t n)
++ asm(STR2(__USER_LABEL_PREFIX__) "memcmp");
++int lib_strncmp(const char *a, const char *b, size_t n)
++ asm(STR2(__USER_LABEL_PREFIX__) "strncmp");
++
+ #ifndef NRAND
+ #define NRAND 10000
+ #endif
+Index: gcc/testsuite/gcc.dg/inline-41.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/inline-41.c b/gcc/testsuite/gcc.dg/inline-41.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.dg/inline-41.c	(revision 268128)
+@@ -0,0 +1,49 @@
++/* Test inline functions declared in inner scopes.  Bugs 88720 and 88726.  */
++/* { dg-do compile } */
++/* { dg-options "-fgnu89-inline" } */
++
++void
++inline_1 (void)
++{
++}
++
++void
++inline_2 (void)
++{
++}
++
++static void
++inline_static_1 (void)
++{
++}
++
++static void
++inline_static_2 (void)
++{
++}
++
++static void inline_static_3 (void);
++static void inline_static_4 (void);
++
++static void
++test (void)
++{
++  inline void inline_1 (void);
++  extern inline void inline_2 (void);
++  inline void inline_3 (void);
++  extern inline void inline_4 (void);
++  inline void inline_static_1 (void);
++  extern inline void inline_static_2 (void);
++  inline void inline_static_3 (void);
++  extern inline void inline_static_4 (void);
++}
++
++void
++inline_3 (void)
++{
++}
++
++void
++inline_4 (void)
++{
++}
+Index: gcc/testsuite/gcc.dg/tree-prof/section-attr-1.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/tree-prof/section-attr-1.c b/gcc/testsuite/gcc.dg/tree-prof/section-attr-1.c
+--- a/gcc/testsuite/gcc.dg/tree-prof/section-attr-1.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/tree-prof/section-attr-1.c	(revision 268128)
+@@ -13,7 +13,11 @@
+ 
+ void foo (int path);
+ 
++#ifdef __APPLE__
++__attribute__ ((section ("__TEXT,__text")))
++#else
+ __attribute__((section(".text")))
++#endif
+ int
+ main (int argc, char *argv[])
+ {
+@@ -43,3 +47,4 @@
+ }
+ 
+ /* { dg-final-use { scan-assembler "\.section\[\t \]*\.text\.unlikely\[\\n\\r\]+\[\t \]*\.size\[\t \]*foo\.cold\.0" { target *-*-linux* *-*-gnu* } } } */
++/* { dg-final-use { scan-assembler "\.section\[\t \]*__TEXT,__text_cold\.\*\[\\n\\r\]+_foo\.cold\.0" { target *-*-darwin* } } } */
+Index: gcc/testsuite/gcc.dg/tree-prof/section-attr-2.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/tree-prof/section-attr-2.c b/gcc/testsuite/gcc.dg/tree-prof/section-attr-2.c
+--- a/gcc/testsuite/gcc.dg/tree-prof/section-attr-2.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/tree-prof/section-attr-2.c	(revision 268128)
+@@ -28,7 +28,11 @@
+ void NOINLINE
+ foo (int path)
+ {
++#ifdef __APPLE__
++  static int i __attribute__ ((section ("__DATA,__data")));
++#else
+   static int i __attribute__((section(".data")));
++#endif
+   if (path)
+     {
+       for (i = 0; i < SIZE; i++)
+@@ -42,3 +46,4 @@
+ }
+ 
+ /* { dg-final-use { scan-assembler "\.section\[\t \]*\.text\.unlikely\[\\n\\r\]+\[\t \]*\.size\[\t \]*foo\.cold\.0" { target *-*-linux* *-*-gnu* } } } */
++/* { dg-final-use { scan-assembler "\.section\[\t \]*__TEXT,__text_cold\.\*\[\\n\\r\]+_foo\.cold\.0:" { target *-*-darwin* } } } */
+Index: gcc/testsuite/gcc.dg/tree-prof/section-attr-3.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/tree-prof/section-attr-3.c b/gcc/testsuite/gcc.dg/tree-prof/section-attr-3.c
+--- a/gcc/testsuite/gcc.dg/tree-prof/section-attr-3.c	(revision 268128)
++++ b/gcc/testsuite/gcc.dg/tree-prof/section-attr-3.c	(revision 268128)
+@@ -9,7 +9,11 @@
+ #define NOINLINE __attribute__((noinline)) __attribute__ ((noclone))
+ 
+ const char *sarr[SIZE];
++#ifdef __APPLE__
++const char *buf_hot __attribute__ ((section ("__DATA,__data")));
++#else
+ const char *buf_hot __attribute__ ((section (".data")));
++#endif
+ const char *buf_cold;
+ 
+ void foo (int path);
+@@ -43,3 +47,4 @@
+ }
+ 
+ /* { dg-final-use { scan-assembler "\.section\[\t \]*\.text\.unlikely\[\\n\\r\]+\[\t \]*\.size\[\t \]*foo\.cold\.0" { target *-*-linux* *-*-gnu* } } } */
++/* { dg-final-use { scan-assembler "\.section\[\t \]*__TEXT,__text_cold\.\*\[\\n\\r\]+_foo\.cold\.0:" { target *-*-darwin* } } } */
+Index: gcc/testsuite/gcc.dg/ipa/pr88214.c
+===================================================================
+diff --git a/gcc/testsuite/gcc.dg/ipa/pr88214.c b/gcc/testsuite/gcc.dg/ipa/pr88214.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/gcc.dg/ipa/pr88214.c	(revision 268128)
+@@ -0,0 +1,10 @@
++/* { dg-do compile } */
++/* { dg-options "-O2" } */
++
++void i();
++  short a;
++  void b(e) char * e;
++  {
++    i();
++    b(a);
++  }
+Index: gcc/testsuite/ChangeLog
+===================================================================
+diff --git a/gcc/testsuite/ChangeLog b/gcc/testsuite/ChangeLog
+--- a/gcc/testsuite/ChangeLog	(revision 268128)
++++ b/gcc/testsuite/ChangeLog	(revision 268128)
+@@ -1,3 +1,236 @@
++2019-01-16  Joseph Myers  <joseph@codesourcery.com>
++
++	Backport from mainline
++	2019-01-07  Joseph Myers  <joseph@codesourcery.com>
++
++	PR c/88720
++	PR c/88726
++	* gcc.dg/inline-40.c, gcc.dg/inline-41.c: New tests.
++
++2019-01-16  Martin Jambor  <mjambor@suse.cz>
++
++	Backported from mainline
++	2018-12-10  Martin Jambor  <mjambor@suse.cz>
++
++	PR ipa/88214
++	* gcc.dg/ipa/pr88214.c: New test.
++
++2019-01-15  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/81849
++	* gfortran.dg/pr81849.f90: New test.
++
++2019-01-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
++
++	PR libfortran/88776
++	* gfortran.dg/namelist_96.f90: New test.
++
++2019-01-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/35031
++	* gfortran.dg/pr35031.f90: new test.
++
++2019-01-09  Eric Botcazou  <ebotcazou@adacore.com>
++
++	* gcc.target/sparc/tls-ld-int8.c: New test.
++	* gcc.target/sparc/tls-ld-int16.c: Likewise.
++	* gcc.target/sparc/tls-ld-int32.c: Likewise.
++	* gcc.target/sparc/tls-ld-uint8.c: Likewise.
++	* gcc.target/sparc/tls-ld-uint16.c: Likewise.
++	* gcc.target/sparc/tls-ld-uint32.c: Likewise.
++
++2019-01-05  Dominique d'Humieres  <dominiq@gcc.gnu.org>
++
++	PR target/60563
++	* g++.dg/ext/sync-4.C: Add dg-xfail-run-if for darwin.
++
++2018-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR inline-asm/55681
++	* gcc.dg/asm-qual-1.c: Test that "const" and "restrict" are refused.
++	* gcc.dg/asm-qual-2.c: New test, test that asm-qualifiers are allowed
++	in any order, but that duplicates are not allowed.
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* c-c++-common/torture/asm-inline.c: New testcase.
++	* gcc.dg/asm-qual-2.c: Test asm inline, too.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* g++.dg/asm-qual-1.C: New testcase.
++	* g++.dg/asm-qual-2.C: New testcase.
++	* gcc.dg/asm-qual-1.c: Update.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* g++.dg/asm-qual-3.C: New testcase.
++	* gcc.dg/asm-qual-3.c: New testcase.
++
++	And extra for the backport
++	2019-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* gcc.dg/asm-qual-1.c: Adjust.
++
++2018-12-30  Dominique d'Humieres  <dominiq@gcc.gnu.org>
++
++	PR tree-optimization/68356
++	PR target/81210
++	* gcc.dg/torture/pr68264.c: Skip on darwin.
++	* gcc.dg/torture/pr68037-1.c: Likewise.
++	* gcc.dg/torture/pr68037-2.c: Likewise.
++	* gcc.dg/torture/pr68037-3.c: Likewise.
++
++2018-12-29  Paul Thomas  <pault@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/82550
++	* gfortran.dg/submodule_30.f08 : New test.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	PR testsuite/67974
++	* gcc.target/x86_64/abi/avx/asm-support-darwin.s: New.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-08-16  Iain Sandoe <iain@sandoe.co.uk>
++
++	* g++.dg/torture/pr44295.C : Skip for Darwin.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-08-22  Iain Sandoe  <iain@sandoe.co.uk>
++
++	* gcc.dg/lto/pr85248_0.c (test_alias):
++	Stringify __USER_LABEL_PREFIX__.
++	(test_noreturn): Likewise.
++
++	2018-08-16  Iain Sandoe <iain@sandoe.co.uk>
++
++	* gcc.dg/memcmp-1.c (lib_memcmp): Apply __USER_LABEL_PREFIX__.
++	(lib_strncmp): Likewise.
++
++	2018-08-16  Iain Sandoe  <iain@sandoe.co.uk>
++
++	* gcc.dg/asan/pr81923.c: Stringify __USER_LABEL_PREFIX__.
++
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	Backport from mainline
++	2018-08-16  Iain Sandoe <iain@sandoe.co.uk>
++
++	PR testsuite/78544
++	* gcc.dg/tree-prof/section-attr-1.c: Add Darwin-specific section
++	attributes and matching.
++	* gcc.dg/tree-prof/section-attr-2.c: Likewise.
++	* gcc.dg/tree-prof/section-attr-3.c: Likewise.
++
++2018-12-23  Paul Thomas  <pault@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/77703
++	* gfortran.dg/ptr_func_assign_5.f08 : New test.
++
++2018-12-22  Steven G . Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/85798
++	* gfortran.dg/pr85798.f90: New test.
++
++2018-12-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/85544
++	* gfortran.dg/power_7.f90: New test.
++
++2018-12-21  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88169
++	* gfortran.dg/pr88169_1.f90: new test.
++	* gfortran.dg/pr88169_2.f90: Ditto.
++	* gfortran.dg/pr88169_3.f90: Ditto.
++
++2018-12-21  Uros Bizjak  <ubizjak@gmail.com>
++
++	Backport from mainline
++	2018-12-10  Uros Bizjak  <ubizjak@gmail.com>
++
++	PR target/88418
++	* gcc.target/i386/pr88418.c: New test.
++
++2018-12-17  Senthil Kumar Selvaraj  <senthilkumar.selvaraj@microchip.com>
++
++	Backport from trunk
++	2018-12-17  Senthil Kumar Selvaraj  <senthilkumar.selvaraj@microchip.com>
++
++	PR rtl-optimization/88253
++	* gcc.target/avr/pr88253.c: New test.
++
++2018-12-15  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88138
++	* gfortran.dg/pr88138.f90: new test.
++
++2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-13  Andreas Krebbel  <krebbel@linux.ibm.com>
++
++	* gcc.target/s390/zvector/vec-double-1.c: New test.
++	* gcc.target/s390/zvector/vec-double-2.c: New test.
++
++2018-12-12  Peter Bergner  <bergner@linux.ibm.com>
++
++	Backport from mainline
++	2018-12-07  Peter Bergner  <bergner@linux.ibm.com>
++
++	PR target/87496
++	* gcc.target/powerpc/pr87496-1.c: New test.
++	* gcc.target/powerpc/pr87496-2.c: New test.
++	* gcc.target/powerpc/pr87496-3.c: New test.
++
++2018-12-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88155
++	* gfortran.dg/pr70870_1.f90: Update testcase to use -std=gnu.
++	* gfortran.dg/pr88155.f90: New test.
++
++2018-12-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88249
++	* gfortran.dg/pr88249.f90: New test.
++
++2018-12-10  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88269
++	* gfortran.dg/pr88269.f90: New test.
++
++2018-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88205
++	* gfortran.dg/pr88205.f90: New unit.
++
++2018-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88206
++	* gfortran.dg/pr88206.f90: New test.
++
++2018-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88228
++	* gfortran.dg/pr88228.f90: New test.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: gcc/testsuite/g++.dg/asm-qual-2.C
+===================================================================
+diff --git a/gcc/testsuite/g++.dg/asm-qual-2.C b/gcc/testsuite/g++.dg/asm-qual-2.C
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/g++.dg/asm-qual-2.C	(revision 268128)
+@@ -0,0 +1,46 @@
++// Test that qualifiers on asm are allowed in any order.
++// { dg-do compile }
++// { dg-options "-std=c++98" }
++
++void
++f ()
++{
++  asm volatile goto ("" :::: lab);
++  asm volatile inline ("" :::);
++  asm inline volatile ("" :::);
++  asm inline goto ("" :::: lab);
++  asm goto volatile ("" :::: lab);
++  asm goto inline ("" :::: lab);
++
++  asm volatile inline goto ("" :::: lab);
++  asm volatile goto inline ("" :::: lab);
++  asm inline volatile goto ("" :::: lab);
++  asm inline goto volatile ("" :::: lab);
++  asm goto volatile inline ("" :::: lab);
++  asm goto inline volatile ("" :::: lab);
++
++  /* Duplicates are not allowed.  */
++  asm goto volatile volatile ("" :::: lab);  /* { dg-error "" } */
++  asm volatile goto volatile ("" :::: lab);  /* { dg-error "" } */
++  asm volatile volatile goto ("" :::: lab);  /* { dg-error "" } */
++  asm goto goto volatile ("" :::: lab);  /* { dg-error "" } */
++  asm goto volatile goto ("" :::: lab);  /* { dg-error "" } */
++  asm volatile goto goto ("" :::: lab);  /* { dg-error "" } */
++
++  asm inline volatile volatile ("" :::);  /* { dg-error "" } */
++  asm volatile inline volatile ("" :::);  /* { dg-error "" } */
++  asm volatile volatile inline ("" :::);  /* { dg-error "" } */
++  asm inline inline volatile ("" :::);  /* { dg-error "" } */
++  asm inline volatile inline ("" :::);  /* { dg-error "" } */
++  asm volatile inline inline ("" :::);  /* { dg-error "" } */
++
++  asm goto inline inline ("" :::: lab);  /* { dg-error "" } */
++  asm inline goto inline ("" :::: lab);  /* { dg-error "" } */
++  asm inline inline goto ("" :::: lab);  /* { dg-error "" } */
++  asm goto goto inline ("" :::: lab);  /* { dg-error "" } */
++  asm goto inline goto ("" :::: lab);  /* { dg-error "" } */
++  asm inline goto goto ("" :::: lab);  /* { dg-error "" } */
++
++lab:
++  ;
++}
+Index: gcc/testsuite/g++.dg/asm-qual-3.C
+===================================================================
+diff --git a/gcc/testsuite/g++.dg/asm-qual-3.C b/gcc/testsuite/g++.dg/asm-qual-3.C
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/g++.dg/asm-qual-3.C	(revision 268128)
+@@ -0,0 +1,12 @@
++// Test that asm-qualifiers are not allowed on toplevel asm.
++// { dg-do compile }
++// { dg-options "-std=gnu++98" }
++
++asm const ("");    // { dg-error {expected '\(' before 'const'} }
++asm volatile (""); // { dg-error {expected '\(' before 'volatile'} }
++asm restrict (""); // { dg-error {expected '\(' before 'restrict'} }
++asm inline ("");   // { dg-error {expected '\(' before 'inline'} }
++asm goto ("");     // { dg-error {expected '\(' before 'goto'} }
++
++// There are many other things wrong with this code, so:
++// { dg-excess-errors "" }
+Index: gcc/testsuite/g++.dg/torture/pr44295.C
+===================================================================
+diff --git a/gcc/testsuite/g++.dg/torture/pr44295.C b/gcc/testsuite/g++.dg/torture/pr44295.C
+--- a/gcc/testsuite/g++.dg/torture/pr44295.C	(revision 268128)
++++ b/gcc/testsuite/g++.dg/torture/pr44295.C	(revision 268128)
+@@ -1,4 +1,6 @@
+ /* { dg-do compile } */
++/* { dg-skip-if "no pthread_barrier" { *-*-darwin* } } */
++
+ extern "C" {
+   typedef __SIZE_TYPE__ size_t;
+   typedef struct   {
+Index: gcc/testsuite/g++.dg/ext/sync-4.C
+===================================================================
+diff --git a/gcc/testsuite/g++.dg/ext/sync-4.C b/gcc/testsuite/g++.dg/ext/sync-4.C
+--- a/gcc/testsuite/g++.dg/ext/sync-4.C	(revision 268128)
++++ b/gcc/testsuite/g++.dg/ext/sync-4.C	(revision 268128)
+@@ -1,4 +1,6 @@
+ /* { dg-do run { target hppa*-*-hpux* *-*-linux* *-*-gnu* powerpc*-*-darwin* *-*-darwin[912]* } } */
++/* FIXME The following additional option should be removed after the fix for radr://19802258.
++/* { dg-xfail-run-if "PR60563 radr://19802258" { *-*-darwin* } } */
+ /* { dg-require-effective-target sync_long_long_runtime } */
+ /* { dg-options "-fexceptions -fnon-call-exceptions -O2" } */
+ /* { dg-additional-options "-march=pentium" { target { { i?86-*-* x86_64-*-* } && ia32 } } } */
+Index: gcc/testsuite/g++.dg/asm-qual-1.C
+===================================================================
+diff --git a/gcc/testsuite/g++.dg/asm-qual-1.C b/gcc/testsuite/g++.dg/asm-qual-1.C
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/g++.dg/asm-qual-1.C	(revision 268128)
+@@ -0,0 +1,13 @@
++// Test that qualifiers other than volatile are disallowed on asm.
++// { dg-do compile }
++// { dg-options "-std=gnu++98" }
++
++void
++f ()
++{
++  asm volatile ("");
++
++  asm const (""); // { dg-error {'const' is not an asm qualifier} }
++
++  asm __restrict (""); // { dg-error {'__restrict' is not an asm qualifier} }
++}
+Index: gcc/testsuite/c-c++-common/torture/asm-inline.c
+===================================================================
+diff --git a/gcc/testsuite/c-c++-common/torture/asm-inline.c b/gcc/testsuite/c-c++-common/torture/asm-inline.c
+new file mode 10644
+--- /dev/null	(nonexistent)
++++ b/gcc/testsuite/c-c++-common/torture/asm-inline.c	(revision 268128)
+@@ -0,0 +1,53 @@
++/* { dg-do compile } */
++/* -O0 does no inlining, and -O3 does it too aggressively for this test:  */
++/* { dg-skip-if "" { *-*-* } { "-O0" "-O3" } { "" } }
++/* The normal asm is not inlined:  */
++/* { dg-final { scan-assembler-times "w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w.w" 2 } } */
++/* But the asm inline is inlined:  */
++/* { dg-final { scan-assembler-times "x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x" 8 } } */
++
++static void f(void)
++{
++  asm ("w\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\n"
++       "w\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw");
++}
++
++int f0(void) { f(); return 0; }
++int f1(void) { f(); return 1; }
++int f2(void) { f(); return 2; }
++int f3(void) { f(); return 3; }
++
++static void fg(void)
++{
++  asm goto("w\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\n"
++	   "w\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw\nw" :::: q);
++  q: ;
++}
++
++int fg0(void) { fg(); return 0; }
++int fg1(void) { fg(); return 1; }
++int fg2(void) { fg(); return 2; }
++int fg3(void) { fg(); return 3; }
++
++static void g(void)
++{
++  asm inline("x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n"
++	     "x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx");
++}
++
++int g0(void) { g(); return 0; }
++int g1(void) { g(); return 1; }
++int g2(void) { g(); return 2; }
++int g3(void) { g(); return 3; }
++
++static void gg(void)
++{
++  asm inline goto("x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n"
++		  "x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx" :::: q);
++  q: ;
++}
++
++int gg0(void) { gg(); return 0; }
++int gg1(void) { gg(); return 1; }
++int gg2(void) { gg(); return 2; }
++int gg3(void) { gg(); return 3; }
+Index: gcc/cp/ChangeLog
+===================================================================
+diff --git a/gcc/cp/ChangeLog b/gcc/cp/ChangeLog
+--- a/gcc/cp/ChangeLog	(revision 268128)
++++ b/gcc/cp/ChangeLog	(revision 268128)
+@@ -1,3 +1,49 @@
++2018-01-02  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	PR inline-asm/55681
++	* parser.c (cp_parser_asm_definition): Update grammar.  Allow any
++	combination of volatile and goto, in any order, without repetitions.
++
++	Backport from trunk
++	2018-12-06  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* cp-tree.h (finish_asm_stmt): Update declaration.
++	* parser.c (cp_parser_asm_definition): Detect the inline keyword
++	after asm.  Pass a flag for it to finish_asm_stmt.
++	* pt.c (tsubst_expr): Pass the ASM_INLINE_P flag to finish_asm_stmt.
++	* semantics.c (finish_asm_stmt): Add inline_p parameter.  Use it to
++	set ASM_INLINE_P.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* parser.c (cp_parser_asm_definition): Rewrite the loop to work without
++	"done" boolean variable.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* parser.c (cp_parser_asm_definition): Rewrite the loop to work without
++	"done" boolean variable.
++	* parser.c (cp_parser_asm_definition): Keep track of the location each
++	asm qualifier is first seen; use that to give nicer "duplicate asm
++	qualifier" messages.
++
++	Backport from trunk
++	2018-12-19  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* parser.c (cp_parser_asm_definition) <RID_CONST, RID_RESTRICT>: Give
++	a more specific error message (instead of just falling through).
++
++	Backport from trunk
++	2018-12-10  Segher Boessenkool  <segher@kernel.crashing.org>
++
++	* parser.c (cp_parser_asm_definition): Do not allow any asm qualifiers
++	on top-level asm.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: gcc/cp/pt.c
+===================================================================
+diff --git a/gcc/cp/pt.c b/gcc/cp/pt.c
+--- a/gcc/cp/pt.c	(revision 268128)
++++ b/gcc/cp/pt.c	(revision 268128)
+@@ -16159,7 +16159,7 @@
+ 	tree labels = tsubst_copy_asm_operands (ASM_LABELS (t), args,
+ 						complain, in_decl);
+ 	tmp = finish_asm_stmt (ASM_VOLATILE_P (t), string, outputs, inputs,
+-			       clobbers, labels);
++			       clobbers, labels, ASM_INLINE_P (t));
+ 	tree asm_expr = tmp;
+ 	if (TREE_CODE (asm_expr) == CLEANUP_POINT_EXPR)
+ 	  asm_expr = TREE_OPERAND (asm_expr, 0);
+Index: gcc/cp/semantics.c
+===================================================================
+diff --git a/gcc/cp/semantics.c b/gcc/cp/semantics.c
+--- a/gcc/cp/semantics.c	(revision 268128)
++++ b/gcc/cp/semantics.c	(revision 268128)
+@@ -1429,11 +1429,11 @@
+ /* Finish an asm-statement, whose components are a STRING, some
+    OUTPUT_OPERANDS, some INPUT_OPERANDS, some CLOBBERS and some
+    LABELS.  Also note whether the asm-statement should be
+-   considered volatile.  */
++   considered volatile, and whether it is asm inline.  */
+ 
+ tree
+ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
+-		 tree input_operands, tree clobbers, tree labels)
++		 tree input_operands, tree clobbers, tree labels, bool inline_p)
+ {
+   tree r;
+   tree t;
+@@ -1587,6 +1587,7 @@
+ 		  output_operands, input_operands,
+ 		  clobbers, labels);
+   ASM_VOLATILE_P (r) = volatile_p || noutputs == 0;
++  ASM_INLINE_P (r) = inline_p;
+   r = maybe_cleanup_point_expr_void (r);
+   return add_stmt (r);
+ }
+Index: gcc/cp/parser.c
+===================================================================
+diff --git a/gcc/cp/parser.c b/gcc/cp/parser.c
+--- a/gcc/cp/parser.c	(revision 268128)
++++ b/gcc/cp/parser.c	(revision 268128)
+@@ -18789,6 +18789,15 @@
+ 
+ /* Parse an asm-definition.
+ 
++  asm-qualifier:
++    volatile
++    inline
++    goto
++
++  asm-qualifier-list:
++    asm-qualifier
++    asm-qualifier-list asm-qualifier
++
+    asm-definition:
+      asm ( string-literal ) ;
+ 
+@@ -18795,17 +18804,21 @@
+    GNU Extension:
+ 
+    asm-definition:
+-     asm volatile [opt] ( string-literal ) ;
+-     asm volatile [opt] ( string-literal : asm-operand-list [opt] ) ;
+-     asm volatile [opt] ( string-literal : asm-operand-list [opt]
+-			  : asm-operand-list [opt] ) ;
+-     asm volatile [opt] ( string-literal : asm-operand-list [opt]
+-			  : asm-operand-list [opt]
++     asm asm-qualifier-list [opt] ( string-literal ) ;
++     asm asm-qualifier-list [opt] ( string-literal : asm-operand-list [opt] ) ;
++     asm asm-qualifier-list [opt] ( string-literal : asm-operand-list [opt]
++				    : asm-operand-list [opt] ) ;
++     asm asm-qualifier-list [opt] ( string-literal : asm-operand-list [opt]
++				    : asm-operand-list [opt]
+ 			  : asm-clobber-list [opt] ) ;
+-     asm volatile [opt] goto ( string-literal : : asm-operand-list [opt]
+-			       : asm-clobber-list [opt]
+-			       : asm-goto-list ) ;  */
++     asm asm-qualifier-list [opt] ( string-literal : : asm-operand-list [opt]
++				    : asm-clobber-list [opt]
++				    : asm-goto-list ) ;
+ 
++  The form with asm-goto-list is valid if and only if the asm-qualifier-list
++  contains goto, and is the only allowed form in that case.  No duplicates are
++  allowed in an asm-qualifier-list.  */
++
+ static void
+ cp_parser_asm_definition (cp_parser* parser)
+ {
+@@ -18815,11 +18828,9 @@
+   tree clobbers = NULL_TREE;
+   tree labels = NULL_TREE;
+   tree asm_stmt;
+-  bool volatile_p = false;
+   bool extended_p = false;
+   bool invalid_inputs_p = false;
+   bool invalid_outputs_p = false;
+-  bool goto_p = false;
+   required_token missing = RT_NONE;
+ 
+   /* Look for the `asm' keyword.  */
+@@ -18832,24 +18843,67 @@
+       cp_function_chain->invalid_constexpr = true;
+     }
+ 
+-  /* See if the next token is `volatile'.  */
+-  if (cp_parser_allow_gnu_extensions_p (parser)
+-      && cp_lexer_next_token_is_keyword (parser->lexer, RID_VOLATILE))
+-    {
+-      /* Remember that we saw the `volatile' keyword.  */
+-      volatile_p = true;
+-      /* Consume the token.  */
+-      cp_lexer_consume_token (parser->lexer);
+-    }
+-  if (cp_parser_allow_gnu_extensions_p (parser)
+-      && parser->in_function_body
+-      && cp_lexer_next_token_is_keyword (parser->lexer, RID_GOTO))
+-    {
+-      /* Remember that we saw the `goto' keyword.  */
+-      goto_p = true;
+-      /* Consume the token.  */
+-      cp_lexer_consume_token (parser->lexer);
+-    }
++  /* Handle the asm-qualifier-list.  */
++  location_t volatile_loc = UNKNOWN_LOCATION;
++  location_t inline_loc = UNKNOWN_LOCATION;
++  location_t goto_loc = UNKNOWN_LOCATION;
++
++  if (cp_parser_allow_gnu_extensions_p (parser) && parser->in_function_body)
++    for (;;)
++      {
++	cp_token *token = cp_lexer_peek_token (parser->lexer);
++	location_t loc = token->location;
++	switch (cp_lexer_peek_token (parser->lexer)->keyword)
++	  {
++	  case RID_VOLATILE:
++	    if (volatile_loc)
++	      {
++		error_at (loc, "duplicate asm qualifier %qT", token->u.value);
++		inform (volatile_loc, "first seen here");
++	      }
++	    else
++	      volatile_loc = loc;
++	    cp_lexer_consume_token (parser->lexer);
++	    continue;
++
++	  case RID_INLINE:
++	    if (inline_loc)
++	      {
++		error_at (loc, "duplicate asm qualifier %qT", token->u.value);
++		inform (inline_loc, "first seen here");
++	      }
++	    else
++	      inline_loc = loc;
++	    cp_lexer_consume_token (parser->lexer);
++	    continue;
++
++	  case RID_GOTO:
++	    if (goto_loc)
++	      {
++		error_at (loc, "duplicate asm qualifier %qT", token->u.value);
++		inform (goto_loc, "first seen here");
++	      }
++	    else
++	      goto_loc = loc;
++	    cp_lexer_consume_token (parser->lexer);
++	    continue;
++
++	  case RID_CONST:
++	  case RID_RESTRICT:
++	    error_at (loc, "%qT is not an asm qualifier", token->u.value);
++	    cp_lexer_consume_token (parser->lexer);
++	    continue;
++
++	  default:
++	    break;
++	  }
++	break;
++      }
++
++  bool volatile_p = (volatile_loc != UNKNOWN_LOCATION);
++  bool inline_p = (inline_loc != UNKNOWN_LOCATION);
++  bool goto_p = (goto_loc != UNKNOWN_LOCATION);
++
+   /* Look for the opening `('.  */
+   if (!cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN))
+     return;
+@@ -18941,8 +18995,7 @@
+ 					     CPP_CLOSE_PAREN))
+ 	    clobbers = cp_parser_asm_clobber_list (parser);
+ 	}
+-      else if (goto_p
+-	       && cp_lexer_next_token_is (parser->lexer, CPP_SCOPE))
++      else if (goto_p && cp_lexer_next_token_is (parser->lexer, CPP_SCOPE))
+ 	/* The labels are coming next.  */
+ 	labels_p = true;
+ 
+@@ -18976,7 +19029,7 @@
+       if (parser->in_function_body)
+ 	{
+ 	  asm_stmt = finish_asm_stmt (volatile_p, string, outputs,
+-				      inputs, clobbers, labels);
++				      inputs, clobbers, labels, inline_p);
+ 	  /* If the extended syntax was not used, mark the ASM_EXPR.  */
+ 	  if (!extended_p)
+ 	    {
+Index: gcc/cp/cp-tree.h
+===================================================================
+diff --git a/gcc/cp/cp-tree.h b/gcc/cp/cp-tree.h
+--- a/gcc/cp/cp-tree.h	(revision 268128)
++++ b/gcc/cp/cp-tree.h	(revision 268128)
+@@ -6455,7 +6455,7 @@
+ 
+ extern void finish_compound_stmt		(tree);
+ extern tree finish_asm_stmt			(int, tree, tree, tree, tree,
+-						 tree);
++						 tree, bool);
+ extern tree finish_label_stmt			(tree);
+ extern void finish_label_decl			(tree);
+ extern cp_expr finish_parenthesized_expr	(cp_expr);
+Index: gcc/ada/ChangeLog
+===================================================================
+diff --git a/gcc/ada/ChangeLog b/gcc/ada/ChangeLog
+--- a/gcc/ada/ChangeLog	(revision 268128)
++++ b/gcc/ada/ChangeLog	(revision 268128)
+@@ -1,3 +1,8 @@
++2018-12-24  Iain Sandoe  <iain@sandoe.co.uk>
++
++	* adaint.c [__APPLE__] (__gnat_lwp_self): Ensure that the system
++	interface used is available on the target.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: gcc/ada/adaint.c
+===================================================================
+diff --git a/gcc/ada/adaint.c b/gcc/ada/adaint.c
+--- a/gcc/ada/adaint.c	(revision 268128)
++++ b/gcc/ada/adaint.c	(revision 268128)
+@@ -3174,9 +3174,13 @@
+ #endif
+ 
+ #if defined (__APPLE__)
+-#include <mach/thread_info.h>
+-#include <mach/mach_init.h>
+-#include <mach/thread_act.h>
++# if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
++#  include <mach/thread_info.h>
++#  include <mach/mach_init.h>
++#  include <mach/thread_act.h>
++# else
++#  include <pthread.h>
++# endif
+ 
+ /* System-wide thread identifier.  Note it could be truncated on 32 bit
+    hosts.
+@@ -3184,6 +3188,7 @@
+ void *
+ __gnat_lwp_self (void)
+ {
++#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
+   thread_identifier_info_data_t data;
+   mach_msg_type_number_t count = THREAD_IDENTIFIER_INFO_COUNT;
+   kern_return_t kret;
+@@ -3194,6 +3199,9 @@
+     return (void *)(uintptr_t)data.thread_id;
+   else
+     return 0;
++#else
++  return (void *)pthread_mach_thread_np (pthread_self ());
++#endif
+ }
+ #endif
+ 
+Index: gcc/fortran/trans-expr.c
+===================================================================
+diff --git a/gcc/fortran/trans-expr.c b/gcc/fortran/trans-expr.c
+--- a/gcc/fortran/trans-expr.c	(revision 268128)
++++ b/gcc/fortran/trans-expr.c	(revision 268128)
+@@ -2987,6 +2987,83 @@
+     if (gfc_conv_cst_int_power (se, lse.expr, rse.expr))
+       return;
+ 
++  if (INTEGER_CST_P (lse.expr)
++      && TREE_CODE (TREE_TYPE (rse.expr)) == INTEGER_TYPE)
++    {
++      wide_int wlhs = lse.expr;
++      HOST_WIDE_INT v;
++      v = wlhs.to_shwi ();
++      if (v == 1)
++	{
++	  /* 1**something is always 1.  */
++	  se->expr = build_int_cst (TREE_TYPE (lse.expr), 1);
++	  return;
++	}
++      else if (v == 2 || v == 4 || v == 8 || v == 16)
++	{
++	  /* 2**n = 1<<n, 4**n = 1<<(n+n), 8**n = 1 <<(3*n), 16**n =
++	   1<<(4*n), but we have to make sure to return zero if the
++	   number of bits is too large. */
++	  tree lshift;
++	  tree type;
++	  tree shift;
++	  tree ge;
++	  tree cond;
++	  tree num_bits;
++	  tree cond2;
++
++	  type = TREE_TYPE (lse.expr);
++
++	  if (v == 2)
++	    shift = rse.expr;
++	  else if (v == 4)
++	    shift = fold_build2_loc (input_location, PLUS_EXPR,
++				     TREE_TYPE (rse.expr),
++				       rse.expr, rse.expr);
++	  else if (v == 8)
++	    shift = fold_build2_loc (input_location, MULT_EXPR,
++				     TREE_TYPE (rse.expr),
++				     build_int_cst (TREE_TYPE (rse.expr), 3),
++				     rse.expr);
++	  else if (v == 16)
++	    shift = fold_build2_loc (input_location, MULT_EXPR,
++				     TREE_TYPE (rse.expr),
++				     build_int_cst (TREE_TYPE (rse.expr), 4),
++				     rse.expr);
++	  else
++	    gcc_unreachable ();
++
++	  lshift = fold_build2_loc (input_location, LSHIFT_EXPR, type,
++				    build_int_cst (type, 1), shift);
++	  ge = fold_build2_loc (input_location, GE_EXPR, logical_type_node,
++				rse.expr, build_int_cst (type, 0));
++	  cond = fold_build3_loc (input_location, COND_EXPR, type, ge, lshift,
++				 build_int_cst (type, 0));
++	  num_bits = build_int_cst (TREE_TYPE (rse.expr), TYPE_PRECISION (type));
++	  cond2 = fold_build2_loc (input_location, GE_EXPR, logical_type_node,
++				   rse.expr, num_bits);
++	  se->expr = fold_build3_loc (input_location, COND_EXPR, type, cond2,
++				      build_int_cst (type, 0), cond);
++	  return;
++	}
++      else if (v == -1)
++	{
++	  /* (-1)**n is 1 - ((n & 1) << 1) */
++	  tree type;
++	  tree tmp;
++
++	  type = TREE_TYPE (lse.expr);
++	  tmp = fold_build2_loc (input_location, BIT_AND_EXPR, type,
++				 rse.expr, build_int_cst (type, 1));
++	  tmp = fold_build2_loc (input_location, LSHIFT_EXPR, type,
++				 tmp, build_int_cst (type, 1));
++	  tmp = fold_build2_loc (input_location, MINUS_EXPR, type,
++				 build_int_cst (type, 1), tmp);
++	  se->expr = tmp;
++	  return;
++	}
++    }
++
+   gfc_int4_type_node = gfc_get_int_type (4);
+ 
+   /* In case of integer operands with kinds 1 or 2, we call the integer kind 4
+Index: gcc/fortran/decl.c
+===================================================================
+diff --git a/gcc/fortran/decl.c b/gcc/fortran/decl.c
+--- a/gcc/fortran/decl.c	(revision 268128)
++++ b/gcc/fortran/decl.c	(revision 268128)
+@@ -552,6 +552,7 @@
+ gfc_match_data (void)
+ {
+   gfc_data *new_data;
++  gfc_expr *e;
+   match m;
+ 
+   /* Before parsing the rest of a DATA statement, check F2008:c1206.  */
+@@ -588,6 +589,30 @@
+ 	  goto cleanup;
+ 	}
+ 
++      /* Check for an entity with an allocatable component, which is not
++	 allowed.  */
++      e = new_data->var->expr;
++      if (e)
++	{
++	  bool invalid;
++
++	  invalid = false;
++	  for (gfc_ref *ref = e->ref; ref; ref = ref->next)
++	    if ((ref->type == REF_COMPONENT
++		 && ref->u.c.component->attr.allocatable)
++		|| (ref->type == REF_ARRAY
++		    && e->symtree->n.sym->attr.pointer != 1
++		    && ref->u.ar.as && ref->u.ar.as->type == AS_DEFERRED))
++	      invalid = true;
++
++	  if (invalid)
++	    {
++	      gfc_error ("Allocatable component or deferred-shaped array "
++			 "near %C in DATA statement");
++	      goto cleanup;
++	    }
++	}
++
+       m = top_val_list (new_data);
+       if (m != MATCH_YES)
+ 	goto cleanup;
+@@ -2544,6 +2569,22 @@
+       goto cleanup;
+     }
+ 
++  /* Before adding a possible initilizer, do a simple check for compatibility
++     of lhs and rhs types.  Assigning a REAL value to a derive type is not a
++     good thing.  */
++  if (current_ts.type == BT_DERIVED && initializer
++      && (gfc_numeric_ts (&initializer->ts)
++	  || initializer->ts.type == BT_LOGICAL
++	  || initializer->ts.type == BT_CHARACTER))
++    {
++      gfc_error ("Incompatible initialization between a derive type "
++		 "entity and an entity with %qs type at %C",
++		  gfc_typename (&initializer->ts));
++      m = MATCH_ERROR;
++      goto cleanup;
++    }
++
++
+   /* Add the initializer.  Note that it is fine if initializer is
+      NULL here, because we sometimes also need to check if a
+      declaration *must* have an initialization expression.  */
+@@ -6438,9 +6479,11 @@
+ 	      gfc_error ("Missing required parentheses before BIND(C) at %C");
+ 	      return MATCH_ERROR;
+ 	    }
+-	    if (!gfc_add_is_bind_c (&(entry->attr), entry->name,
+-				    &(entry->declared_at), 1))
+-	      return MATCH_ERROR;
++
++	  if (!gfc_add_is_bind_c (&(entry->attr), entry->name,
++				  &(entry->declared_at), 1))
++	    return MATCH_ERROR;
++	
+ 	}
+ 
+       if (!gfc_current_ns->parent
+@@ -6524,6 +6567,14 @@
+       return MATCH_ERROR;
+     }
+ 
++  /* F2018:C1546 An elemental procedure shall not have the BIND attribute.  */
++  if (proc->attr.elemental && entry->attr.is_bind_c)
++    {
++      gfc_error ("ENTRY statement at %L with BIND(C) prohibited in an "
++		 "elemental procedure", &entry->declared_at);
++      return MATCH_ERROR;
++    }
++
+   entry->attr.recursive = proc->attr.recursive;
+   entry->attr.elemental = proc->attr.elemental;
+   entry->attr.pure = proc->attr.pure;
+Index: gcc/fortran/gfortran.h
+===================================================================
+diff --git a/gcc/fortran/gfortran.h b/gcc/fortran/gfortran.h
+--- a/gcc/fortran/gfortran.h	(revision 268128)
++++ b/gcc/fortran/gfortran.h	(revision 268128)
+@@ -3269,7 +3269,7 @@
+ void gfc_free_close (gfc_close *);
+ bool gfc_resolve_close (gfc_close *);
+ void gfc_free_filepos (gfc_filepos *);
+-bool gfc_resolve_filepos (gfc_filepos *);
++bool gfc_resolve_filepos (gfc_filepos *, locus *);
+ void gfc_free_inquire (gfc_inquire *);
+ bool gfc_resolve_inquire (gfc_inquire *);
+ void gfc_free_dt (gfc_dt *);
+Index: gcc/fortran/ChangeLog
+===================================================================
+diff --git a/gcc/fortran/ChangeLog b/gcc/fortran/ChangeLog
+--- a/gcc/fortran/ChangeLog	(revision 268128)
++++ b/gcc/fortran/ChangeLog	(revision 268128)
+@@ -1,3 +1,97 @@
++2019-01-15  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/81849
++	* resolve.c (resolve_symbol): Host associated varaibles can appear
++	in the specification statement of a RESULT array.
++
++2019-01-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/35031
++	* decl.c (gfc_match_entry): Check for F2018:C1546.  Fix nearby
++	mis-indentation.
++
++2018-12-29  Paul Thomas  <pault@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/82550
++	* trans_decl.c (gfc_get_symbol_decl): Procedure symbols that
++	have the 'used_in_submodule' attribute should be processed by
++	'gfc_get_extern_function_decl'.
++
++2018-12-23  Paul Thomas  <pault@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/77703
++	* resolve.c (get_temp_from_expr): Use the string length of
++	constant character expressions.
++
++2018-12-22  Steven G . Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/85798
++	* decl.c (gfc_match_data): If a component of a derived type entity
++	appears in data statement, check that does not have the allocatable
++	attribute.
++
++2018-12-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
++
++	Backport from trunk
++	PR fortran/85544
++	* frontend-passes.c (optimize_power): Remove.
++	(optimize_op): Remove call to optimize_power.
++	* trans-expr.c (gfc_conv_power_op): Handle cases of 1**integer,
++	(2|4|8|16) ** integer and (-1) ** integer.
++
++2018-12-21  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88169
++	* module.c (mio_namelist): Remove an error condition/message that
++	is contrary to the Fortran standard.
++
++2018-12-15  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88138
++	* decl.c (variable_decl): Check that a derived isn't being assigned
++	an incompatible entity in an initialization.
++
++2018-12-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88155
++	* primary.c (gfc_match_structure_constructor):  Set the locus of
++	an expression to avoid a NULL pointer dereference.
++
++2018-12-11  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88249
++	* gfortran.h: Update prototype for gfc_resolve_filepos().
++	* io.c (gfc_resolve_filepos): Check for UNIT number if ERR= is present.
++	Use passed in locus for error message.
++	* resolve.c (gfc_resolve_code): Pass locus in gfc_resolve_filepos()
++	call.
++
++2018-12-10  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88269
++	* io.c (io_constraint): Update macro. If locus line buffer is NULL,
++	use gfc_current_locus in error messages.
++	(check_io_constraints): Catch missing IO UNIT in write and read
++	statements.  io_constraint macro is incompatible here.
++
++2018-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88205
++	* io.c (gfc_match_open): Move NEWUNIT checks to after STATUS checks.
++
++2018-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
++
++	PR fortran/88206
++	* match.c (gfc_match_type_spec): REAL can be an intrinsic function.
++
++2018-12-09  Fritz Reese  <fritzoreese@gmail.com>
++
++	PR fortran/88228
++	* resolve.c (resolve_operator):  Do not call resolve_function.
++	Break like other cases.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: gcc/fortran/module.c
+===================================================================
+diff --git a/gcc/fortran/module.c b/gcc/fortran/module.c
+--- a/gcc/fortran/module.c	(revision 268128)
++++ b/gcc/fortran/module.c	(revision 268128)
+@@ -3632,7 +3632,6 @@
+ mio_namelist (gfc_symbol *sym)
+ {
+   gfc_namelist *n, *m;
+-  const char *check_name;
+ 
+   mio_lparen ();
+ 
+@@ -3643,17 +3642,6 @@
+     }
+   else
+     {
+-      /* This departure from the standard is flagged as an error.
+-	 It does, in fact, work correctly. TODO: Allow it
+-	 conditionally?  */
+-      if (sym->attr.flavor == FL_NAMELIST)
+-	{
+-	  check_name = find_use_name (sym->name, false);
+-	  if (check_name && strcmp (check_name, sym->name) != 0)
+-	    gfc_error ("Namelist %s cannot be renamed by USE "
+-		       "association to %s", sym->name, check_name);
+-	}
+-
+       m = NULL;
+       while (peek_atom () != ATOM_RPAREN)
+ 	{
+Index: gcc/fortran/io.c
+===================================================================
+diff --git a/gcc/fortran/io.c b/gcc/fortran/io.c
+--- a/gcc/fortran/io.c	(revision 268128)
++++ b/gcc/fortran/io.c	(revision 268128)
+@@ -2090,33 +2090,6 @@
+ 
+   warn = (open->err || open->iostat) ? true : false;
+ 
+-  /* Checks on NEWUNIT specifier.  */
+-  if (open->newunit)
+-    {
+-      if (open->unit)
+-	{
+-	  gfc_error ("UNIT specifier not allowed with NEWUNIT at %C");
+-	  goto cleanup;
+-	}
+-
+-      if (!open->file && open->status)
+-        {
+-	  if (open->status->expr_type == EXPR_CONSTANT
+-	     && gfc_wide_strncasecmp (open->status->value.character.string,
+-				       "scratch", 7) != 0)
+-	   {
+-	     gfc_error ("NEWUNIT specifier must have FILE= "
+-			"or STATUS='scratch' at %C");
+-	     goto cleanup;
+-	   }
+-	}
+-    }
+-  else if (!open->unit)
+-    {
+-      gfc_error ("OPEN statement at %C must have UNIT or NEWUNIT specified");
+-      goto cleanup;
+-    }
+-
+   /* Checks on the ACCESS specifier.  */
+   if (open->access && open->access->expr_type == EXPR_CONSTANT)
+     {
+@@ -2441,6 +2414,33 @@
+ 	}
+     }
+ 
++  /* Checks on NEWUNIT specifier.  */
++  if (open->newunit)
++    {
++      if (open->unit)
++	{
++	  gfc_error ("UNIT specifier not allowed with NEWUNIT at %C");
++	  goto cleanup;
++	}
++
++      if (!open->file && open->status)
++        {
++	  if (open->status->expr_type == EXPR_CONSTANT
++	     && gfc_wide_strncasecmp (open->status->value.character.string,
++				       "scratch", 7) != 0)
++	   {
++	     gfc_error ("NEWUNIT specifier must have FILE= "
++			"or STATUS='scratch' at %C");
++	     goto cleanup;
++	   }
++	}
++    }
++  else if (!open->unit)
++    {
++      gfc_error ("OPEN statement at %C must have UNIT or NEWUNIT specified");
++      goto cleanup;
++    }
++
+   /* Things that are not allowed for unformatted I/O.  */
+   if (open->form && open->form->expr_type == EXPR_CONSTANT
+       && (open->delim || open->decimal || open->encoding || open->round
+@@ -2774,22 +2774,21 @@
+ 
+ 
+ bool
+-gfc_resolve_filepos (gfc_filepos *fp)
++gfc_resolve_filepos (gfc_filepos *fp, locus *where)
+ {
+   RESOLVE_TAG (&tag_unit, fp->unit);
+   RESOLVE_TAG (&tag_iostat, fp->iostat);
+   RESOLVE_TAG (&tag_iomsg, fp->iomsg);
+-  if (!gfc_reference_st_label (fp->err, ST_LABEL_TARGET))
+-    return false;
+ 
+-  if (!fp->unit && (fp->iostat || fp->iomsg))
++  if (!fp->unit && (fp->iostat || fp->iomsg || fp->err))
+     {
+-      locus where;
+-      where = fp->iostat ? fp->iostat->where : fp->iomsg->where;
+-      gfc_error ("UNIT number missing in statement at %L", &where);
++      gfc_error ("UNIT number missing in statement at %L", where);
+       return false;
+     }
+ 
++  if (!gfc_reference_st_label (fp->err, ST_LABEL_TARGET))
++    return false;
++
+   if (fp->unit->expr_type == EXPR_CONSTANT
+       && fp->unit->ts.type == BT_INTEGER
+       && mpz_sgn (fp->unit->value.integer) < 0)
+@@ -3617,10 +3616,13 @@
+ check_io_constraints (io_kind k, gfc_dt *dt, gfc_code *io_code,
+ 		      locus *spec_end)
+ {
+-#define io_constraint(condition,msg,arg)\
++#define io_constraint(condition, msg, arg)\
+ if (condition) \
+   {\
+-    gfc_error(msg,arg);\
++    if ((arg)->lb != NULL)\
++      gfc_error ((msg), (arg));\
++    else\
++      gfc_error ((msg), &gfc_current_locus);\
+     m = MATCH_ERROR;\
+   }
+ 
+@@ -3680,11 +3682,14 @@
+   if (expr && expr->ts.type != BT_CHARACTER)
+     {
+ 
+-      io_constraint (gfc_pure (NULL) && (k == M_READ || k == M_WRITE),
+-		     "IO UNIT in %s statement at %C must be "
++      if (gfc_pure (NULL) && (k == M_READ || k == M_WRITE))
++	{
++	  gfc_error ("IO UNIT in %s statement at %C must be "
+ 		     "an internal file in a PURE procedure",
+ 		     io_kind_name (k));
+-
++	  return MATCH_ERROR;
++	}
++	  
+       if (k == M_READ || k == M_WRITE)
+ 	gfc_unset_implicit_pure (NULL);
+     }
+Index: gcc/fortran/frontend-passes.c
+===================================================================
+diff --git a/gcc/fortran/frontend-passes.c b/gcc/fortran/frontend-passes.c
+--- a/gcc/fortran/frontend-passes.c	(revision 268128)
++++ b/gcc/fortran/frontend-passes.c	(revision 268128)
+@@ -1422,84 +1422,6 @@
+   return true;
+ }
+ 
+-/* Change (-1)**k into 1-ishift(iand(k,1),1) and
+- 2**k into ishift(1,k) */
+-
+-static bool
+-optimize_power (gfc_expr *e)
+-{
+-  gfc_expr *op1, *op2;
+-  gfc_expr *iand, *ishft;
+-
+-  if (e->ts.type != BT_INTEGER)
+-    return false;
+-
+-  op1 = e->value.op.op1;
+-
+-  if (op1 == NULL || op1->expr_type != EXPR_CONSTANT)
+-    return false;
+-
+-  if (mpz_cmp_si (op1->value.integer, -1L) == 0)
+-    {
+-      gfc_free_expr (op1);
+-
+-      op2 = e->value.op.op2;
+-
+-      if (op2 == NULL)
+-	return false;
+-
+-      iand = gfc_build_intrinsic_call (current_ns, GFC_ISYM_IAND,
+-				       "_internal_iand", e->where, 2, op2,
+-				       gfc_get_int_expr (e->ts.kind,
+-							 &e->where, 1));
+-
+-      ishft = gfc_build_intrinsic_call (current_ns, GFC_ISYM_ISHFT,
+-					"_internal_ishft", e->where, 2, iand,
+-					gfc_get_int_expr (e->ts.kind,
+-							  &e->where, 1));
+-
+-      e->value.op.op = INTRINSIC_MINUS;
+-      e->value.op.op1 = gfc_get_int_expr (e->ts.kind, &e->where, 1);
+-      e->value.op.op2 = ishft;
+-      return true;
+-    }
+-  else if (mpz_cmp_si (op1->value.integer, 2L) == 0)
+-    {
+-      gfc_free_expr (op1);
+-
+-      op2 = e->value.op.op2;
+-      if (op2 == NULL)
+-	return false;
+-
+-      ishft = gfc_build_intrinsic_call (current_ns, GFC_ISYM_ISHFT,
+-					"_internal_ishft", e->where, 2,
+-					gfc_get_int_expr (e->ts.kind,
+-							  &e->where, 1),
+-					op2);
+-      *e = *ishft;
+-      return true;
+-    }
+-
+-  else if (mpz_cmp_si (op1->value.integer, 1L) == 0)
+-    {
+-      op2 = e->value.op.op2;
+-      if (op2 == NULL)
+-	return false;
+-
+-      gfc_free_expr (op1);
+-      gfc_free_expr (op2);
+-
+-      e->expr_type = EXPR_CONSTANT;
+-      e->value.op.op1 = NULL;
+-      e->value.op.op2 = NULL;
+-      mpz_init_set_si (e->value.integer, 1);
+-      /* Typespec and location are still OK.  */
+-      return true;
+-    }
+-
+-  return false;
+-}
+-
+ /* Recursive optimization of operators.  */
+ 
+ static bool
+@@ -1560,9 +1482,6 @@
+     case INTRINSIC_DIVIDE:
+       return combine_array_constructor (e) || changed;
+ 
+-    case INTRINSIC_POWER:
+-      return optimize_power (e);
+-
+     default:
+       break;
+     }
+Index: gcc/fortran/resolve.c
+===================================================================
+diff --git a/gcc/fortran/resolve.c b/gcc/fortran/resolve.c
+--- a/gcc/fortran/resolve.c	(revision 268128)
++++ b/gcc/fortran/resolve.c	(revision 268128)
+@@ -3737,7 +3737,7 @@
+ 	  if (op2->ts.type != e->ts.type || op2->ts.kind != e->ts.kind)
+ 	    gfc_convert_type (op2, &e->ts, 1);
+ 	  e = logical_to_bitwise (e);
+-	  return resolve_function (e);
++	  break;
+ 	}
+ 
+       sprintf (msg, _("Operands of logical operator %%<%s%%> at %%L are %s/%s"),
+@@ -3753,7 +3753,7 @@
+ 	  e->ts.type = BT_INTEGER;
+ 	  e->ts.kind = op1->ts.kind;
+ 	  e = logical_to_bitwise (e);
+-	  return resolve_function (e);
++	  break;
+ 	}
+ 
+       if (op1->ts.type == BT_LOGICAL)
+@@ -10264,6 +10264,11 @@
+   gfc_get_sym_tree (name, ns, &tmp, false);
+   gfc_add_type (tmp->n.sym, &e->ts, NULL);
+ 
++  if (e->expr_type == EXPR_CONSTANT && e->ts.type == BT_CHARACTER)
++    tmp->n.sym->ts.u.cl->length = gfc_get_int_expr (gfc_charlen_int_kind,
++						    NULL,
++						    e->value.character.length);
++
+   as = NULL;
+   ref = NULL;
+   aref = NULL;
+@@ -11163,7 +11168,7 @@
+ 	case EXEC_ENDFILE:
+ 	case EXEC_REWIND:
+ 	case EXEC_FLUSH:
+-	  if (!gfc_resolve_filepos (code->ext.filepos))
++	  if (!gfc_resolve_filepos (code->ext.filepos, &code->loc))
+ 	    break;
+ 
+ 	  resolve_branch (code->ext.filepos->err, code);
+@@ -14854,7 +14859,7 @@
+   /* Set the formal_arg_flag so that check_conflict will not throw
+      an error for host associated variables in the specification
+      expression for an array_valued function.  */
+-  if (sym->attr.function && sym->as)
++  if ((sym->attr.function || sym->attr.result) && sym->as)
+     formal_arg_flag = true;
+ 
+   saved_specification_expr = specification_expr;
+Index: gcc/fortran/trans-decl.c
+===================================================================
+diff --git a/gcc/fortran/trans-decl.c b/gcc/fortran/trans-decl.c
+--- a/gcc/fortran/trans-decl.c	(revision 268128)
++++ b/gcc/fortran/trans-decl.c	(revision 268128)
+@@ -1655,7 +1655,9 @@
+     {
+       /* Catch functions. Only used for actual parameters,
+ 	 procedure pointers and procptr initialization targets.  */
+-      if (sym->attr.use_assoc || sym->attr.intrinsic
++      if (sym->attr.use_assoc
++	  || sym->attr.used_in_submodule
++	  || sym->attr.intrinsic
+ 	  || sym->attr.if_source != IFSRC_DECL)
+ 	{
+ 	  decl = gfc_get_extern_function_decl (sym);
+Index: gcc/fortran/match.c
+===================================================================
+diff --git a/gcc/fortran/match.c b/gcc/fortran/match.c
+--- a/gcc/fortran/match.c	(revision 268128)
++++ b/gcc/fortran/match.c	(revision 268128)
+@@ -2153,6 +2153,9 @@
+ 	      return MATCH_NO;
+ 	    }
+ 
++	  if (e->expr_type != EXPR_CONSTANT)
++	    goto ohno;
++
+ 	  gfc_next_char (); /* Burn the ')'. */
+ 	  ts->kind = (int) mpz_get_si (e->value.integer);
+ 	  if (gfc_validate_kind (ts->type, ts->kind , true) == -1)
+@@ -2167,6 +2170,8 @@
+ 	}
+     }
+ 
++ohno:
++
+   /* If a type is not matched, simply return MATCH_NO.  */
+   gfc_current_locus = old_locus;
+   return MATCH_NO;
+Index: gcc/fortran/primary.c
+===================================================================
+diff --git a/gcc/fortran/primary.c b/gcc/fortran/primary.c
+--- a/gcc/fortran/primary.c	(revision 268128)
++++ b/gcc/fortran/primary.c	(revision 268128)
+@@ -2980,6 +2980,7 @@
+   e = gfc_get_expr ();
+   e->symtree = symtree;
+   e->expr_type = EXPR_FUNCTION;
++  e->where = gfc_current_locus;
+ 
+   gcc_assert (gfc_fl_struct (sym->attr.flavor)
+ 	      && symtree->n.sym->attr.flavor == FL_PROCEDURE);
+Index: gcc/gimple-pretty-print.c
+===================================================================
+diff --git a/gcc/gimple-pretty-print.c b/gcc/gimple-pretty-print.c
+--- a/gcc/gimple-pretty-print.c	(revision 268128)
++++ b/gcc/gimple-pretty-print.c	(revision 268128)
+@@ -1989,6 +1989,8 @@
+       pp_string (buffer, "__asm__");
+       if (gimple_asm_volatile_p (gs))
+ 	pp_string (buffer, " __volatile__");
++      if (gimple_asm_inline_p (gs))
++	pp_string (buffer, " __inline__");
+       if (gimple_asm_nlabels (gs))
+ 	pp_string (buffer, " goto");
+       pp_string (buffer, "(\"");
+Index: gcc/BASE-VER
+===================================================================
+diff --git a/gcc/BASE-VER b/gcc/BASE-VER
+--- a/gcc/BASE-VER	(revision 268128)
++++ b/gcc/BASE-VER	(revision 268128)
+@@ -1 +1 @@
+-7.4.0
++7.4.1
+Index: gcc/function.c
+===================================================================
+diff --git a/gcc/function.c b/gcc/function.c
+--- a/gcc/function.c	(revision 268128)
++++ b/gcc/function.c	(revision 268128)
+@@ -6604,7 +6604,7 @@
+       output_matched[match] = true;
+ 
+       start_sequence ();
+-      emit_move_insn (output, input);
++      emit_move_insn (output, copy_rtx (input));
+       insns = get_insns ();
+       end_sequence ();
+       emit_insn_before (insns, insn);
+Index: gcc/gimplify.c
+===================================================================
+diff --git a/gcc/gimplify.c b/gcc/gimplify.c
+--- a/gcc/gimplify.c	(revision 268128)
++++ b/gcc/gimplify.c	(revision 268128)
+@@ -6206,6 +6206,7 @@
+ 
+       gimple_asm_set_volatile (stmt, ASM_VOLATILE_P (expr) || noutputs == 0);
+       gimple_asm_set_input (stmt, ASM_INPUT_P (expr));
++      gimple_asm_set_inline (stmt, ASM_INLINE_P (expr));
+ 
+       gimplify_seq_add_stmt (pre_p, stmt);
+     }
+Index: gcc/ipa-prop.c
+===================================================================
+diff --git a/gcc/ipa-prop.c b/gcc/ipa-prop.c
+--- a/gcc/ipa-prop.c	(revision 268128)
++++ b/gcc/ipa-prop.c	(revision 268128)
+@@ -1577,7 +1577,8 @@
+       if (TREE_CODE (arg) == SSA_NAME)
+ 	{
+ 	  tree type_size;
+-          if (!tree_fits_uhwi_p (TYPE_SIZE (TREE_TYPE (arg_type))))
++          if (!tree_fits_uhwi_p (TYPE_SIZE (TREE_TYPE (arg_type)))
++	      || !POINTER_TYPE_P (TREE_TYPE (arg)))
+             return;
+ 	  check_ref = true;
+ 	  arg_base = arg;
+Index: gcc/tree-inline.c
+===================================================================
+diff --git a/gcc/tree-inline.c b/gcc/tree-inline.c
+--- a/gcc/tree-inline.c	(revision 268128)
++++ b/gcc/tree-inline.c	(revision 268128)
+@@ -4173,6 +4173,9 @@
+ 	   with very long asm statements.  */
+ 	if (count > 1000)
+ 	  count = 1000;
++	/* If this asm is asm inline, count anything as minimum size.  */
++	if (gimple_asm_inline_p (as_a <gasm *> (stmt)))
++	  count = MIN (1, count);
+ 	return count;
+       }
+ 
+Index: gcc/combine.c
+===================================================================
+diff --git a/gcc/combine.c b/gcc/combine.c
+--- a/gcc/combine.c	(revision 268128)
++++ b/gcc/combine.c	(revision 268128)
+@@ -5807,8 +5807,9 @@
+ 	    && GET_MODE_PRECISION (mode) < GET_MODE_PRECISION (op0_mode)
+ 	    && subreg_lowpart_offset (mode, op0_mode) == SUBREG_BYTE (x)
+ 	    && HWI_COMPUTABLE_MODE_P (op0_mode)
+-	    && (nonzero_bits (SUBREG_REG (x), op0_mode)
+-		& GET_MODE_MASK (mode)) == 0)
++	    && ((nonzero_bits (SUBREG_REG (x), op0_mode)
++		 & GET_MODE_MASK (mode)) == 0)
++	    && !side_effects_p (SUBREG_REG (x)))
+ 	  return CONST0_RTX (mode);
+       }
+ 
+Index: gcc/gimple.h
+===================================================================
+diff --git a/gcc/gimple.h b/gcc/gimple.h
+--- a/gcc/gimple.h	(revision 268128)
++++ b/gcc/gimple.h	(revision 268128)
+@@ -136,6 +136,7 @@
+ enum gf_mask {
+     GF_ASM_INPUT		= 1 << 0,
+     GF_ASM_VOLATILE		= 1 << 1,
++    GF_ASM_INLINE		= 1 << 2,
+     GF_CALL_FROM_THUNK		= 1 << 0,
+     GF_CALL_RETURN_SLOT_OPT	= 1 << 1,
+     GF_CALL_TAILCALL		= 1 << 2,
+@@ -3909,7 +3910,7 @@
+ }
+ 
+ 
+-/* Return true ASM_STMT ASM_STMT is an asm statement marked volatile.  */
++/* Return true if ASM_STMT is marked volatile.  */
+ 
+ static inline bool
+ gimple_asm_volatile_p (const gasm *asm_stmt)
+@@ -3918,7 +3919,7 @@
+ }
+ 
+ 
+-/* If VOLATLE_P is true, mark asm statement ASM_STMT as volatile.  */
++/* If VOLATILE_P is true, mark asm statement ASM_STMT as volatile.  */
+ 
+ static inline void
+ gimple_asm_set_volatile (gasm *asm_stmt, bool volatile_p)
+@@ -3930,6 +3931,27 @@
+ }
+ 
+ 
++/* Return true if ASM_STMT is marked inline.  */
++
++static inline bool
++gimple_asm_inline_p (const gasm *asm_stmt)
++{
++  return (asm_stmt->subcode & GF_ASM_INLINE) != 0;
++}
++
++
++/* If INLINE_P is true, mark asm statement ASM_STMT as inline.  */
++
++static inline void
++gimple_asm_set_inline (gasm *asm_stmt, bool inline_p)
++{
++  if (inline_p)
++    asm_stmt->subcode |= GF_ASM_INLINE;
++  else
++    asm_stmt->subcode &= ~GF_ASM_INLINE;
++}
++
++
+ /* If INPUT_P is true, mark asm ASM_STMT as an ASM_INPUT.  */
+ 
+ static inline void
+Index: gcc/tree-core.h
+===================================================================
+diff --git a/gcc/tree-core.h b/gcc/tree-core.h
+--- a/gcc/tree-core.h	(revision 268128)
++++ b/gcc/tree-core.h	(revision 268128)
+@@ -1138,6 +1138,9 @@
+        OMP_CLAUSE_LINEAR_VARIABLE_STRIDE in
+ 	   OMP_CLAUSE_LINEAR
+ 
++       ASM_INLINE_P in
++	   ASM_EXPR
++
+    side_effects_flag:
+ 
+        TREE_SIDE_EFFECTS in
+Index: gcc/config/alpha/alpha.c
+===================================================================
+diff --git a/gcc/config/alpha/alpha.c b/gcc/config/alpha/alpha.c
+--- a/gcc/config/alpha/alpha.c	(revision 268128)
++++ b/gcc/config/alpha/alpha.c	(revision 268128)
+@@ -6357,9 +6357,41 @@
+   offset = get_initialized_tmp_var (t, pre_p, NULL);
+ 
+   indirect = pass_by_reference (NULL, TYPE_MODE (type), type, false);
++
+   if (indirect)
+-    type = build_pointer_type_for_mode (type, ptr_mode, true);
++    {
++      if (TREE_CODE (type) == COMPLEX_TYPE
++	  && targetm.calls.split_complex_arg (type))
++	{
++	  tree real_part, imag_part, real_temp;
+ 
++	  tree ptr_type = build_pointer_type_for_mode (TREE_TYPE (type),
++						       ptr_mode, true);
++
++	  real_part = alpha_gimplify_va_arg_1 (ptr_type, base,
++					       offset, pre_p);
++	  real_part = build_va_arg_indirect_ref (real_part);
++
++	  /* Copy the value into a new temporary, lest the formal temporary
++	     be reused out from under us.  */
++	  real_temp = get_initialized_tmp_var (real_part, pre_p, NULL);
++
++	  imag_part = alpha_gimplify_va_arg_1 (ptr_type, base,
++					       offset, pre_p);
++	  imag_part = build_va_arg_indirect_ref (imag_part);
++
++	  r = build2 (COMPLEX_EXPR, type, real_temp, imag_part);
++
++	  /* Stuff the offset temporary back into its field.  */
++	  gimplify_assign (unshare_expr (offset_field),
++			   fold_convert (TREE_TYPE (offset_field), offset),
++			   pre_p);
++	  return r;
++	}
++      else
++	type = build_pointer_type_for_mode (type, ptr_mode, true);
++    }
++
+   /* Find the value.  Note that this will be a stable indirection, or
+      a composite of stable indirections in the case of complex.  */
+   r = alpha_gimplify_va_arg_1 (type, base, offset, pre_p);
+Index: gcc/config/s390/s390-builtins.def
+===================================================================
+diff --git a/gcc/config/s390/s390-builtins.def b/gcc/config/s390/s390-builtins.def
+--- a/gcc/config/s390/s390-builtins.def	(revision 268128)
++++ b/gcc/config/s390/s390-builtins.def	(revision 268128)
+@@ -2804,8 +2804,8 @@
+ B_DEF      (s390_vfsqdb,                sqrtv2df2,          0,                  B_VX,               0,                  BT_FN_V2DF_V2DF)
+ 
+ OB_DEF     (s390_vec_double,            s390_vec_double_s64,s390_vec_double_u64,B_VX,               BT_FN_OV4SI_OV4SI)
+-OB_DEF_VAR (s390_vec_double_s64,        s390_vcdgb,         0,                  0,                  BT_OV_V2DF_V2DI)
+-OB_DEF_VAR (s390_vec_double_u64,        s390_vcdlgb,        0,                  0,                  BT_OV_V2DF_UV2DI)
++OB_DEF_VAR (s390_vec_double_s64,        s390_vec_double_s64,0,                  0,                  BT_OV_V2DF_V2DI)
++OB_DEF_VAR (s390_vec_double_u64,        s390_vec_double_u64,0,                  0,                  BT_OV_V2DF_UV2DI)
+ 
+ B_DEF      (s390_vec_double_s64,        vec_double_s64,     0,                  B_INT | B_VX,       0,                  BT_FN_V2DF_V2DI)  /* vcdgb */
+ B_DEF      (s390_vec_double_u64,        vec_double_u64,     0,                  B_INT | B_VX,       0,                  BT_FN_V2DF_UV2DI) /* vcdlgb */
+Index: gcc/config/s390/vx-builtins.md
+===================================================================
+diff --git a/gcc/config/s390/vx-builtins.md b/gcc/config/s390/vx-builtins.md
+--- a/gcc/config/s390/vx-builtins.md	(revision 268128)
++++ b/gcc/config/s390/vx-builtins.md	(revision 268128)
+@@ -1607,7 +1607,7 @@
+ (define_expand "vec_ctd_s64"
+   [(set (match_operand:V2DF               0 "register_operand" "")
+ 	(unspec:V2DF [(match_operand:V2DI 1 "register_operand" "")
+-		      (const_int 4) ; inexact suppressed
++		      (const_int VEC_NOINEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCDGB))
+    (use (match_operand:QI 2 "const_int_operand" ""))
+@@ -1638,7 +1638,7 @@
+ (define_expand "vec_ctd_u64"
+   [(set (match_operand:V2DF               0 "register_operand" "")
+ 	(unspec:V2DF [(match_operand:V2DI 1 "register_operand" "")
+-		      (const_int 4) ; inexact suppressed
++		      (const_int VEC_NOINEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCDLGB))
+    (use (match_operand:QI 2 "const_int_operand" ""))
+@@ -1672,7 +1672,7 @@
+ 				 (match_dup 3)))
+    (set (match_operand:V2DI 0 "register_operand" "")
+ 	(unspec:V2DI [(match_dup 4)
+-		      (const_int 4) ; inexact suppressed
++		      (const_int VEC_NOINEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCGDB))]
+   "TARGET_VX"
+@@ -1705,7 +1705,7 @@
+ 				 (match_dup 3)))
+    (set (match_operand:V2DI 0 "register_operand" "")
+ 	(unspec:V2DI [(match_dup 4)
+-		      (const_int 4) ; inexact suppressed
++		      (const_int VEC_NOINEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCLGDB))]
+   "TARGET_VX"
+@@ -2026,7 +2026,7 @@
+ (define_expand "vec_double_s64"
+   [(set (match_operand:V2DF               0 "register_operand")
+ 	(unspec:V2DF [(match_operand:V2DI 1 "register_operand")
+-		      (const_int 0)  ; inexact suppression disabled
++		      (const_int VEC_INEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCDGB))]
+   "TARGET_VX")
+@@ -2034,7 +2034,7 @@
+ (define_expand "vec_double_u64"
+   [(set (match_operand:V2DF               0 "register_operand")
+ 	(unspec:V2DF [(match_operand:V2DI 1 "register_operand")
+-		      (const_int 0)  ; inexact suppression disabled
++		      (const_int VEC_INEXACT)
+ 		      (const_int VEC_RND_CURRENT)]
+ 		     UNSPEC_VEC_VCDLGB))]
+   "TARGET_VX")
+Index: gcc/config/sparc/sparc.md
+===================================================================
+diff --git a/gcc/config/sparc/sparc.md b/gcc/config/sparc/sparc.md
+--- a/gcc/config/sparc/sparc.md	(revision 268128)
++++ b/gcc/config/sparc/sparc.md	(revision 268128)
+@@ -7961,158 +7961,112 @@
+ 
+ ;; TLS support instructions.
+ 
+-(define_insn "tgd_hi22"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-        (high:SI (unspec:SI [(match_operand 1 "tgd_symbolic_operand" "")]
+-			    UNSPEC_TLSGD)))]
++(define_insn "tgd_hi22<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++        (high:P (unspec:P [(match_operand 1 "tgd_symbolic_operand" "")]
++			  UNSPEC_TLSGD)))]
+   "TARGET_TLS"
+   "sethi\\t%%tgd_hi22(%a1), %0")
+ 
+-(define_insn "tgd_lo10"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(lo_sum:SI (match_operand:SI 1 "register_operand" "r")
+-		   (unspec:SI [(match_operand 2 "tgd_symbolic_operand" "")]
+-			      UNSPEC_TLSGD)))]
++(define_insn "tgd_lo10<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(lo_sum:P (match_operand:P 1 "register_operand" "r")
++		  (unspec:P [(match_operand 2 "tgd_symbolic_operand" "")]
++			    UNSPEC_TLSGD)))]
+   "TARGET_TLS"
+   "add\\t%1, %%tgd_lo10(%a2), %0")
+ 
+-(define_insn "tgd_add32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(plus:SI (match_operand:SI 1 "register_operand" "r")
+-		 (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-			     (match_operand 3 "tgd_symbolic_operand" "")]
+-			    UNSPEC_TLSGD)))]
+-  "TARGET_TLS && TARGET_ARCH32"
++(define_insn "tgd_add<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(plus:P (match_operand:P 1 "register_operand" "r")
++		(unspec:P [(match_operand:P 2 "register_operand" "r")
++			   (match_operand 3 "tgd_symbolic_operand" "")]
++			  UNSPEC_TLSGD)))]
++  "TARGET_TLS"
+   "add\\t%1, %2, %0, %%tgd_add(%a3)")
+ 
+-(define_insn "tgd_add64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-	(plus:DI (match_operand:DI 1 "register_operand" "r")
+-		 (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-			     (match_operand 3 "tgd_symbolic_operand" "")]
+-			    UNSPEC_TLSGD)))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "add\\t%1, %2, %0, %%tgd_add(%a3)")
+-
+-(define_insn "tgd_call32"
++(define_insn "tgd_call<P:mode>"
+   [(set (match_operand 0 "register_operand" "=r")
+-	(call (mem:SI (unspec:SI [(match_operand:SI 1 "symbolic_operand" "s")
+-				  (match_operand 2 "tgd_symbolic_operand" "")]
+-				 UNSPEC_TLSGD))
++	(call (mem:P (unspec:P [(match_operand:P 1 "symbolic_operand" "s")
++				(match_operand 2 "tgd_symbolic_operand" "")]
++			       UNSPEC_TLSGD))
+ 	      (match_operand 3 "" "")))
+-   (clobber (reg:SI O7_REG))]
+-  "TARGET_TLS && TARGET_ARCH32"
++   (clobber (reg:P O7_REG))]
++  "TARGET_TLS"
+   "call\t%a1, %%tgd_call(%a2)%#"
+   [(set_attr "type" "call")])
+ 
+-(define_insn "tgd_call64"
+-  [(set (match_operand 0 "register_operand" "=r")
+-	(call (mem:DI (unspec:DI [(match_operand:DI 1 "symbolic_operand" "s")
+-				  (match_operand 2 "tgd_symbolic_operand" "")]
+-				 UNSPEC_TLSGD))
+-	      (match_operand 3 "" "")))
+-   (clobber (reg:DI O7_REG))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "call\t%a1, %%tgd_call(%a2)%#"
+-  [(set_attr "type" "call")])
+-
+-(define_insn "tldm_hi22"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-        (high:SI (unspec:SI [(const_int 0)] UNSPEC_TLSLDM)))]
++(define_insn "tldm_hi22<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++        (high:P (unspec:P [(const_int 0)] UNSPEC_TLSLDM)))]
+   "TARGET_TLS"
+   "sethi\\t%%tldm_hi22(%&), %0")
+ 
+-(define_insn "tldm_lo10"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(lo_sum:SI (match_operand:SI 1 "register_operand" "r")
+-		    (unspec:SI [(const_int 0)] UNSPEC_TLSLDM)))]
++(define_insn "tldm_lo10<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(lo_sum:P (match_operand:P 1 "register_operand" "r")
++		  (unspec:P [(const_int 0)] UNSPEC_TLSLDM)))]
+   "TARGET_TLS"
+   "add\\t%1, %%tldm_lo10(%&), %0")
+ 
+-(define_insn "tldm_add32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(plus:SI (match_operand:SI 1 "register_operand" "r")
+-		 (unspec:SI [(match_operand:SI 2 "register_operand" "r")]
+-			    UNSPEC_TLSLDM)))]
+-  "TARGET_TLS && TARGET_ARCH32"
++(define_insn "tldm_add<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(plus:P (match_operand:P 1 "register_operand" "r")
++		(unspec:P [(match_operand:P 2 "register_operand" "r")]
++			  UNSPEC_TLSLDM)))]
++  "TARGET_TLS"
+   "add\\t%1, %2, %0, %%tldm_add(%&)")
+ 
+-(define_insn "tldm_add64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-	(plus:DI (match_operand:DI 1 "register_operand" "r")
+-		 (unspec:DI [(match_operand:SI 2 "register_operand" "r")]
+-			    UNSPEC_TLSLDM)))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "add\\t%1, %2, %0, %%tldm_add(%&)")
+-
+-(define_insn "tldm_call32"
++(define_insn "tldm_call<P:mode>"
+   [(set (match_operand 0 "register_operand" "=r")
+-	(call (mem:SI (unspec:SI [(match_operand:SI 1 "symbolic_operand" "s")]
+-				 UNSPEC_TLSLDM))
++	(call (mem:P (unspec:P [(match_operand:P 1 "symbolic_operand" "s")]
++			       UNSPEC_TLSLDM))
+ 	      (match_operand 2 "" "")))
+-   (clobber (reg:SI O7_REG))]
+-  "TARGET_TLS && TARGET_ARCH32"
++   (clobber (reg:P O7_REG))]
++  "TARGET_TLS"
+   "call\t%a1, %%tldm_call(%&)%#"
+   [(set_attr "type" "call")])
+ 
+-(define_insn "tldm_call64"
+-  [(set (match_operand 0 "register_operand" "=r")
+-	(call (mem:DI (unspec:DI [(match_operand:DI 1 "symbolic_operand" "s")]
+-				 UNSPEC_TLSLDM))
+-	      (match_operand 2 "" "")))
+-   (clobber (reg:DI O7_REG))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "call\t%a1, %%tldm_call(%&)%#"
+-  [(set_attr "type" "call")])
+-
+-(define_insn "tldo_hix22"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-        (high:SI (unspec:SI [(match_operand 1 "tld_symbolic_operand" "")]
+-			    UNSPEC_TLSLDO)))]
++(define_insn "tldo_hix22<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++        (high:P (unspec:P [(match_operand 1 "tld_symbolic_operand" "")]
++			  UNSPEC_TLSLDO)))]
+   "TARGET_TLS"
+   "sethi\\t%%tldo_hix22(%a1), %0")
+ 
+-(define_insn "tldo_lox10"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(lo_sum:SI (match_operand:SI 1 "register_operand" "r")
+-		   (unspec:SI [(match_operand 2 "tld_symbolic_operand" "")]
+-			      UNSPEC_TLSLDO)))]
++(define_insn "tldo_lox10<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(lo_sum:P (match_operand:P 1 "register_operand" "r")
++		  (unspec:P [(match_operand 2 "tld_symbolic_operand" "")]
++			    UNSPEC_TLSLDO)))]
+   "TARGET_TLS"
+   "xor\\t%1, %%tldo_lox10(%a2), %0")
+ 
+-(define_insn "tldo_add32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(plus:SI (match_operand:SI 1 "register_operand" "r")
+-		 (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-			     (match_operand 3 "tld_symbolic_operand" "")]
+-			    UNSPEC_TLSLDO)))]
+-  "TARGET_TLS && TARGET_ARCH32"
++(define_insn "tldo_add<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(plus:P (match_operand:P 1 "register_operand" "r")
++		(unspec:P [(match_operand:P 2 "register_operand" "r")
++			   (match_operand 3 "tld_symbolic_operand" "")]
++			  UNSPEC_TLSLDO)))]
++  "TARGET_TLS"
+   "add\\t%1, %2, %0, %%tldo_add(%a3)")
+ 
+-(define_insn "tldo_add64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-	(plus:DI (match_operand:DI 1 "register_operand" "r")
+-		 (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-			     (match_operand 3 "tld_symbolic_operand" "")]
+-			    UNSPEC_TLSLDO)))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "add\\t%1, %2, %0, %%tldo_add(%a3)")
+-
+-(define_insn "tie_hi22"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-        (high:SI (unspec:SI [(match_operand 1 "tie_symbolic_operand" "")]
+-			    UNSPEC_TLSIE)))]
++(define_insn "tie_hi22<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++        (high:P (unspec:P [(match_operand 1 "tie_symbolic_operand" "")]
++			  UNSPEC_TLSIE)))]
+   "TARGET_TLS"
+   "sethi\\t%%tie_hi22(%a1), %0")
+ 
+-(define_insn "tie_lo10"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(lo_sum:SI (match_operand:SI 1 "register_operand" "r")
+-		   (unspec:SI [(match_operand 2 "tie_symbolic_operand" "")]
+-			      UNSPEC_TLSIE)))]
++(define_insn "tie_lo10<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(lo_sum:P (match_operand:P 1 "register_operand" "r")
++		  (unspec:P [(match_operand 2 "tie_symbolic_operand" "")]
++			    UNSPEC_TLSIE)))]
+   "TARGET_TLS"
+   "add\\t%1, %%tie_lo10(%a2), %0")
+ 
++; Note the %%tie_ld operator
+ (define_insn "tie_ld32"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(unspec:SI [(match_operand:SI 1 "register_operand" "r")
+@@ -8124,10 +8078,11 @@
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")])
+ 
++; Note the %%tie_ldx operator
+ (define_insn "tie_ld64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(unspec:DI [(match_operand:DI 1 "register_operand" "r")
+-		    (match_operand:SI 2 "register_operand" "r")
++		    (match_operand:DI 2 "register_operand" "r")
+ 		    (match_operand 3 "tie_symbolic_operand" "")]
+ 		   UNSPEC_TLSIE))]
+   "TARGET_TLS && TARGET_ARCH64"
+@@ -8135,159 +8090,97 @@
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")])
+ 
+-(define_insn "tie_add32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(plus:SI (match_operand:SI 1 "register_operand" "r")
+-		 (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-			     (match_operand 3 "tie_symbolic_operand" "")]
+-			    UNSPEC_TLSIE)))]
+-  "TARGET_SUN_TLS && TARGET_ARCH32"
++(define_insn "tie_add<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(plus:P (match_operand:P 1 "register_operand" "r")
++		(unspec:P [(match_operand:P 2 "register_operand" "r")
++			   (match_operand 3 "tie_symbolic_operand" "")]
++			  UNSPEC_TLSIE)))]
++  "TARGET_SUN_TLS"
+   "add\\t%1, %2, %0, %%tie_add(%a3)")
+ 
+-(define_insn "tie_add64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-	(plus:DI (match_operand:DI 1 "register_operand" "r")
+-		 (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+-			     (match_operand 3 "tie_symbolic_operand" "")]
+-			    UNSPEC_TLSIE)))]
+-  "TARGET_SUN_TLS && TARGET_ARCH64"
+-  "add\\t%1, %2, %0, %%tie_add(%a3)")
+-
+-(define_insn "tle_hix22_sp32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-        (high:SI (unspec:SI [(match_operand 1 "tle_symbolic_operand" "")]
+-			    UNSPEC_TLSLE)))]
+-  "TARGET_TLS && TARGET_ARCH32"
++(define_insn "tle_hix22<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++        (high:P (unspec:P [(match_operand 1 "tle_symbolic_operand" "")]
++			  UNSPEC_TLSLE)))]
++  "TARGET_TLS"
+   "sethi\\t%%tle_hix22(%a1), %0")
+ 
+-(define_insn "tle_lox10_sp32"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(lo_sum:SI (match_operand:SI 1 "register_operand" "r")
+-		   (unspec:SI [(match_operand 2 "tle_symbolic_operand" "")]
+-			      UNSPEC_TLSLE)))]
+-  "TARGET_TLS && TARGET_ARCH32"
+-  "xor\\t%1, %%tle_lox10(%a2), %0")
+-
+-(define_insn "tle_hix22_sp64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-        (high:DI (unspec:DI [(match_operand 1 "tle_symbolic_operand" "")]
++(define_insn "tle_lox10<P:mode>"
++  [(set (match_operand:P 0 "register_operand" "=r")
++	(lo_sum:P (match_operand:P 1 "register_operand" "r")
++		  (unspec:P [(match_operand 2 "tle_symbolic_operand" "")]
+ 			    UNSPEC_TLSLE)))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "sethi\\t%%tle_hix22(%a1), %0")
+-
+-(define_insn "tle_lox10_sp64"
+-  [(set (match_operand:DI 0 "register_operand" "=r")
+-	(lo_sum:DI (match_operand:DI 1 "register_operand" "r")
+-		   (unspec:DI [(match_operand 2 "tle_symbolic_operand" "")]
+-			      UNSPEC_TLSLE)))]
+-  "TARGET_TLS && TARGET_ARCH64"
++  "TARGET_TLS"
+   "xor\\t%1, %%tle_lox10(%a2), %0")
+ 
+-;; Now patterns combining tldo_add{32,64} with some integer loads or stores
+-(define_insn "*tldo_ldub_sp32"
++;; Now patterns combining tldo_add with some integer loads or stores
++(define_insn "*tldo_ldub<P:mode>"
+   [(set (match_operand:QI 0 "register_operand" "=r")
+-	(mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	(mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				  UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r"))))]
++  "TARGET_TLS"
+   "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldub1_sp32"
++(define_insn "*tldo_ldub1<P:mode>"
+   [(set (match_operand:HI 0 "register_operand" "=r")
+ 	(zero_extend:HI
+-	  (mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldub2_sp32"
++(define_insn "*tldo_ldub2<P:mode>"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(zero_extend:SI
+-	  (mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldsb1_sp32"
++(define_insn "*tldo_ldsb1<P:mode>"
+   [(set (match_operand:HI 0 "register_operand" "=r")
+ 	(sign_extend:HI
+-	  (mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "ldsb\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "sload")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldsb2_sp32"
++(define_insn "*tldo_ldsb2<P:mode>"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(sign_extend:SI
+-	  (mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "ldsb\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "sload")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldub_sp64"
+-  [(set (match_operand:QI 0 "register_operand" "=r")
+-	(mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")
+-   (set_attr "us3load_type" "3cycle")])
+-
+-(define_insn "*tldo_ldub1_sp64"
+-  [(set (match_operand:HI 0 "register_operand" "=r")
+-	(zero_extend:HI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")
+-   (set_attr "us3load_type" "3cycle")])
+-
+-(define_insn "*tldo_ldub2_sp64"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(zero_extend:SI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldub\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")
+-   (set_attr "us3load_type" "3cycle")])
+-
+ (define_insn "*tldo_ldub3_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(zero_extend:DI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	  (mem:QI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+@@ -8297,34 +8190,10 @@
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldsb1_sp64"
+-  [(set (match_operand:HI 0 "register_operand" "=r")
+-	(sign_extend:HI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldsb\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "sload")
+-   (set_attr "us3load_type" "3cycle")])
+-
+-(define_insn "*tldo_ldsb2_sp64"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(sign_extend:SI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldsb\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "sload")
+-   (set_attr "us3load_type" "3cycle")])
+-
+ (define_insn "*tldo_ldsb3_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(sign_extend:DI
+-	  (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	  (mem:QI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+@@ -8333,72 +8202,47 @@
+   [(set_attr "type" "sload")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_lduh_sp32"
++(define_insn "*tldo_lduh<P:mode>"
+   [(set (match_operand:HI 0 "register_operand" "=r")
+-	(mem:HI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	(mem:HI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				  UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r"))))]
++  "TARGET_TLS"
+   "lduh\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_lduh1_sp32"
++(define_insn "*tldo_lduh1<P:mode>"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(zero_extend:SI
+-	  (mem:HI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:HI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "lduh\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldsh1_sp32"
++(define_insn "*tldo_ldsh1<P:mode>"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(sign_extend:SI
+-	  (mem:HI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:SI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	  (mem:HI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				     (match_operand 3 "tld_symbolic_operand" "")]
++				    UNSPEC_TLSLDO)
++			  (match_operand:P 1 "register_operand" "r")))))]
++  "TARGET_TLS"
+   "ldsh\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "sload")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_lduh_sp64"
+-  [(set (match_operand:HI 0 "register_operand" "=r")
+-	(mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "lduh\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")
+-   (set_attr "us3load_type" "3cycle")])
+-
+-(define_insn "*tldo_lduh1_sp64"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(zero_extend:SI
+-	  (mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "lduh\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")
+-   (set_attr "us3load_type" "3cycle")])
+-
+ (define_insn "*tldo_lduh2_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(zero_extend:DI
+-	  (mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	  (mem:HI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+@@ -8408,22 +8252,10 @@
+    (set_attr "subtype" "regular")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_ldsh1_sp64"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(sign_extend:SI
+-	  (mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				       (match_operand 3 "tld_symbolic_operand" "")]
+-				      UNSPEC_TLSLDO)
+-			   (match_operand:DI 1 "register_operand" "r")))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "ldsh\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "sload")
+-   (set_attr "us3load_type" "3cycle")])
+-
+ (define_insn "*tldo_ldsh2_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(sign_extend:DI
+-	  (mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	  (mem:HI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+@@ -8432,32 +8264,21 @@
+   [(set_attr "type" "sload")
+    (set_attr "us3load_type" "3cycle")])
+ 
+-(define_insn "*tldo_lduw_sp32"
++(define_insn "*tldo_lduw<P:mode>"
+   [(set (match_operand:SI 0 "register_operand" "=r")
+-	(mem:SI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH32"
++	(mem:SI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				  UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r"))))]
++  "TARGET_TLS"
+   "ld\t[%1 + %2], %0, %%tldo_add(%3)"
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")])
+ 
+-(define_insn "*tldo_lduw_sp64"
+-  [(set (match_operand:SI 0 "register_operand" "=r")
+-	(mem:SI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r"))))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "lduw\t[%1 + %2], %0, %%tldo_add(%3)"
+-  [(set_attr "type" "load")
+-   (set_attr "subtype" "regular")])
+-
+ (define_insn "*tldo_lduw1_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(zero_extend:DI
+-	  (mem:SI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	  (mem:SI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+@@ -8469,8 +8290,8 @@
+ (define_insn "*tldo_ldsw1_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+ 	(sign_extend:DI
+-	  (mem:SI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-					(match_operand 3 "tld_symbolic_operand" "")]
++	  (mem:SI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
++				       (match_operand 3 "tld_symbolic_operand" "")]
+ 				      UNSPEC_TLSLDO)
+ 			   (match_operand:DI 1 "register_operand" "r")))))]
+   "TARGET_TLS && TARGET_ARCH64"
+@@ -8480,7 +8301,7 @@
+ 
+ (define_insn "*tldo_ldx_sp64"
+   [(set (match_operand:DI 0 "register_operand" "=r")
+-	(mem:DI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++	(mem:DI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				     (match_operand 3 "tld_symbolic_operand" "")]
+ 				    UNSPEC_TLSLDO)
+ 			 (match_operand:DI 1 "register_operand" "r"))))]
+@@ -8489,68 +8310,38 @@
+   [(set_attr "type" "load")
+    (set_attr "subtype" "regular")])
+ 
+-(define_insn "*tldo_stb_sp32"
+-  [(set (mem:QI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r")))
++(define_insn "*tldo_stb<P:mode>"
++  [(set (mem:QI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				  UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r")))
+ 	(match_operand:QI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH32"
++  "TARGET_TLS"
+   "stb\t%0, [%1 + %2], %%tldo_add(%3)"
+   [(set_attr "type" "store")])
+ 
+-(define_insn "*tldo_stb_sp64"
+-  [(set (mem:QI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r")))
+-	(match_operand:QI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "stb\t%0, [%1 + %2], %%tldo_add(%3)"
+-  [(set_attr "type" "store")])
+-
+-(define_insn "*tldo_sth_sp32"
+-  [(set (mem:HI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r")))
++(define_insn "*tldo_sth<P:mode>"
++  [(set (mem:HI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				   UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r")))
+ 	(match_operand:HI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH32"
++  "TARGET_TLS"
+   "sth\t%0, [%1 + %2], %%tldo_add(%3)"
+   [(set_attr "type" "store")])
+ 
+-(define_insn "*tldo_sth_sp64"
+-  [(set (mem:HI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r")))
+-	(match_operand:HI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "sth\t%0, [%1 + %2], %%tldo_add(%3)"
+-  [(set_attr "type" "store")])
+-
+-(define_insn "*tldo_stw_sp32"
+-  [(set (mem:SI (plus:SI (unspec:SI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:SI 1 "register_operand" "r")))
++(define_insn "*tldo_stw<P:mode>"
++  [(set (mem:SI (plus:P (unspec:P [(match_operand:P 2 "register_operand" "r")
++				   (match_operand 3 "tld_symbolic_operand" "")]
++				  UNSPEC_TLSLDO)
++			(match_operand:P 1 "register_operand" "r")))
+ 	(match_operand:SI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH32"
++  "TARGET_TLS"
+   "st\t%0, [%1 + %2], %%tldo_add(%3)"
+   [(set_attr "type" "store")])
+ 
+-(define_insn "*tldo_stw_sp64"
+-  [(set (mem:SI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
+-				     (match_operand 3 "tld_symbolic_operand" "")]
+-				    UNSPEC_TLSLDO)
+-			 (match_operand:DI 1 "register_operand" "r")))
+-	(match_operand:SI 0 "register_operand" "r"))]
+-  "TARGET_TLS && TARGET_ARCH64"
+-  "stw\t%0, [%1 + %2], %%tldo_add(%3)"
+-  [(set_attr "type" "store")])
+-
+ (define_insn "*tldo_stx_sp64"
+-  [(set (mem:DI (plus:DI (unspec:DI [(match_operand:SI 2 "register_operand" "r")
++  [(set (mem:DI (plus:DI (unspec:DI [(match_operand:DI 2 "register_operand" "r")
+ 				     (match_operand 3 "tld_symbolic_operand" "")]
+ 				    UNSPEC_TLSLDO)
+ 			 (match_operand:DI 1 "register_operand" "r")))
+Index: gcc/config/sparc/sparc.c
+===================================================================
+diff --git a/gcc/config/sparc/sparc.c b/gcc/config/sparc/sparc.c
+--- a/gcc/config/sparc/sparc.c	(revision 268128)
++++ b/gcc/config/sparc/sparc.c	(revision 268128)
+@@ -4531,30 +4531,38 @@
+   gcc_assert (can_create_pseudo_p ());
+ 
+   if (GET_CODE (addr) == SYMBOL_REF)
++    /* Although the various sethi/or sequences generate SImode values, many of
++       them can be transformed by the linker when relaxing and, if relaxing to
++       local-exec, will become a sethi/xor pair, which is signed and therefore
++       a full DImode value in 64-bit mode.  Thus we must use Pmode, lest these
++       values be spilled onto the stack in 64-bit mode.  */
+     switch (SYMBOL_REF_TLS_MODEL (addr))
+       {
+       case TLS_MODEL_GLOBAL_DYNAMIC:
+ 	start_sequence ();
+-	temp1 = gen_reg_rtx (SImode);
+-	temp2 = gen_reg_rtx (SImode);
++	temp1 = gen_reg_rtx (Pmode);
++	temp2 = gen_reg_rtx (Pmode);
+ 	ret = gen_reg_rtx (Pmode);
+ 	o0 = gen_rtx_REG (Pmode, 8);
+ 	got = sparc_tls_got ();
+-	emit_insn (gen_tgd_hi22 (temp1, addr));
+-	emit_insn (gen_tgd_lo10 (temp2, temp1, addr));
+ 	if (TARGET_ARCH32)
+ 	  {
+-	    emit_insn (gen_tgd_add32 (o0, got, temp2, addr));
+-	    insn = emit_call_insn (gen_tgd_call32 (o0, sparc_tls_get_addr (),
++	    emit_insn (gen_tgd_hi22si (temp1, addr));
++	    emit_insn (gen_tgd_lo10si (temp2, temp1, addr));
++	    emit_insn (gen_tgd_addsi (o0, got, temp2, addr));
++	    insn = emit_call_insn (gen_tgd_callsi (o0, sparc_tls_get_addr (),
+ 						   addr, const1_rtx));
+ 	  }
+ 	else
+ 	  {
+-	    emit_insn (gen_tgd_add64 (o0, got, temp2, addr));
+-	    insn = emit_call_insn (gen_tgd_call64 (o0, sparc_tls_get_addr (),
++	    emit_insn (gen_tgd_hi22di (temp1, addr));
++	    emit_insn (gen_tgd_lo10di (temp2, temp1, addr));
++	    emit_insn (gen_tgd_adddi (o0, got, temp2, addr));
++	    insn = emit_call_insn (gen_tgd_calldi (o0, sparc_tls_get_addr (),
+ 						   addr, const1_rtx));
+ 	  }
+ 	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
++	RTL_CONST_CALL_P (insn) = 1;
+ 	insn = get_insns ();
+ 	end_sequence ();
+ 	emit_libcall_block (insn, ret, o0, addr);
+@@ -4562,61 +4570,78 @@
+ 
+       case TLS_MODEL_LOCAL_DYNAMIC:
+ 	start_sequence ();
+-	temp1 = gen_reg_rtx (SImode);
+-	temp2 = gen_reg_rtx (SImode);
++	temp1 = gen_reg_rtx (Pmode);
++	temp2 = gen_reg_rtx (Pmode);
+ 	temp3 = gen_reg_rtx (Pmode);
+ 	ret = gen_reg_rtx (Pmode);
+ 	o0 = gen_rtx_REG (Pmode, 8);
+ 	got = sparc_tls_got ();
+-	emit_insn (gen_tldm_hi22 (temp1));
+-	emit_insn (gen_tldm_lo10 (temp2, temp1));
+ 	if (TARGET_ARCH32)
+ 	  {
+-	    emit_insn (gen_tldm_add32 (o0, got, temp2));
+-	    insn = emit_call_insn (gen_tldm_call32 (o0, sparc_tls_get_addr (),
++	    emit_insn (gen_tldm_hi22si (temp1));
++	    emit_insn (gen_tldm_lo10si (temp2, temp1));
++	    emit_insn (gen_tldm_addsi (o0, got, temp2));
++	    insn = emit_call_insn (gen_tldm_callsi (o0, sparc_tls_get_addr (),
+ 						    const1_rtx));
+ 	  }
+ 	else
+ 	  {
+-	    emit_insn (gen_tldm_add64 (o0, got, temp2));
+-	    insn = emit_call_insn (gen_tldm_call64 (o0, sparc_tls_get_addr (),
++	    emit_insn (gen_tldm_hi22di (temp1));
++	    emit_insn (gen_tldm_lo10di (temp2, temp1));
++	    emit_insn (gen_tldm_adddi (o0, got, temp2));
++	    insn = emit_call_insn (gen_tldm_calldi (o0, sparc_tls_get_addr (),
+ 						    const1_rtx));
+ 	  }
+ 	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
++	RTL_CONST_CALL_P (insn) = 1;
+ 	insn = get_insns ();
+ 	end_sequence ();
++	/* Attach a unique REG_EQUAL, to allow the RTL optimizers to
++	  share the LD_BASE result with other LD model accesses.  */
+ 	emit_libcall_block (insn, temp3, o0,
+ 			    gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
+ 					    UNSPEC_TLSLD_BASE));
+-	temp1 = gen_reg_rtx (SImode);
+-	temp2 = gen_reg_rtx (SImode);
+-	emit_insn (gen_tldo_hix22 (temp1, addr));
+-	emit_insn (gen_tldo_lox10 (temp2, temp1, addr));
++	temp1 = gen_reg_rtx (Pmode);
++	temp2 = gen_reg_rtx (Pmode);
+ 	if (TARGET_ARCH32)
+-	  emit_insn (gen_tldo_add32 (ret, temp3, temp2, addr));
++	  {
++	    emit_insn (gen_tldo_hix22si (temp1, addr));
++	    emit_insn (gen_tldo_lox10si (temp2, temp1, addr));
++	    emit_insn (gen_tldo_addsi (ret, temp3, temp2, addr));
++	  }
+ 	else
+-	  emit_insn (gen_tldo_add64 (ret, temp3, temp2, addr));
++	  {
++	    emit_insn (gen_tldo_hix22di (temp1, addr));
++	    emit_insn (gen_tldo_lox10di (temp2, temp1, addr));
++	    emit_insn (gen_tldo_adddi (ret, temp3, temp2, addr));
++	  }
+ 	break;
+ 
+       case TLS_MODEL_INITIAL_EXEC:
+-	temp1 = gen_reg_rtx (SImode);
+-	temp2 = gen_reg_rtx (SImode);
++	temp1 = gen_reg_rtx (Pmode);
++	temp2 = gen_reg_rtx (Pmode);
+ 	temp3 = gen_reg_rtx (Pmode);
+ 	got = sparc_tls_got ();
+-	emit_insn (gen_tie_hi22 (temp1, addr));
+-	emit_insn (gen_tie_lo10 (temp2, temp1, addr));
+ 	if (TARGET_ARCH32)
+-	  emit_insn (gen_tie_ld32 (temp3, got, temp2, addr));
++	  {
++	    emit_insn (gen_tie_hi22si (temp1, addr));
++	    emit_insn (gen_tie_lo10si (temp2, temp1, addr));
++	    emit_insn (gen_tie_ld32 (temp3, got, temp2, addr));
++	  }
+ 	else
+-	  emit_insn (gen_tie_ld64 (temp3, got, temp2, addr));
++	  {
++	    emit_insn (gen_tie_hi22di (temp1, addr));
++	    emit_insn (gen_tie_lo10di (temp2, temp1, addr));
++	    emit_insn (gen_tie_ld64 (temp3, got, temp2, addr));
++	  }
+         if (TARGET_SUN_TLS)
+ 	  {
+ 	    ret = gen_reg_rtx (Pmode);
+ 	    if (TARGET_ARCH32)
+-	      emit_insn (gen_tie_add32 (ret, gen_rtx_REG (Pmode, 7),
++	      emit_insn (gen_tie_addsi (ret, gen_rtx_REG (Pmode, 7),
+ 					temp3, addr));
+ 	    else
+-	      emit_insn (gen_tie_add64 (ret, gen_rtx_REG (Pmode, 7),
++	      emit_insn (gen_tie_adddi (ret, gen_rtx_REG (Pmode, 7),
+ 					temp3, addr));
+ 	  }
+ 	else
+@@ -4628,13 +4653,13 @@
+ 	temp2 = gen_reg_rtx (Pmode);
+ 	if (TARGET_ARCH32)
+ 	  {
+-	    emit_insn (gen_tle_hix22_sp32 (temp1, addr));
+-	    emit_insn (gen_tle_lox10_sp32 (temp2, temp1, addr));
++	    emit_insn (gen_tle_hix22si (temp1, addr));
++	    emit_insn (gen_tle_lox10si (temp2, temp1, addr));
+ 	  }
+ 	else
+ 	  {
+-	    emit_insn (gen_tle_hix22_sp64 (temp1, addr));
+-	    emit_insn (gen_tle_lox10_sp64 (temp2, temp1, addr));
++	    emit_insn (gen_tle_hix22di (temp1, addr));
++	    emit_insn (gen_tle_lox10di (temp2, temp1, addr));
+ 	  }
+ 	ret = gen_rtx_PLUS (Pmode, gen_rtx_REG (Pmode, 7), temp2);
+ 	break;
+Index: gcc/config/i386/darwin.h
+===================================================================
+diff --git a/gcc/config/i386/darwin.h b/gcc/config/i386/darwin.h
+--- a/gcc/config/i386/darwin.h	(revision 268128)
++++ b/gcc/config/i386/darwin.h	(revision 268128)
+@@ -85,9 +85,6 @@
+ /* On Darwin, the stack is 128-bit aligned at the point of every call.
+    Failure to ensure this will lead to a crash in the system libraries
+    or dynamic loader.  */
+-#undef STACK_BOUNDARY
+-#define STACK_BOUNDARY \
+-  ((profile_flag || TARGET_64BIT_MS_ABI) ? 128 : BITS_PER_WORD)
+ 
+ #undef MAIN_STACK_BOUNDARY
+ #define MAIN_STACK_BOUNDARY 128
+Index: gcc/config/i386/i386.c
+===================================================================
+diff --git a/gcc/config/i386/i386.c b/gcc/config/i386/i386.c
+--- a/gcc/config/i386/i386.c	(revision 268128)
++++ b/gcc/config/i386/i386.c	(revision 268128)
+@@ -12788,10 +12788,16 @@
+   /* 64-bit MS ABI seem to require stack alignment to be always 16,
+      except for function prologues, leaf functions and when the defult
+      incoming stack boundary is overriden at command line or via
+-     force_align_arg_pointer attribute.  */
+-  if ((TARGET_64BIT_MS_ABI && crtl->preferred_stack_boundary < 128)
++     force_align_arg_pointer attribute.
++
++     Darwin's ABI specifies 128b alignment for both 32 and  64 bit variants
++     at call sites, including profile function calls.
++ */
++  if (((TARGET_64BIT_MS_ABI || TARGET_MACHO)
++        && crtl->preferred_stack_boundary < 128)
+       && (!crtl->is_leaf || cfun->calls_alloca != 0
+ 	  || ix86_current_function_calls_tls_descriptor
++	  || (TARGET_MACHO && crtl->profile)
+ 	  || ix86_incoming_stack_boundary < 128))
+     {
+       crtl->preferred_stack_boundary = 128;
+@@ -24118,7 +24124,7 @@
+   return true;
+ }
+ 
+-/* Expand an sse vector comparison.  Return the register with the result.  */
++/* Expand an SSE comparison.  Return the register with the result.  */
+ 
+ static rtx
+ ix86_expand_sse_cmp (rtx dest, enum rtx_code code, rtx cmp_op0, rtx cmp_op1,
+@@ -24144,9 +24150,12 @@
+   else
+     cmp_mode = cmp_ops_mode;
+ 
++  cmp_op0 = force_reg (cmp_ops_mode, cmp_op0);
+ 
+-  cmp_op0 = force_reg (cmp_ops_mode, cmp_op0);
+-  if (!nonimmediate_operand (cmp_op1, cmp_ops_mode))
++  int (*op1_predicate)(rtx, machine_mode)
++    = VECTOR_MODE_P (cmp_ops_mode) ? vector_operand : nonimmediate_operand;
++
++  if (!op1_predicate (cmp_op1, cmp_ops_mode))
+     cmp_op1 = force_reg (cmp_ops_mode, cmp_op1);
+ 
+   if (optimize
+@@ -24266,7 +24275,7 @@
+       rtx (*gen) (rtx, rtx, rtx, rtx) = NULL;
+       rtx d = dest;
+ 
+-      if (!nonimmediate_operand (op_true, mode))
++      if (!vector_operand (op_true, mode))
+ 	op_true = force_reg (mode, op_true);
+ 
+       op_false = force_reg (mode, op_false);
+Index: gcc/config/rs6000/darwin7.h
+===================================================================
+diff --git a/gcc/config/rs6000/darwin7.h b/gcc/config/rs6000/darwin7.h
+--- a/gcc/config/rs6000/darwin7.h	(revision 268128)
++++ b/gcc/config/rs6000/darwin7.h	(revision 268128)
+@@ -28,5 +28,10 @@
+   %:version-compare(!< 10.3 mmacosx-version-min= -lmx)\
+   -lSystem}"
+ 
++/* This generation of tools (specifically the archive tool) did not
++   export weak symbols from the TOC. */
++#undef TARGET_WEAK_NOT_IN_ARCHIVE_TOC
++#define TARGET_WEAK_NOT_IN_ARCHIVE_TOC 1
++
+ #undef DEF_MIN_OSX_VERSION
+ #define DEF_MIN_OSX_VERSION "10.3.9"
+Index: gcc/config/rs6000/rs6000.c
+===================================================================
+diff --git a/gcc/config/rs6000/rs6000.c b/gcc/config/rs6000/rs6000.c
+--- a/gcc/config/rs6000/rs6000.c	(revision 268128)
++++ b/gcc/config/rs6000/rs6000.c	(revision 268128)
+@@ -4829,6 +4829,13 @@
+       else
+ 	rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
+     }
++  else if (global_options_set.x_rs6000_ieeequad)
++    {
++      if (global_options.x_rs6000_ieeequad)
++	error ("%qs requires %qs", "-mabi=ieeelongdouble", "-mlong-double-128");
++      else
++	error ("%qs requires %qs", "-mabi=ibmlongdouble", "-mlong-double-128");
++    }
+ 
+   /* Set -mabi=ieeelongdouble on some old targets.  Note, AIX and Darwin
+      explicitly redefine TARGET_IEEEQUAD to 0, so those systems will not
+@@ -4838,6 +4845,11 @@
+     rs6000_ieeequad = 1;
+ #endif
+ 
++  if (global_options_set.x_rs6000_ieeequad
++      && global_options.x_rs6000_ieeequad
++      && (!TARGET_POPCNTD || !TARGET_VSX))
++    error ("%qs requires full ISA 2.06 support", "-mabi=ieeelongdouble");
++
+   /* Enable the default support for IEEE 128-bit floating point on Linux VSX
+      sytems, but don't enable the __float128 keyword.  */
+   if (TARGET_VSX && TARGET_LONG_DOUBLE_128
+Index: gcc/config/rs6000/vsx.md
+===================================================================
+diff --git a/gcc/config/rs6000/vsx.md b/gcc/config/rs6000/vsx.md
+--- a/gcc/config/rs6000/vsx.md	(revision 268128)
++++ b/gcc/config/rs6000/vsx.md	(revision 268128)
+@@ -2438,7 +2438,7 @@
+ 	 (match_operand:VSX_D 1 "memory_operand" "m,m")
+ 	 (parallel [(match_operand:QI 2 "const_0_to_1_operand" "n,n")])))
+    (clobber (match_scratch:P 3 "=&b,&b"))]
+-  "VECTOR_MEM_VSX_P (<VSX_D:MODE>mode)"
++  "TARGET_POWERPC64 && VECTOR_MEM_VSX_P (<VSX_D:MODE>mode)"
+   "#"
+   "&& reload_completed"
+   [(set (match_dup 0) (match_dup 4))]
+Index: gcc/config/darwin.h
+===================================================================
+diff --git a/gcc/config/darwin.h b/gcc/config/darwin.h
+--- a/gcc/config/darwin.h	(revision 268128)
++++ b/gcc/config/darwin.h	(revision 268128)
+@@ -434,21 +434,30 @@
+ 
+ #define DWARF2_DEBUGGING_INFO 1
+ 
+-#define DEBUG_FRAME_SECTION	"__DWARF,__debug_frame,regular,debug"
+-#define DEBUG_INFO_SECTION	"__DWARF,__debug_info,regular,debug"
+-#define DEBUG_ABBREV_SECTION	"__DWARF,__debug_abbrev,regular,debug"
+-#define DEBUG_ARANGES_SECTION	"__DWARF,__debug_aranges,regular,debug"
+-#define DEBUG_MACINFO_SECTION	"__DWARF,__debug_macinfo,regular,debug"
+-#define DEBUG_LINE_SECTION	"__DWARF,__debug_line,regular,debug"
+-#define DEBUG_LOC_SECTION	"__DWARF,__debug_loc,regular,debug"
+-#define DEBUG_PUBNAMES_SECTION	"__DWARF,__debug_pubnames,regular,debug"
+-#define DEBUG_PUBTYPES_SECTION	"__DWARF,__debug_pubtypes,regular,debug"
+-#define DEBUG_STR_SECTION	"__DWARF,__debug_str,regular,debug"
+-#define DEBUG_RANGES_SECTION	"__DWARF,__debug_ranges,regular,debug"
+-#define DEBUG_MACRO_SECTION    "__DWARF,__debug_macro,regular,debug"
++#define DEBUG_FRAME_SECTION	  "__DWARF,__debug_frame,regular,debug"
++#define DEBUG_INFO_SECTION	  "__DWARF,__debug_info,regular,debug"
++#define DEBUG_ABBREV_SECTION	  "__DWARF,__debug_abbrev,regular,debug"
++#define DEBUG_ARANGES_SECTION	  "__DWARF,__debug_aranges,regular,debug"
++#define DEBUG_MACINFO_SECTION	  "__DWARF,__debug_macinfo,regular,debug"
++#define DEBUG_LINE_SECTION	  "__DWARF,__debug_line,regular,debug"
++#define DEBUG_LOC_SECTION	  "__DWARF,__debug_loc,regular,debug"
++#define DEBUG_LOCLISTS_SECTION    "__DWARF,__debug_loclists,regular,debug"
+ 
++#define DEBUG_STR_SECTION	  "__DWARF,__debug_str,regular,debug"
++#define DEBUG_STR_OFFSETS_SECTION "__DWARF,__debug_str_offs,regular,debug"
++#define DEBUG_RANGES_SECTION	  "__DWARF,__debug_ranges,regular,debug"
++#define DEBUG_RNGLISTS_SECTION    "__DWARF,__debug_rnglists,regular,debug"
++#define DEBUG_MACRO_SECTION       "__DWARF,__debug_macro,regular,debug"
++
+ #define TARGET_WANT_DEBUG_PUB_SECTIONS true
++#define DEBUG_PUBNAMES_SECTION   ((debug_generate_pub_sections == 2) \
++                               ? "__DWARF,__debug_gnu_pubn,regular,debug" \
++                               : "__DWARF,__debug_pubnames,regular,debug")
+ 
++#define DEBUG_PUBTYPES_SECTION   ((debug_generate_pub_sections == 2) \
++                               ? "__DWARF,__debug_gnu_pubt,regular,debug" \
++                               : "__DWARF,__debug_pubtypes,regular,debug")
++
+ /* When generating stabs debugging, use N_BINCL entries.  */
+ 
+ #define DBX_USE_BINCL
+@@ -495,11 +504,6 @@
+    links to, so there's no need for weak-ness for that.  */
+ #define GTHREAD_USE_WEAK 0
+ 
+-/* The Darwin linker doesn't want coalesced symbols to appear in
+-   a static archive's table of contents. */
+-#undef TARGET_WEAK_NOT_IN_ARCHIVE_TOC
+-#define TARGET_WEAK_NOT_IN_ARCHIVE_TOC 1
+-
+ /* On Darwin, we don't (at the time of writing) have linkonce sections
+    with names, so it's safe to make the class data not comdat.  */
+ #define TARGET_CXX_CLASS_DATA_ALWAYS_COMDAT hook_bool_void_false
+Index: libgfortran/runtime/backtrace.c
+===================================================================
+diff --git a/libgfortran/runtime/backtrace.c b/libgfortran/runtime/backtrace.c
+--- a/libgfortran/runtime/backtrace.c	(revision 268128)
++++ b/libgfortran/runtime/backtrace.c	(revision 268128)
+@@ -135,14 +135,23 @@
+ void
+ show_backtrace (bool in_signal_handler)
+ {
++  /* Note that libbacktrace allows the state to be accessed from
++     multiple threads, so we don't need to use a TLS variable for the
++     state here.  */
++  static struct backtrace_state *lbstate_saved;
+   struct backtrace_state *lbstate;
+   struct mystate state = { 0, false, in_signal_handler };
+- 
+-  lbstate = backtrace_create_state (NULL, __gthread_active_p (),
+-				    error_callback, NULL);
+ 
+-  if (lbstate == NULL)
+-    return;
++  lbstate = __atomic_load_n (&lbstate_saved, __ATOMIC_RELAXED);
++  if (!lbstate)
++    {
++      lbstate = backtrace_create_state (NULL, __gthread_active_p (),
++					error_callback, NULL);
++      if (lbstate)
++	__atomic_store_n (&lbstate_saved, lbstate, __ATOMIC_RELAXED);
++      else
++	return;
++    }
+ 
+   if (!BACKTRACE_SUPPORTED || (in_signal_handler && BACKTRACE_USES_MALLOC))
+     {
+Index: libgfortran/ChangeLog
+===================================================================
+diff --git a/libgfortran/ChangeLog b/libgfortran/ChangeLog
+--- a/libgfortran/ChangeLog	(revision 268128)
++++ b/libgfortran/ChangeLog	(revision 268128)
+@@ -1,3 +1,18 @@
++2019-01-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
++
++	PR libfortran/88776
++	* io/list_read.c (namelist_read): Use nml_err_ret path on read error
++	not based on stdin_unit.
++	* io/open.c (newunit): Free format buffer if the unit specified is for
++	stdin, stdout, or stderr. 
++
++2018-12-06  Janne Blomqvist  <jb@gcc.gnu.org>
++
++	Backport from trunk
++	PR libfortran/88137
++	* runtime/backtrace.c (show_backtrace): Store backtrace state in a
++	static variable, initialize once.
++
+ 2018-12-06  Release Manager
+ 
+ 	* GCC 7.4.0 released.
+Index: libgfortran/io/open.c
+===================================================================
+diff --git a/libgfortran/io/open.c b/libgfortran/io/open.c
+--- a/libgfortran/io/open.c	(revision 268128)
++++ b/libgfortran/io/open.c	(revision 268128)
+@@ -529,6 +529,14 @@
+   if (u2 != NULL)
+     unlock_unit (u2);
+ 
++  /* If the unit specified is preconnected with a file specified to be open,
++     then clear the format buffer.  */
++  if ((opp->common.unit == options.stdin_unit ||
++       opp->common.unit == options.stdout_unit ||
++       opp->common.unit == options.stderr_unit)
++      && (opp->common.flags & IOPARM_OPEN_HAS_FILE) != 0)
++    fbuf_destroy (u);
++
+   /* Open file.  */
+ 
+   s = open_external (opp, flags);
+Index: libgfortran/io/list_read.c
+===================================================================
+diff --git a/libgfortran/io/list_read.c b/libgfortran/io/list_read.c
+--- a/libgfortran/io/list_read.c	(revision 268128)
++++ b/libgfortran/io/list_read.c	(revision 268128)
+@@ -3613,11 +3613,7 @@
+   while (!dtp->u.p.input_complete)
+     {
+       if (!nml_get_obj_data (dtp, &prev_nl, nml_err_msg, sizeof nml_err_msg))
+-	{
+-	  if (dtp->u.p.current_unit->unit_number != options.stdin_unit)
+-	    goto nml_err_ret;
+-	  generate_error (&dtp->common, LIBERROR_READ_VALUE, nml_err_msg);
+-        }
++	goto nml_err_ret;
+ 
+       /* Reset the previous namelist pointer if we know we are not going
+ 	 to be doing multiple reads within a single namelist object.  */

@@ -1,0 +1,72 @@
+https://bugs.gentoo.org/664014
+https://gcc.gnu.org/PR79242
+
+From 59f5415b4462a60d9f2dd6dc5229247da183b9fc Mon Sep 17 00:00:00 2001
+From: law <law@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sat, 17 Feb 2018 00:25:15 +0000
+Subject: [PATCH] 2018-02-16  Jozef Lawrynowicz <jozefl.gcc@gmail.com>
+
+	PR target/79242
+	* machmode.def: Define a complex mode for PARTIAL_INT.
+	* genmodes.c (complex_class): Return MODE_COMPLEX_INT for
+	MODE_PARTIAL_INT.
+	* doc/rtl.texi: Document CSPImode.
+	* config/msp430/msp430.c (msp430_hard_regno_nregs): Add CPSImode
+	handling.
+	(msp430_hard_regno_nregs_with_padding): Likewise.
+
+	PR target/79242
+	gcc.target/msp430/pr79242.c: New test.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-7-branch@257779 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                             | 11 +++++++++++
+ gcc/config/msp430/msp430.c                |  4 ++++
+ gcc/doc/rtl.texi                          |  5 +++--
+ gcc/genmodes.c                            |  1 +
+ gcc/machmode.def                          |  1 +
+ gcc/testsuite/ChangeLog                   |  5 +++++
+ gcc/testsuite/gcc.target/msp430/pr79242.c | 11 +++++++++++
+ 7 files changed, 36 insertions(+), 2 deletions(-)
+ create mode 100644 gcc/testsuite/gcc.target/msp430/pr79242.c
+
+--- a/gcc/config/msp430/msp430.c
++++ b/gcc/config/msp430/msp430.c
+@@ -905,6 +905,8 @@ msp430_hard_regno_nregs (int regno ATTRIBUTE_UNUSED,
+ {
+   if (mode == PSImode && msp430x)
+     return 1;
++  if (mode == CPSImode && msp430x)
++    return 2;
+   return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1)
+ 	  / UNITS_PER_WORD);
+ }
+@@ -927,6 +929,8 @@ msp430_hard_regno_nregs_with_padding (int regno ATTRIBUTE_UNUSED,
+ {
+   if (mode == PSImode)
+     return 2;
++  if (mode == CPSImode)
++    return 4;
+   return msp430_hard_regno_nregs (regno, mode);
+ }
+ 
+--- a/gcc/genmodes.c
++++ b/gcc/genmodes.c
+@@ -116,6 +116,7 @@ complex_class (enum mode_class c)
+   switch (c)
+     {
+     case MODE_INT: return MODE_COMPLEX_INT;
++    case MODE_PARTIAL_INT: return MODE_COMPLEX_INT;
+     case MODE_FLOAT: return MODE_COMPLEX_FLOAT;
+     default:
+       error ("no complex class for class %s", mode_class_names[c]);
+--- a/gcc/machmode.def
++++ b/gcc/machmode.def
+@@ -243,6 +243,7 @@ UACCUM_MODE (UTA, 16, 64, 64); /* 64.64 */
+ 
+ /* Complex modes.  */
+ COMPLEX_MODES (INT);
++COMPLEX_MODES (PARTIAL_INT);
+ COMPLEX_MODES (FLOAT);
+ 
+ /* Decimal floating point modes.  */

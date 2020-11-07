@@ -1,0 +1,23 @@
+diff --git a/bin/ebuild.sh b/bin/ebuild.sh
+index 94a44d534..cf6a2db61 100755
+--- a/bin/ebuild.sh
++++ b/bin/ebuild.sh
+@@ -75,9 +75,6 @@ else
+ 	___eapi_has_available_eclasses && funcs+=" available_eclasses"
+ 	___eapi_has_eclass_path && funcs+=" eclass_path"
+ 	___eapi_has_license_path && funcs+=" license_path"
+-	for x in ${funcs} ; do
+-		eval "${x}() { die \"\${FUNCNAME}() calls are not allowed in global scope\"; }"
+-	done
+ 	unset funcs x
+ 
+ 	# prevent the shell from finding external executables
+@@ -85,7 +82,7 @@ else
+ 	_PORTAGE_ORIG_PATH=${PATH}
+ 	export PATH=/dev/null
+ 	command_not_found_handle() {
+-		die "External commands disallowed while sourcing ebuild: ${*}"
++		ewarn "External commands disallowed while sourcing ebuild: ${*}"
+ 	}
+ fi
+ 

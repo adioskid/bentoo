@@ -1,0 +1,29 @@
+https://bugs.gentoo.org/show_bug.cgi?id=620164
+
+Unescaped left brace in regex is now a fatal error.
+
+
+diff -ruN gcc-5.4.0.orig/contrib/texi2pod.pl gcc-5.4.0/contrib/texi2pod.pl
+--- gcc-5.4.0.orig/contrib/texi2pod.pl	2014-08-11 09:29:41.000000000 +0200
++++ gcc-5.4.0/contrib/texi2pod.pl	2017-05-29 20:03:29.763162185 +0200
+@@ -316,7 +316,7 @@
+ 	@columns = ();
+ 	for $column (split (/\s*\@tab\s*/, $1)) {
+ 	    # @strong{...} is used a @headitem work-alike
+-	    $column =~ s/^\@strong{(.*)}$/$1/;
++	    $column =~ s/^\@strong\{(.*)}$/$1/;
+ 	    push @columns, $column;
+ 	}
+ 	$_ = "\n=item ".join (" : ", @columns)."\n";
+diff -ruN gcc-5.4.0.orig/libjava/classpath/doc/texi2pod.pl gcc-5.4.0/libjava/classpath/doc/texi2pod.pl
+--- gcc-5.4.0.orig/libjava/classpath/doc/texi2pod.pl	2007-06-04 01:18:43.000000000 +0200
++++ gcc-5.4.0/libjava/classpath/doc/texi2pod.pl	2017-05-29 20:04:45.912165337 +0200
+@@ -311,7 +311,7 @@
+ 	@columns = ();
+ 	for $column (split (/\s*\@tab\s*/, $1)) {
+ 	    # @strong{...} is used a @headitem work-alike
+-	    $column =~ s/^\@strong{(.*)}$/$1/;
++	    $column =~ s/^\@strong\{(.*)}$/$1/;
+ 	    push @columns, $column;
+ 	}
+ 	$_ = "\n=item ".join (" : ", @columns)."\n";

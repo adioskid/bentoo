@@ -1,0 +1,25 @@
+diff -urN portage-2.3.8/man/emerge.1 portage-2.3.8-fixed/man/emerge.1
+--- portage-2.3.8/man/emerge.1	2017-08-16 18:06:53.000000000 -0600
++++ portage-2.3.8-fixed/man/emerge.1	2017-08-20 03:19:05.912506073 -0600
+@@ -419,7 +419,7 @@
+ .BR \-\-backtrack=COUNT
+ Specifies an integer number of times to backtrack if
+ dependency calculation fails due to a conflict or an
+-unsatisfied dependency (default: \'10\').
++unsatisfied dependency (default: \'0\').
+ .TP
+ .BR "\-\-binpkg\-changed\-deps [ y | n ]"
+ Tells emerge to ignore binary packages for which the corresponding
+diff -urN portage-2.3.8/pym/_emerge/depgraph.py portage-2.3.8-fixed/pym/_emerge/depgraph.py
+--- portage-2.3.8/pym/_emerge/depgraph.py	2017-08-16 18:06:53.000000000 -0600
++++ portage-2.3.8-fixed/pym/_emerge/depgraph.py	2017-08-20 03:18:55.020505804 -0600
+@@ -9538,7 +9538,7 @@
+ 
+ 	debug = "--debug" in myopts
+ 	mydepgraph = None
+-	max_retries = myopts.get('--backtrack', 10)
++	max_retries = myopts.get('--backtrack', 0)
+ 	max_depth = max(1, (max_retries + 1) // 2)
+ 	allow_backtracking = max_retries > 0
+ 	backtracker = Backtracker(max_depth)
+

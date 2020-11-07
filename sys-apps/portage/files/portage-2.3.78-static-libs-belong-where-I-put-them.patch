@@ -1,0 +1,20 @@
+diff -urN portage-2.3.78/bin/install-qa-check.d/80libraries portage-2.3.78-fixed/bin/install-qa-check.d/80libraries
+--- portage-2.3.78/bin/install-qa-check.d/80libraries	2019-11-15 21:41:46.000000000 -0700
++++ portage-2.3.78-fixed/bin/install-qa-check.d/80libraries	2020-09-20 19:42:39.117187556 -0600
+@@ -152,16 +152,6 @@
+ 	done
+ 	[[ ${abort} == "yes" ]] && die "add those ldscripts"
+ 
+-	# Make sure people don't store libtool files or static libs in /lib
+-	f=$(ls "${ED%/}"/lib*/*.{a,la} 2>/dev/null)
+-	if [[ -n ${f} ]] ; then
+-		__vecho -ne '\n'
+-		eqawarn "QA Notice: Excessive files found in the / partition"
+-		eqawarn "${f}"
+-		__vecho -ne '\n'
+-		die "static archives (*.a) and libtool library files (*.la) belong in /usr/lib*, not /lib*"
+-	fi
+-
+ 	# Verify that the libtool files don't contain bogus $D entries.
+ 	local abort=no gentoo_bug=no always_overflow=no
+ 	for a in "${ED%/}"/usr/lib*/*.la ; do

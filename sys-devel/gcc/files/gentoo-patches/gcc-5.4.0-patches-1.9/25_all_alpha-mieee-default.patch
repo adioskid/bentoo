@@ -1,0 +1,38 @@
+Set the default behavior on alpha to use -mieee since the large majority of
+time we want this (bad/weird things can happen with packages built without
+it).
+
+To satisfy those people who may not want -mieee forced on them all the time,
+we also provide -mno-ieee.
+
+Patch by Mike Frysinger <vapier@gentoo.org>
+
+Note: upstream doesn't want to take this due to long standing behavior, and
+because it'd make behavior across OS's inconsistent:
+	https://gcc.gnu.org/ml/gcc-patches/2003-07/msg02144.html
+
+This makes sense for upstream, but Gentoo is more concerned about packages
+behaving the same across arches under Linux.
+
+--- a/gcc/config/alpha/alpha.h
++++ b/gcc/config/alpha/alpha.h
+@@ -96,6 +96,8 @@ along with GCC; see the file COPYING3.  If not see
+   while (0)
+ #endif
+ 
++#define CPP_SPEC "%{!no-ieee:-mieee}"
++
+ /* Run-time compilation parameters selecting different hardware subsets.  */
+ 
+ /* Which processor to schedule for. The cpu attribute defines a list that
+--- a/gcc/config/alpha/alpha.opt
++++ b/gcc/config/alpha/alpha.opt
+@@ -39,7 +39,7 @@ Target RejectNegative Mask(IEEE_CONFORMANT)
+ Request IEEE-conformant math library routines (OSF/1)
+ 
+ mieee
+-Target Report RejectNegative Mask(IEEE)
++Target Report Mask(IEEE)
+ Emit IEEE-conformant code, without inexact exceptions
+ 
+ mieee-with-inexact

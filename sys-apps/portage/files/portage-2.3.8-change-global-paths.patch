@@ -1,0 +1,17 @@
+diff --git a/cnf/make.globals b/cnf/make.globals
+index ea50ab615..eb8be246c 100644
+--- a/cnf/make.globals
++++ b/cnf/make.globals
+@@ -28,9 +28,9 @@ ACCEPT_PROPERTIES="*"
+ ACCEPT_RESTRICT="*"
+ 
+ # Miscellaneous paths
+-DISTDIR="/usr/portage/distfiles"
+-PKGDIR="/usr/portage/packages"
+-RPMDIR="/usr/portage/rpm"
++DISTDIR="/var/cache/portage/distfiles"
++PKGDIR="/var/cache/portage/packages"
++RPMDIR="/var/cache/portage/rpm"
+ 
+ # Temporary build directory
+ PORTAGE_TMPDIR="/var/tmp"

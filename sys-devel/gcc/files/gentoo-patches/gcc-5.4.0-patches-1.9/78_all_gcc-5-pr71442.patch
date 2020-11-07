@@ -1,0 +1,95 @@
+https://bugs.gentoo.org/586052
+https://gcc.gnu.org/PR71442
+https://gcc.gnu.org/ml/gcc-patches/2016-06/msg00494.html
+https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=237234
+
+From 79a00c21567bb5e7a8868a25aa5b3b87cae6f0a9 Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 8 Jun 2016 18:05:38 +0000
+Subject: [C++ PATCH] Fix -Wunused-* regression (PR c++/71442)
+
+Marek has recently added code to set TREE_USED bits on the elements of
+TREE_VEC referenced in SIZEOF_EXPR.
+But, as the testcase shows, it can be used on various parameter/argument
+packs, some of them have types as elements, others decls.
+And IMHO we want to set TREE_USED only on the decls listed in those,
+for types TREE_USED should be a property of the type regardless of whether
+the type is mentioned in sizeof... or not, otherwise we suddenly stop
+diagnosing any unused vars with those types.
+
+Bootstrapped/regtested on x86_64-linux and i686-linux, ok for trunk/6.2/5.5?
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@237234 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/cp/ChangeLog                                |  5 ++++
+ gcc/cp/pt.c                                     |  3 +-
+ gcc/testsuite/ChangeLog                         |  5 ++++
+ gcc/testsuite/g++.dg/cpp0x/Wunused-variable-1.C | 37 +++++++++++++++++++++++++
+ 4 files changed, 49 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/g++.dg/cpp0x/Wunused-variable-1.C
+
+2016-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/71442
+	* pt.c (tsubst_copy): Only set TREE_USED on DECLs.
+
+diff --git a/gcc/cp/pt.c b/gcc/cp/pt.c
+index 2889795..7bbde32 100644
+--- a/gcc/cp/pt.c
++++ b/gcc/cp/pt.c
+@@ -13287,7 +13287,8 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
+ 	      len = TREE_VEC_LENGTH (expanded);
+ 	      /* Set TREE_USED for the benefit of -Wunused.  */
+ 	      for (int i = 0; i < len; i++)
+-		TREE_USED (TREE_VEC_ELT (expanded, i)) = true;
++		if (DECL_P (TREE_VEC_ELT (expanded, i)))
++		  TREE_USED (TREE_VEC_ELT (expanded, i)) = true;
+ 	    }
+ 
+ 	  if (expanded == error_mark_node)
+diff --git a/gcc/testsuite/g++.dg/cpp0x/Wunused-variable-1.C b/gcc/testsuite/g++.dg/cpp0x/Wunused-variable-1.C
+new file mode 100644
+index 0000000..39592b2
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/cpp0x/Wunused-variable-1.C
+@@ -0,0 +1,37 @@
++// PR c++/71442
++// { dg-do compile { target c++11 } }
++// { dg-options "-Wunused-variable" }
++
++struct C
++{
++  template<typename... Ts>
++  int operator()(Ts &&...)
++  {
++    return sizeof...(Ts);
++  }
++};
++
++int
++foo ()
++{
++  C {} (1, 1L, 1LL, 1.0);
++}
++
++template<int N>
++void
++bar ()
++{
++  char a;		// { dg-warning "unused variable" }
++  short b;		// { dg-warning "unused variable" }
++  int c;		// { dg-warning "unused variable" }
++  long d;		// { dg-warning "unused variable" }
++  long long e;		// { dg-warning "unused variable" }
++  float f;		// { dg-warning "unused variable" }
++  double g;		// { dg-warning "unused variable" }
++}
++
++void
++baz ()
++{
++  bar <0> ();
++}
+-- 
+2.9.3
+
