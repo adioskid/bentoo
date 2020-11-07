@@ -58,7 +58,7 @@ SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz -> ${MOZ_P_DISTFILES}
 DESCRIPTION="SpiderMonkey is Mozilla's JavaScript engine written in C and C++"
 HOMEPAGE="https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey"
 
-KEYWORDS="~amd64 ~arm ~arm64 ~mips ~ppc64 ~s390 ~x86"
+KEYWORDS="amd64 arm arm64 ~mips ppc64 ~s390 x86"
 
 SLOT="78"
 LICENSE="MPL-2.0"
@@ -231,6 +231,10 @@ src_test() {
 		KNOWN_TESTFAILURES+=( test262/built-ins/Number/prototype/toPrecision/return-values.js )
 		KNOWN_TESTFAILURES+=( test262/language/types/number/S8.5_A2.1.js )
 		KNOWN_TESTFAILURES+=( test262/language/types/number/S8.5_A2.2.js )
+	fi
+
+	if [[ $(tc-endian) == "big" ]] ; then
+		KNOWN_TESTFAILURES+=( test262/built-ins/TypedArray/prototype/set/typedarray-arg-set-values-same-buffer-other-type.js )
 	fi
 
 	echo "" > "${T}"/known_failures.list || die

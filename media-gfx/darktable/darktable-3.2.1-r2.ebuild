@@ -20,7 +20,7 @@ LICENSE="GPL-3 CC-BY-3.0"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64"
 LANGS=" de es fr he it pl pt-BR ru sl"
-IUSE="colord cups cpu_flags_x86_sse3 doc flickr geolocation gnome-keyring gphoto2 graphicsmagick jpeg2k kwallet
+IUSE="colord cups cpu_flags_x86_sse3 doc flickr geolocation gmic gnome-keyring gphoto2 graphicsmagick jpeg2k kwallet
 	lto lua nls opencl openmp openexr system-lua tools webp
 	${LANGS// / l10n_}"
 
@@ -53,6 +53,7 @@ COMMON_DEPEND="
 	cups? ( net-print/cups )
 	flickr? ( media-libs/flickcurl )
 	geolocation? ( >=sci-geosciences/osm-gps-map-1.1.0 )
+	gmic? ( media-gfx/gmic )
 	gnome-keyring? ( >=app-crypt/libsecret-0.18 )
 	gphoto2? ( media-libs/libgphoto2:= )
 	graphicsmagick? ( media-gfx/graphicsmagick )
@@ -104,8 +105,6 @@ src_prepare() {
 
 src_configure() {
 	# As of darktable-3.2.1, AVIF support is not compatible with >=media-libs/libavif-0.8.0; see Bug #751352.
-	# GMIC support mostly works but there are several problems with the media-gfx/gmic ebuilds currently
-	# in the tree, and the package itself has got no maintainer.
 	local mycmakeargs=(
 		-DBUILD_CURVE_TOOLS=$(usex tools)
 		-DBUILD_NOISE_TOOLS=$(usex tools)
@@ -117,7 +116,7 @@ src_configure() {
 		-DUSE_CAMERA_SUPPORT=$(usex gphoto2)
 		-DUSE_COLORD=$(usex colord)
 		-DUSE_FLICKR=$(usex flickr)
-		-DUSE_GMIC=no
+		-DUSE_GMIC=$(usex gmic)
 		-DUSE_GRAPHICSMAGICK=$(usex graphicsmagick)
 		-DUSE_KWALLET=$(usex kwallet)
 		-DUSE_LIBSECRET=$(usex gnome-keyring)
