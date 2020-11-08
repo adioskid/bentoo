@@ -1,3 +1,4 @@
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -5,7 +6,7 @@ EAPI=7
 MY_PN=Vulkan-ValidationLayers
 CMAKE_ECLASS="cmake"
 PYTHON_COMPAT=( python3_{6,7,8} )
-inherit cmake python-any-r1
+inherit cmake-multilib python-any-r1
 
 if [[ ${PV} == *9999* ]]; then
 	EGIT_REPO_URI="https://github.com/KhronosGroup/${MY_PN}.git"
@@ -13,7 +14,7 @@ if [[ ${PV} == *9999* ]]; then
 	inherit git-r3
 else
 	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="amd64 ~arm ~arm64 ~ppc ~ppc64 x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 	S="${WORKDIR}"/${MY_PN}-${PV}
 fi
 
@@ -26,20 +27,17 @@ IUSE="wayland X"
 
 BDEPEND=">=dev-util/cmake-3.10.2"
 DEPEND="${PYTHON_DEPS}
-	media-libs/mesa
-	>=dev-util/glslang-8.13.3743
-	>=dev-util/spirv-tools-2020.3
+	>=dev-util/glslang-10.11.0.0_pre20200924:=[${MULTILIB_USEDEP}]
+	>=dev-util/spirv-tools-2020.5_pre20201107:=[${MULTILIB_USEDEP}]
 	>=dev-util/vulkan-headers-${PV}
-	wayland? ( dev-libs/wayland )
+	wayland? ( dev-libs/wayland:=[${MULTILIB_USEDEP}] )
 	X? (
-		x11-libs/libX11
-		x11-libs/libXrandr
-		x11-libs/libxcb
-		x11-libs/libxkbcommon
+		x11-libs/libX11:=[${MULTILIB_USEDEP}]
+		x11-libs/libXrandr:=[${MULTILIB_USEDEP}]
 	)
 "
 
-src_configure() {
+multilib_src_configure() {
 	local mycmakeargs=(
 		-DCMAKE_SKIP_RPATH=ON
 		-DBUILD_LAYER_SUPPORT_FILES=ON
@@ -48,11 +46,8 @@ src_configure() {
 		-DBUILD_WSI_XLIB_SUPPORT=$(usex X)
 		-DBUILD_TESTS=OFF
 		-DGLSLANG_INSTALL_DIR="${EPREFIX}/usr"
-		-DCMAKE_INSTALL_PREFIX="${EPREFIX}/usr"
 		-DCMAKE_INSTALL_INCLUDEDIR="${EPREFIX}/usr/include/vulkan/"
-		-DVULKAN_HEADERS_INSTALL_DIR="${EPREFIX}/usr"
-		-DSPIRV_HEADERS_INSTALL_DIR="${EPREFIX}/usr"
-		-DSPIRV_TOOLS_INSTALL_DIR="${EPREFIX}/usr"
+		-DSPIRV_HEADERS_INSTALL_DIR="${EPREFIX}/usr/include/spirv"
 	)
 	cmake_src_configure
 }
