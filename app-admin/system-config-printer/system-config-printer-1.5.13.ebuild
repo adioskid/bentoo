@@ -9,7 +9,7 @@ inherit python-single-r1 systemd xdg
 
 DESCRIPTION="Graphical user interface for CUPS administration"
 HOMEPAGE="https://github.com/OpenPrinting/system-config-printer"
-SRC_URI="https://github.com/OpenPrinting/${PN}/releases/download/${PV}/${P}.tar.xz"
+SRC_URI="https://github.com/OpenPrinting/${PN}/releases/download/v${PV}/${P}.tar.xz"
 
 LICENSE="GPL-2+"
 SLOT="0"
@@ -54,14 +54,6 @@ RDEPEND="${COMMON_DEPEND}
 	gnome-keyring? ( app-crypt/libsecret[introspection] )
 	policykit? ( net-print/cups-pk-helper )
 "
-
-PATCHES=(
-	"${FILESDIR}"/${P}-check-for-null.patch
-	"${FILESDIR}"/${P}-fix-abrt-in-udev-configure-printer.patch
-	"${FILESDIR}"/${P}-catch-urllib-errors.patch
-	"${FILESDIR}"/${P}-fix-remember-passwd.patch
-	"${FILESDIR}"/${P}-py39-{1,2}.patch
-)
 
 pkg_setup() {
 	python-single-r1_pkg_setup
