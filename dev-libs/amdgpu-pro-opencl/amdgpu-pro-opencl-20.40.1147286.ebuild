@@ -28,11 +28,11 @@ RDEPEND="${COMMON}
 
 QA_PREBUILT="/opt/amdgpu/lib*/*"
 
-S="${WORKDIR}/${SUPER_PN}-${MY_PV}-ubuntu-20.20"
+S="${WORKDIR}/${SUPER_PN}-${MY_PV}-ubuntu-20.04"
 
 pkg_nofetch() {
 	local pkgver=$(ver_cut 1-2)
-	einfo "Please download Radeon Software for Linux version ${pkgver} for Ubuntu 20.20 from"
+	einfo "Please download Radeon Software for Linux version ${pkgver} for Ubuntu 20.04.1 from"
 	einfo "    ${HOMEPAGE}"
 	einfo "The archive should then be placed into your distfiles directory."
 }
@@ -48,7 +48,7 @@ src_unpack() {
 }
 
 multilib_src_unpack() {
-	local libdrm_ver="2.4.98"
+	local libdrm_ver="2.4.100"
 	local patchlevel=$(ver_cut 3)
 	local deb_abi
 	[[ ${ABI} == x86 ]] && deb_abi=i386
