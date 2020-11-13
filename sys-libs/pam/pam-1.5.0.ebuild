@@ -3,18 +3,19 @@
 
 EAPI=7
 
+MY_P="Linux-${PN^^}-${PV}"
+
 inherit autotools db-use fcaps toolchain-funcs usr-ldscript multilib-minimal
 
 DESCRIPTION="Linux-PAM (Pluggable Authentication Modules)"
 HOMEPAGE="https://github.com/linux-pam/linux-pam"
 
-COMMIT_HASH="e42e178c71c11bb25740a5177eed110ee17b8af2"
-SRC_URI="https://github.com/linux-pam/linux-pam/archive/${COMMIT_HASH}.tar.gz#/${PN}-${COMMIT_HASH}.tar.gz
-	https://dev.gentoo.org/~zlogene/distfiles/${CATEGORY}/${PN}/${PN}-1.4.0_p20200809-doc.tar.xz"
+SRC_URI="https://github.com/linux-pam/linux-pam/releases/download/v${PV}/${MY_P}.tar.xz
+	https://github.com/linux-pam/linux-pam/releases/download/v${PV}/${MY_P}-docs.tar.xz"
 
 LICENSE="|| ( BSD GPL-2 )"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv ~s390 sparc x86 ~amd64-linux ~x86-linux"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux"
 IUSE="audit berkdb debug nis +pie selinux"
 
 BDEPEND="
@@ -38,7 +39,7 @@ RDEPEND="${DEPEND}"
 
 PDEPEND=">=sys-auth/pambase-20200616"
 
-S="${WORKDIR}/linux-${PN}-${COMMIT_HASH}"
+S="${WORKDIR}/${MY_P}"
 
 src_prepare() {
 	default
@@ -66,9 +67,6 @@ multilib_src_configure() {
 		--exec-prefix="${EPREFIX}"
 		--enable-unix
 		--disable-prelude
-		--disable-cracklib
-		--disable-tally
-		--disable-tally2
 		--disable-doc
 		--disable-regenerate-docu
 		--disable-static
@@ -110,8 +108,10 @@ multilib_src_install_all() {
 		d /run/sepermit 0755 root root
 	_EOF_
 
-	for i in "${WORKDIR}"/${PN}-1.4.0_p20200809-doc/*; do
-		doman ${i}
+	local page
+
+	for page in doc/man/*.{3,5,8} modules/*/*.{5,8} ; do
+		doman ${page}
 	done
 }
 
