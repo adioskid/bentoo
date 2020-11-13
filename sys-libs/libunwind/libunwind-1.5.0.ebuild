@@ -13,13 +13,16 @@ SRC_URI="mirror://nongnu/libunwind/${MY_P}.tar.gz"
 
 LICENSE="MIT"
 SLOT="0/8" # libunwind.so.8
-KEYWORDS="amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 -sparc x86 ~amd64-linux ~x86-linux"
-IUSE="debug debug-frame doc libatomic lzma +static-libs"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 -sparc ~x86 ~amd64-linux ~x86-linux"
+IUSE="debug debug-frame doc libatomic lzma +static-libs zlib"
 
-RESTRICT="test" # some tests are broken (toolchain version dependent)
+RESTRICT="test" # some tests are broken (toolchain version dependent, rely on external binaries)
 
 # We just use the header from libatomic.
-RDEPEND="lzma? ( app-arch/xz-utils[static-libs?,${MULTILIB_USEDEP}] )"
+RDEPEND="
+	lzma? ( app-arch/xz-utils[static-libs?,${MULTILIB_USEDEP}] )
+	zlib? ( sys-libs/zlib[static-libs?,${MULTILIB_USEDEP}] )
+"
 DEPEND="${RDEPEND}
 	libatomic? ( dev-libs/libatomic_ops[${MULTILIB_USEDEP}] )"
 
@@ -46,7 +49,8 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-1.2-coredump-regs.patch #586092
 	"${FILESDIR}"/${PN}-1.2-ia64-ptrace-coredump.patch
 	"${FILESDIR}"/${PN}-1.2-ia64-missing.patch
-	"${FILESDIR}"/${PN}-1.2.1-only-include-execinfo_h-if-avaliable.patch
+	# needs refresh:
+	#"${FILESDIR}"/${PN}-1.2.1-only-include-execinfo_h-if-avaliable.patch
 )
 
 src_prepare() {
@@ -82,6 +86,7 @@ multilib_src_configure() {
 		$(use_enable doc documentation) \
 		$(use_enable lzma minidebuginfo) \
 		$(use_enable static-libs static) \
+		$(use_enable zlib zlibdebuginfo) \
 		$(use_enable debug conservative_checks) \
 		$(use_enable debug)
 }
