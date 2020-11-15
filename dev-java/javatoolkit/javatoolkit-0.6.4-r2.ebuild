@@ -26,3 +26,12 @@ python_install() {
 	distutils-r1_python_install \
 		--install-scripts="${EPREFIX}"/usr/libexec/${PN}
 }
+
+pkg_postinst() {
+	mkdir -p /usr/lib/${PN}/bin
+	ln -sf /usr/libexec/${PN}/* /usr/lib/${PN}/bin/
+}
+
+pkg_postrm() {
+	rm -rf /usr/lib/${PN}
+}
