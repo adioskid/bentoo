@@ -29,5 +29,9 @@ python_install() {
 
 pkg_postinst() {
 	mkdir -p /usr/lib/${PN}/bin
-	ln -sf /usr/libexec/${PN} /usr/lib/${PN}/bin
+	ln -sf /usr/libexec/${PN}/* /usr/lib/${PN}/bin/
+}
+
+pkg_postrm() {
+	rm -rf /usr/lib/${PN}
 }
