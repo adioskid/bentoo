@@ -3,11 +3,16 @@
 
 EAPI=7
 
+MY_PV="${PV/_/-}"
+MY_PV_BETA="${MY_PV/2/}"
+
 inherit optfeature readme.gentoo-r1
 
 DESCRIPTION="A tool to probe for hardware, check it's operability and find drivers"
 HOMEPAGE="https://github.com/linuxhw/hw-probe/"
-SRC_URI="https://github.com/linuxhw/hw-probe/archive/${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/linuxhw/hw-probe/archive/${MY_PV_BETA}.tar.gz -> ${P}.tar.gz"
+
+S="${WORKDIR}/${PN}-${MY_PV_BETA}"
 
 LICENSE="LGPL-2.1+"
 SLOT="0"
@@ -43,6 +48,7 @@ pkg_postinst() {
 
 	optfeature "showing Machine Check Exceptions." app-admin/mcelog
 	optfeature "showing additional I/O statistics." app-admin/sysstat
+	optfeature "showing display data channel (ddc) information." app-misc/ddcutil
 	optfeature "showing smart card (reader) information." dev-libs/opensc
 	optfeature "showing Vulkan GPU hardware information." dev-util/vulkan-tools
 	optfeature "showing information of attached scanners." media-gfx/sane-backends
