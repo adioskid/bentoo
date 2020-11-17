@@ -62,7 +62,7 @@ src_prepare() {
 
 	# Mung inittab for specific architectures
 	cd "${WORKDIR}" || die
-	cp "${FILESDIR}"/inittab-2.95 inittab || die "cp inittab"
+	cp "${FILESDIR}"/inittab-2.98 inittab || die "cp inittab"
 	local insert=()
 	use ppc && insert=( '#psc0:12345:respawn:/sbin/agetty 115200 ttyPSC0 linux' )
 	use arm && insert=( '#f0:12345:respawn:/sbin/agetty 9600 ttyFB0 vt100' )
@@ -109,21 +109,26 @@ src_install() {
 	insinto /etc
 	doins "${WORKDIR}"/inittab
 
-	# dead symlink
-	rm "${ED}"/usr/bin/lastb || die
-
 	newinitd "${FILESDIR}"/bootlogd.initd bootlogd
 	into /
 	dosbin "${FILESDIR}"/halt.sh
+
+	keepdir /etc/inittab.d
+
+	# dead symlink
+	find "${ED}" -xtype l -delete || die
+
+	find "${ED}" -type d -empty -delete || die
 }
 
 pkg_postinst() {
 	# Reload init to fix unmounting problems of / on next reboot.
 	# This is really needed, as without the new version of init cause init
 	# not to quit properly on reboot, and causes a fsck of / on next reboot.
-	if [[ ${ROOT} == / ]] ; then
-		if [[ -e /dev/initctl && ! -e /run/initctl ]]; then
-			ln -s /dev/initctl /run/initctl
+	if [[ -z ${ROOT} ]] ; then
+		if [[ -e /dev/initctl ]] && [[ ! -e /run/initctl ]] ; then
+			ln -s /dev/initctl /run/initctl \
+				|| ewarn "Failed to set /run/initctl symlink!"
 		fi
 		# Do not return an error if this fails
 		/sbin/telinit U &>/dev/null

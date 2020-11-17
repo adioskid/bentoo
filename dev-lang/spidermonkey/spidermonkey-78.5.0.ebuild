@@ -4,7 +4,7 @@
 EAPI="7"
 
 # Patch version
-FIREFOX_PATCHSET="firefox-78esr-patches-04.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-06.tar.xz"
 SPIDERMONKEY_PATCHSET="spidermonkey-78-patches-02.tar.xz"
 
 PYTHON_COMPAT=( python3_{6..9} )
@@ -58,7 +58,7 @@ SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz -> ${MOZ_P_DISTFILES}
 DESCRIPTION="SpiderMonkey is Mozilla's JavaScript engine written in C and C++"
 HOMEPAGE="https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey"
 
-KEYWORDS="amd64 arm arm64 ~mips ppc64 ~s390 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~mips ~ppc64 ~s390 ~x86"
 
 SLOT="78"
 LICENSE="MPL-2.0"
@@ -93,9 +93,9 @@ python_check_deps() {
 
 pkg_pretend() {
 	if use test ; then
-		CHECKREQS_DISK_BUILD="6400M"
+		CHECKREQS_DISK_BUILD="7600M"
 	else
-		CHECKREQS_DISK_BUILD="5600M"
+		CHECKREQS_DISK_BUILD="6400M"
 	fi
 
 	check-reqs_pkg_pretend
@@ -103,9 +103,9 @@ pkg_pretend() {
 
 pkg_setup() {
 	if use test ; then
-		CHECKREQS_DISK_BUILD="6400M"
+		CHECKREQS_DISK_BUILD="7600M"
 	else
-		CHECKREQS_DISK_BUILD="5600M"
+		CHECKREQS_DISK_BUILD="6400M"
 	fi
 
 	check-reqs_pkg_setup

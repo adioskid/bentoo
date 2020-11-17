@@ -9,16 +9,17 @@ MY_P="${P/_/-}"
 
 DESCRIPTION="The GNU Privacy Guard, a GPL OpenPGP implementation"
 HOMEPAGE="https://gnupg.org/"
-SRC_URI="mirror://gnupg/gnupg/${MY_P}.tar.bz2"
+SRC_URI="mirror://gnupg/gnupg/${MY_P}.tar.bz2
+	scd-shared-access? ( https://raw.githubusercontent.com/GPGTools/MacGPG2/5ca182f54b7b6cd635d1c0a4713953834489fdd9/patches/gnupg/scdaemon_shared-access.patch -> ${PN}-2.2.16-scdaemon_shared-access.patch )"
 
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-IUSE="bzip2 doc ldap nls readline selinux +smartcard ssl tofu tools usb user-socket wks-server"
+IUSE="bzip2 doc ldap nls readline scd-shared-access selinux +smartcard ssl tofu tools usb user-socket wks-server"
 
 # Existence of executables is checked during configuration.
 DEPEND=">=dev-libs/libassuan-2.5.0
-	>=dev-libs/libgcrypt-1.7.3
+	>=dev-libs/libgcrypt-1.8.0
 	>=dev-libs/libgpg-error-1.29
 	>=dev-libs/libksba-1.3.4
 	>=dev-libs/npth-1.2
@@ -54,6 +55,13 @@ PATCHES=(
 
 src_prepare() {
 	default
+
+	# Made optional because it's a non-official patch
+	if use scd-shared-access ; then
+		# Patch taken from
+		# https://github.com/GPGTools/MacGPG2/tree/dev/patches/gnupg
+		eapply "${DISTDIR}/${PN}-2.2.16-scdaemon_shared-access.patch"
+	fi
 
 	# Inject SSH_AUTH_SOCK into user's sessions after enabling gpg-agent-ssh.socket in systemctl --user mode,
 	# idea borrowed from libdbus, see

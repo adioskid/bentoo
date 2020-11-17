@@ -1,49 +1,47 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
-
-inherit eutils autotools multilib multilib-minimal portability toolchain-funcs versionator
+EAPI=7
+inherit autotools multilib multilib-minimal portability toolchain-funcs
 
 DESCRIPTION="A powerful light-weight programming language designed for extending applications"
 HOMEPAGE="http://www.lua.org/"
-TEST_PV="5.3.4" # no 5.3.5-specific release yet
-TEST_A="${PN}-${TEST_PV}-tests.tar.gz"
-PKG_A="${P}.tar.gz"
+TEST_PV="5.4.1"
+TEST_P="${PN}-${TEST_PV}-tests"
 SRC_URI="
-	http://www.lua.org/ftp/${PKG_A}
-	test? ( https://www.lua.org/tests/${TEST_A} )"
+	http://www.lua.org/ftp/${P}.tar.gz
+	test? ( https://www.lua.org/tests/${TEST_P}.tar.gz )"
 
 LICENSE="MIT"
-SLOT="5.3"
+SLOT="5.4"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~ppc-aix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-IUSE="+deprecated emacs readline static test test-complete"
-RESTRICT="!test? ( test )"
+IUSE="+deprecated readline static test test-complete"
 
-RDEPEND="readline? ( sys-libs/readline:0= )
+COMMON_DEPEND="
 	app-eselect/eselect-lua
+	readline? ( sys-libs/readline:0= )
 	!dev-lang/lua:0"
-DEPEND="${RDEPEND}
-	sys-devel/libtool"
-PDEPEND="emacs? ( app-emacs/lua-mode )"
+DEPEND="${COMMON_DEPEND}"
+RDEPEND="${COMMON_DEPEND}"
+BDEPEND="sys-devel/libtool"
+
+RESTRICT="!test? ( test )"
 
 MULTILIB_WRAPPED_HEADERS=(
 	/usr/include/lua${SLOT}/luaconf.h
 )
 
+PATCHES=(
+	"${FILESDIR}"/lua-5.4-makefiles.patch
+)
+
 src_prepare() {
-	local PATCH_PV=$(get_version_component_range 1-2)
-
-	epatch "${FILESDIR}"/${PN}-${PATCH_PV}-make-r1.patch
-
+	default
 	# use glibtool on Darwin (versus Apple libtool)
 	if [[ ${CHOST} == *-darwin* ]] ; then
 		sed -i -e '/LIBTOOL = /s:/libtool:/glibtool:' \
 			Makefile src/Makefile || die
 	fi
-
-	[ -d "${FILESDIR}/${PV}" ] && \
-		EPATCH_SOURCE="${FILESDIR}/${PV}" EPATCH_SUFFIX="upstream.patch" epatch
 
 	# correct lua versioning
 	sed -i -e 's/\(LIB_VERSION = \)6:1:1/\10:0:0/' src/Makefile || die
@@ -96,7 +94,7 @@ multilib_src_compile() {
 	cd src
 
 	local myCFLAGS=""
-	use deprecated && myCFLAGS="-DLUA_COMPAT_ALL"
+	use deprecated && myCFLAGS="-DLUA_COMPAT_5_3"
 
 	case "${CHOST}" in
 		*-mingw*) : ;;
@@ -108,7 +106,7 @@ multilib_src_compile() {
 			RPATH="${EPREFIX}/usr/$(get_libdir)/" \
 			LUA_LIBS="${mylibs}" \
 			LIB_LIBS="${liblibs}" \
-			V=$(get_version_component_range 1-2) \
+			V=$(ver_cut 1-2) \
 			gentoo_all
 }
 
@@ -129,7 +127,7 @@ multilib_src_install() {
 	# We want packages to find our things...
 	# A slotted Lua uses different directories for headers & names for
 	# libraries, and pkgconfig should reflect that.
-	local PATCH_PV=$(get_version_component_range 1-2)
+	local PATCH_PV=$(ver_cut 1-2)
 	cp "${FILESDIR}/lua.pc" "${WORKDIR}" || die
 	sed -r -i \
 		-e "/^INSTALL_INC=/s,(/include)$,\1/lua${SLOT}," \
@@ -152,9 +150,9 @@ multilib_src_install() {
 }
 
 multilib_src_install_all() {
-	dodoc README
-	dohtml doc/*.html doc/*.png doc/*.css doc/*.gif
-
+	DOCS="README"
+	HTML_DOCS="doc/*.html doc/*.png doc/*.css doc/*.gif"
+	einstalldocs
 	newman doc/lua.1 lua${SLOT}.1
 	newman doc/luac.1 luac${SLOT}.1
 }
@@ -172,7 +170,7 @@ src_test() {
 	# The basic subset is selected by passing -e'_U=true'
 	# The complete set is noted to contain tests that may consume too much memory or have non-portable tests.
 	# attrib.lua for example needs some multilib customization (have to compile the stuff in libs/ for each ABI)
-	use test-complete || TEST_OPTS="-e_U=true"
+	TEST_OPTS="$(usex test-complete '' '-e_U=true')"
 	TEST_MARKER="${T}/test.failed"
 	rm -f "${TEST_MARKER}"
 
@@ -190,5 +188,13 @@ src_test() {
 	if [ -e "${TEST_MARKER}" ]; then
 		cat "${TEST_MARKER}"
 		die "Tests failed"
+	fi
+}
+
+pkg_postinst() {
+	if has_version "app-editor/emacs"; then
+		if ! has_version "app-emacs/emacs-mode"; then
+			einfo "Install app-emacs/lua-mode for lua support for emacs"
+		fi
 	fi
 }
