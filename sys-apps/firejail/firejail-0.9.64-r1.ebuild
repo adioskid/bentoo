@@ -5,10 +5,10 @@ EAPI=7
 
 PYTHON_COMPAT=( python3_{6..9} )
 
-inherit toolchain-funcs python-single-r1
+inherit toolchain-funcs python-single-r1 linux-info
 
 if [[ ${PV} != 9999 ]]; then
-	KEYWORDS="amd64 ~x86"
+	KEYWORDS="~amd64 ~x86"
 	SRC_URI="https://github.com/netblue30/${PN}/releases/download/${PV}/${P}.tar.xz"
 else
 	inherit git-r3
@@ -34,6 +34,10 @@ DEPEND="${RDEPEND}
 	test? ( dev-tcltk/expect )"
 
 REQUIRED_USE="contrib? ( ${PYTHON_REQUIRED_USE} )"
+
+pkg_setup() {
+	python-single-r1_pkg_setup
+}
 
 src_prepare() {
 	default
@@ -85,4 +89,10 @@ src_install() {
 		insinto /usr/$(get_libdir)/firejail
 		dobin contrib/*.sh
 	fi
+}
+
+pkg_postinst() {
+	CONFIG_CHECK="~SQUASHFS"
+	local ERROR_SQUASHFS="CONFIG_SQUASHFS: required for firejail --appimage mode"
+	check_extra_config
 }
