@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7..9} )
+PYTHON_COMPAT=( python3_{6,7,8,9} )
 PYTHON_REQ_USE="threads(+),xml"
 
 MY_PV="${PV/_alpha/.alpha}"
@@ -48,6 +48,8 @@ ADDONS_SRC=(
 	"${ADDONS_URI}/dtoa-20180411.tgz"
 	# not packaged in Gentoo, https://skia.org/
 	"${ADDONS_URI}/skia-m85-e684c6daef6bfb774a325a069eda1f76ca6ac26c.tar.xz"
+	# QR code generating library for >=libreoffice-6.4, bug #691740
+	"${ADDONS_URI}/QR-Code-generator-1.4.0.tar.gz"
 	"base? (
 		${ADDONS_URI}/commons-logging-1.2-src.tar.gz
 		${ADDONS_URI}/ba2930200c9f019c2d93a8c88c651a0f-flow-engine-0.9.4.zip
@@ -80,8 +82,8 @@ unset ADDONS_SRC
 # Extensions that need extra work:
 LO_EXTS="nlpsolver scripting-beanshell scripting-javascript wiki-publisher"
 
-IUSE="accessibility base bluetooth +branding coinmp +cups +dbus debug eds firebird
-googledrive gstreamer +gtk kde ldap +mariadb odk pdfimport postgres test
+IUSE="accessibility base bluetooth +branding clang coinmp +cups +dbus debug eds firebird
+googledrive gstreamer +gtk kde ldap +mariadb odk pdfimport postgres test vulkan
 $(printf 'libreoffice_extensions_%s ' ${LO_EXTS})"
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
@@ -99,8 +101,8 @@ RESTRICT="!test? ( test )"
 LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
 
-[[ ${MY_PV} == *9999* ]] || \
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
+#[[ ${MY_PV} == *9999* ]] || \
+#KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86 ~amd64-linux ~x86-linux"
 
 BDEPEND="
 	dev-util/intltool
@@ -141,13 +143,12 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dev-libs/icu:=
 	dev-libs/libassuan
 	dev-libs/libgpg-error
-	>=dev-libs/liborcus-0.16.0
+	dev-libs/liborcus:0/0.15
 	dev-libs/librevenge
 	dev-libs/libxml2
 	dev-libs/libxslt
 	dev-libs/nspr
 	dev-libs/nss
-	dev-libs/qrcodegen
 	>=dev-libs/redland-1.0.16
 	>=dev-libs/xmlsec-1.2.28[nss]
 	media-gfx/fontforge
@@ -180,6 +181,19 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	bluetooth? (
 		dev-libs/glib:2
 		net-wireless/bluez
+	)
+	clang? (
+		|| (
+			(	sys-devel/clang:10
+				sys-devel/llvm:10
+				=sys-devel/lld-10*	)
+			(	sys-devel/clang:11
+				sys-devel/llvm:11
+				=sys-devel/lld-11*	)
+			(	sys-devel/clang:12
+				sys-devel/llvm:12
+				=sys-devel/lld-12*	)
+		)
 	)
 	coinmp? ( sci-libs/coinor-mp )
 	cups? ( net-print/cups )
@@ -239,8 +253,8 @@ DEPEND="${COMMON_DEPEND}
 	java? (
 		dev-java/ant-core
 		|| (
-			dev-java/openjdk:15
-			dev-java/openjdk-bin:15
+			dev-java/openjdk:11
+			dev-java/openjdk-bin:11
 		)
 	)
 	test? (
@@ -257,8 +271,8 @@ RDEPEND="${COMMON_DEPEND}
 	media-fonts/liberation-fonts
 	|| ( x11-misc/xdg-utils kde-plasma/kde-cli-tools )
 	java? ( || (
-		dev-java/openjdk:15
-		dev-java/openjdk-jre-bin:15
+		dev-java/openjdk:11
+		dev-java/openjdk-jre-bin:11
 		>=virtual/jre-1.8
 	) )
 	kde? ( kde-frameworks/breeze-icons:* )
@@ -277,8 +291,6 @@ PATCHES=(
 	# not upstreamable stuff
 	"${FILESDIR}/${PN}-5.3.4.2-kioclient5.patch"
 	"${FILESDIR}/${PN}-6.1-nomancompress.patch"
-	"${FILESDIR}/0001-Upgrade-liborcus-to-0.16.0.patch"
-	"${FILESDIR}/${P}-fix-non-pdfium-build.patch"
 )
 
 S="${WORKDIR}/${PN}-${MY_PV}"
@@ -375,6 +387,50 @@ src_configure() {
 	local google_default_client_id="329227923882.apps.googleusercontent.com"
 	local google_default_client_secret="vgKG0NNv7GoDpbtoFNLxCUXu"
 
+	# Show flags set at the beginning
+	einfo "Current CFLAGS:    ${CFLAGS}"
+	einfo "Current LDFLAGS:   ${LDFLAGS}"
+
+	local have_switched_compiler=
+	if use clang && ! tc-is-clang ; then
+		# Force clang
+		einfo "Enforcing the use of clang due to USE=clang ..."
+		have_switched_compiler=yes
+		AR=llvm-ar
+		CC=${CHOST}-clang
+		CXX=${CHOST}-clang++
+		NM=llvm-nm
+		RANLIB=llvm-ranlib
+	elif ! use clang && ! tc-is-gcc ; then
+		# Force gcc
+		have_switched_compiler=yes
+		einfo "Enforcing the use of gcc due to USE=-clang ..."
+		AR=gcc-ar
+		CC=${CHOST}-gcc
+		CXX=${CHOST}-g++
+		NM=gcc-nm
+		RANLIB=gcc-ranlib
+	fi
+	export CLANG_CC=${CC}
+	export CLANG_CXX=${CXX}
+
+	if [[ -n "${have_switched_compiler}" ]] ; then
+		# Because we switched active compiler we have to ensure
+		# that no unsupported flags are set
+		strip-unsupported-flags
+	fi
+
+	# Show flags set at the beginning
+	einfo "   Used CFLAGS:    ${CFLAGS}"
+	einfo "   Used LDFLAGS:   ${LDFLAGS}"
+
+	# Ensure we use correct toolchain
+	tc-export CC CXX LD AR NM OBJDUMP RANLIB PKG_CONFIG
+
+	if use vulkan && ! use clang ; then
+		ewarn "Building skia with gcc may lead to performance issues. Disable vulkan or enable clang."
+	fi
+
 	# optimization flags
 	export GMAKE_OPTIONS="${MAKEOPTS}"
 	# System python enablement:
@@ -449,6 +505,7 @@ src_configure() {
 		--without-system-jfreereport
 		--without-system_apache_commons
 		--without-system-sane
+		--without-system-qrcodegen
 		$(use_enable base report-builder)
 		$(use_enable bluetooth sdremote-bluetooth)
 		$(use_enable coinmp)
@@ -465,6 +522,7 @@ src_configure() {
 		$(use_enable odk)
 		$(use_enable pdfimport)
 		$(use_enable postgres postgresql-sdbc)
+		$(use_enable vulkan skia)
 		$(use_with accessibility lxml)
 		$(use_with coinmp system-coinmp)
 		$(use_with googledrive gdrive-client-id ${google_default_client_id})
@@ -494,13 +552,11 @@ src_configure() {
 			--without-junit
 			--without-system-hsqldb
 			--with-ant-home="${ANT_HOME}"
-			#--with-jdk-home=$(java-config --jdk-home 2>/dev/null)
-			--with-jvm-path="${EPREFIX}/usr/lib/"
 		)
-		if has_version "dev-java/openjdk:15"; then
-			myeconfargs+=( -with-jdk-home="${EPREFIX}/usr/$(get_libdir)/openjdk-15" )
-		elif has_version "dev-java/openjdk-bin:15"; then
-			myeconfargs+=( --with-jdk-home="/opt/openjdk-bin-15" )
+		if has_version "dev-java/openjdk:11"; then
+			myeconfargs+=( -with-jdk-home="${EPREFIX}/usr/$(get_libdir)/openjdk-11" )
+		elif has_version "dev-java/openjdk-bin:11"; then
+			myeconfargs+=( --with-jdk-home="/opt/openjdk-bin-11" )
 		fi
 
 		use libreoffice_extensions_scripting-beanshell && \
