@@ -30,11 +30,6 @@ RDEPEND="
 DEPEND="${RDEPEND}
 	X? ( x11-base/xorg-proto )"
 
-src_unpack() {
-	default
-	[[ $PV = 9999* ]] && git-r3_src_unpack
-}
-
 multilib_src_configure() {
 	local emesonargs=(
 		-Ddefault_library="$(usex static-libs both shared)"
