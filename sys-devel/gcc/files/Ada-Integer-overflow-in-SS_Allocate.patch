@@ -1,0 +1,348 @@
+From patchwork Thu Jan 11 09:06:51 2018
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [Ada] Integer overflow in SS_Allocate
+X-Patchwork-Submitter: Pierre-Marie de Rodat <derodat@adacore.com>
+X-Patchwork-Id: 858944
+Message-Id: <20180111090651.GA103121@adacore.com>
+To: gcc-patches@gcc.gnu.org
+Cc: Patrick Bernardi <bernardi@adacore.com>
+Date: Thu, 11 Jan 2018 04:06:51 -0500
+From: Pierre-Marie de Rodat <derodat@adacore.com>
+List-Id: <gcc-patches.gcc.gnu.org>
+
+This patch imposes a new check and rewrites existing ones to ensure operations
+involving SS_Ptr do not cause an Integer overflow. The Default_Sec_Stack_Size
+function was removed in the process to simplify System.Parameter.
+
+SS_Ptr was derived from the integer System.Parameters.Size_Type to ease the
+creation of objects of type SS_Stack by the binder and imposes a maximum
+secondary stack size of 2GB. In most cases, the user will not hit this limit as
+they cannot specify task stack sizes of more than 2GB via the Storage_Size and
+Secondary_Stack_Size pragmas. Additionally, most operating systems limit the
+primary stack size to less than 2GB, with defaults under 10MB. Linux is the
+rare exception where the user can unbound the primary stack.
+
+Executing the following:
+gnatmake -q overflow
+./overflow
+
+must yield:
+
+raised STORAGE_ERROR : s-secsta.adb:140 explicit raise
+
+--  overflow.adb:
+
+with String_Pack;
+
+procedure Overflow is
+begin
+   null;
+end Overflow;
+
+-- string_pack.ads:
+
+package String_Pack is
+   function Return_Big_String return String;
+end String_Pack;
+
+-- string_pack.adb:
+
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
+
+package body String_Pack is
+   function Return_Big_String return String is
+   begin
+      return Integer'Last * "P";
+   end Return_Big_String;
+
+   S : String := Return_Big_String;
+
+end String_Pack;
+
+Tested on x86_64-pc-linux-gnu, committed on trunk
+
+2018-01-11  Patrick Bernardi  <bernardi@adacore.com>
+
+gcc/ada/
+
+        * libgnat/s-parame*.adb, libgnat/s-parame*.ads: Remove unneeded
+        Default_Sec_Stack_Size.
+        * libgnat/s-secsta.adb (SS_Allocate): Handle the fixed secondary stack
+        limit check so that the integer index does not overflow. Check the
+        dynamic stack allocation does not cause the secondary stack pointer to
+        overflow.
+        (SS_Info): Align colons.
+        (SS_Init): Cover the case when bootstraping with an old compiler that
+        does not set Default_SS_Size.
+
+--- gcc/ada/libgnat/s-parame.adb
++++ gcc/ada/libgnat/s-parame.adb
+@@ -50,34 +50,6 @@ package body System.Parameters is
+       end if;
+    end Adjust_Storage_Size;
+
+-   ----------------------------
+-   -- Default_Sec_Stack_Size --
+-   ----------------------------
+-
+-   function Default_Sec_Stack_Size return Size_Type is
+-      Default_SS_Size : Integer;
+-      pragma Import (C, Default_SS_Size,
+-                     "__gnat_default_ss_size");
+-   begin
+-      --  There are two situations where the default secondary stack size is
+-      --  set to zero:
+-      --
+-      --    * The user sets it to zero erroneously thinking it will disable
+-      --      the secondary stack.
+-      --
+-      --    * Or more likely, we are building with an old compiler and
+-      --      Default_SS_Size is never set.
+-      --
+-      --  In both case set the default secondary stack size to the run-time
+-      --  default.
+-
+-      if Default_SS_Size > 0 then
+-         return Size_Type (Default_SS_Size);
+-      else
+-         return Runtime_Default_Sec_Stack_Size;
+-      end if;
+-   end Default_Sec_Stack_Size;
+-
+    ------------------------
+    -- Default_Stack_Size --
+    --------------------------- gcc/ada/libgnat/s-parame.ads
++++ gcc/ada/libgnat/s-parame.ads
+@@ -93,10 +93,6 @@ package System.Parameters is
+    --  The run-time chosen default size for secondary stacks that may be
+    --  overriden by the user with the use of binder -D switch.
+
+-   function Default_Sec_Stack_Size return Size_Type;
+-   --  The default initial size for secondary stacks that reflects any user
+-   --  specified default via the binder -D switch.
+-
+    Sec_Stack_Dynamic : constant Boolean := True;
+    --  Indicates if secondary stacks can grow and shrink at run-time. If False,
+    --  the size of a secondary stack is fixed at the point of its creation.--- gcc/ada/libgnat/s-parame__ae653.ads
++++ gcc/ada/libgnat/s-parame__ae653.ads
+@@ -93,10 +93,6 @@ package System.Parameters is
+    --  The run-time chosen default size for secondary stacks that may be
+    --  overriden by the user with the use of binder -D switch.
+
+-   function Default_Sec_Stack_Size return Size_Type;
+-   --  The default size for secondary stacks that reflects any user specified
+-   --  default via the binder -D switch.
+-
+    Sec_Stack_Dynamic : constant Boolean := False;
+    --  Indicates if secondary stacks can grow and shrink at run-time. If False,
+    --  the size of a secondary stack is fixed at the point of its creation.--- gcc/ada/libgnat/s-parame__hpux.ads
++++ gcc/ada/libgnat/s-parame__hpux.ads
+@@ -91,10 +91,6 @@ package System.Parameters is
+    --  The run-time chosen default size for secondary stacks that may be
+    --  overriden by the user with the use of binder -D switch.
+
+-   function Default_Sec_Stack_Size return Size_Type;
+-   --  The default initial size for secondary stacks that reflects any user
+-   --  specified default via the binder -D switch.
+-
+    Sec_Stack_Dynamic : constant Boolean := True;
+    --  Indicates if secondary stacks can grow and shrink at run-time. If False,
+    --  the size of a secondary stack is fixed at the point of its creation.--- gcc/ada/libgnat/s-parame__rtems.adb
++++ gcc/ada/libgnat/s-parame__rtems.adb
+@@ -56,18 +56,6 @@ package body System.Parameters is
+       end if;
+    end Adjust_Storage_Size;
+
+-   ----------------------------
+-   -- Default_Sec_Stack_Size --
+-   ----------------------------
+-
+-   function Default_Sec_Stack_Size return Size_Type is
+-      Default_SS_Size : Integer;
+-      pragma Import (C, Default_SS_Size,
+-                     "__gnat_default_ss_size");
+-   begin
+-      return Size_Type (Default_SS_Size);
+-   end Default_Sec_Stack_Size;
+-
+    ------------------------
+    -- Default_Stack_Size --
+    --------------------------- gcc/ada/libgnat/s-parame__vxworks.adb
++++ gcc/ada/libgnat/s-parame__vxworks.adb
+@@ -48,18 +48,6 @@ package body System.Parameters is
+       end if;
+    end Adjust_Storage_Size;
+
+-   ----------------------------
+-   -- Default_Sec_Stack_Size --
+-   ----------------------------
+-
+-   function Default_Sec_Stack_Size return Size_Type is
+-      Default_SS_Size : Integer;
+-      pragma Import (C, Default_SS_Size,
+-                     "__gnat_default_ss_size");
+-   begin
+-      return Size_Type (Default_SS_Size);
+-   end Default_Sec_Stack_Size;
+-
+    ------------------------
+    -- Default_Stack_Size --
+    --------------------------- gcc/ada/libgnat/s-parame__vxworks.ads
++++ gcc/ada/libgnat/s-parame__vxworks.ads
+@@ -93,10 +93,6 @@ package System.Parameters is
+    --  The run-time chosen default size for secondary stacks that may be
+    --  overriden by the user with the use of binder -D switch.
+
+-   function Default_Sec_Stack_Size return Size_Type;
+-   --  The default initial size for secondary stacks that reflects any user
+-   --  specified default via the binder -D switch.
+-
+    Sec_Stack_Dynamic : constant Boolean := True;
+    --  Indicates if secondary stacks can grow and shrink at run-time. If False,
+    --  the size of a secondary stack is fixed at the point of its creation.--- gcc/ada/libgnat/s-secsta.adb
++++ gcc/ada/libgnat/s-secsta.adb
+@@ -52,27 +52,40 @@ package body System.Secondary_Stack is
+      (Addr         : out Address;
+       Storage_Size : SSE.Storage_Count)
+    is
++      use type System.Storage_Elements.Storage_Count;
++
+       Max_Align   : constant SS_Ptr := SS_Ptr (Standard'Maximum_Alignment);
+-      Mem_Request : constant SS_Ptr :=
+-                      ((SS_Ptr (Storage_Size) + Max_Align - 1) / Max_Align) *
+-                        Max_Align;
+-      --  Round up Storage_Size to the nearest multiple of the max alignment
+-      --  value for the target. This ensures efficient stack access.
++      Mem_Request : SS_Ptr;
+
+-      Stack : constant SS_Stack_Ptr := SSL.Get_Sec_Stack.all;
++      Stack       : constant SS_Stack_Ptr := SSL.Get_Sec_Stack.all;
+    begin
++      --  Round up Storage_Size to the nearest multiple of the max alignment
++      --  value for the target. This ensures efficient stack access. First
++      --  perform a check to ensure that the rounding operation does not
++      --  overflow SS_Ptr.
++
++      if SSE.Storage_Count (SS_Ptr'Last) - Standard'Maximum_Alignment <
++        Storage_Size
++      then
++         raise Storage_Error;
++      end if;
++
++      Mem_Request := ((SS_Ptr (Storage_Size) + Max_Align - 1) / Max_Align) *
++                       Max_Align;
++
+       --  Case of fixed secondary stack
+
+       if not SP.Sec_Stack_Dynamic then
+          --  Check if max stack usage is increasing
+
+-         if Stack.Top + Mem_Request > Stack.Max then
++         if Stack.Max - Stack.Top - Mem_Request < 0 then
+
+             --  If so, check if the stack is exceeded, noting Stack.Top points
+             --  to the first free byte (so the value of Stack.Top on a fully
+-            --  allocated stack will be Stack.Size + 1).
++            --  allocated stack will be Stack.Size + 1). The comparison is
++            --  formed to prevent integer overflows.
+
+-            if Stack.Top + Mem_Request > Stack.Size + 1 then
++            if Stack.Size - Stack.Top - Mem_Request < -1 then
+                raise Storage_Error;
+             end if;
+
+@@ -90,8 +103,8 @@ package body System.Secondary_Stack is
+
+       else
+          declare
+-            Chunk : Chunk_Ptr;
+-
++            Chunk                : Chunk_Ptr;
++            Chunk_Size           : SS_Ptr;
+             To_Be_Released_Chunk : Chunk_Ptr;
+
+          begin
+@@ -108,9 +121,8 @@ package body System.Secondary_Stack is
+             --  sufficient, if not, go to the next one and eventually create
+             --  the necessary room.
+
+-            while Chunk.Last - Stack.Top + 1 < Mem_Request loop
++            while Chunk.Last - Stack.Top - Mem_Request < -1 loop
+                if Chunk.Next /= null then
+-
+                   --  Release unused non-first empty chunk
+
+                   if Chunk.Prev /= null and then Chunk.First = Stack.Top then
+@@ -121,24 +133,29 @@ package body System.Secondary_Stack is
+                      Free (To_Be_Released_Chunk);
+                   end if;
+
+-               --  Create new chunk of default size unless it is not sufficient
+-               --  to satisfy the current request.
++               --  Create a new chunk
+
+-               elsif Mem_Request <= Stack.Size then
+-                  Chunk.Next :=
+-                    new Chunk_Id
+-                      (First => Chunk.Last + 1,
+-                       Last  => Chunk.Last + SS_Ptr (Stack.Size));
++               else
++                  --  The new chunk should be no smaller than the default
++                  --  chunk size to minimize the amount of secondary stack
++                  --  management.
++
++                  if Mem_Request <= Stack.Size then
++                     Chunk_Size := Stack.Size;
++                  else
++                     Chunk_Size := Mem_Request;
++                  end if;
+
+-                  Chunk.Next.Prev := Chunk;
++                  --  Check that the indexing limits are not exceeded
+
+-               --  Otherwise create new chunk of requested size
++                  if SS_Ptr'Last - Chunk.Last - Chunk_Size < 0 then
++                     raise Storage_Error;
++                  end if;
+
+-               else
+                   Chunk.Next :=
+                     new Chunk_Id
+                       (First => Chunk.Last + 1,
+-                       Last  => Chunk.Last + Mem_Request);
++                       Last  => Chunk.Last + Chunk_Size);
+
+                   Chunk.Next.Prev := Chunk;
+                end if;
+@@ -267,10 +284,10 @@ package body System.Secondary_Stack is
+                       & SS_Ptr'Image (Stack.Top - 1)
+                       & " bytes");
+
+-            Put_Line ("  Number of Chunks       : "
++            Put_Line ("  Number of Chunks        : "
+                       & Integer'Image (Nb_Chunks));
+
+-            Put_Line ("  Default size of Chunks : "
++            Put_Line ("  Default size of Chunks  : "
+                       & SP.Size_Type'Image (Stack.Size));
+          end;
+       end if;
+@@ -300,7 +317,15 @@ package body System.Secondary_Stack is
+
+       if Stack = null then
+          if Size = Unspecified_Size then
+-            Stack_Size := Default_Sec_Stack_Size;
++            --  Cover the case when bootstraping with an old compiler that does
++            --  not set Default_SS_Size.
++
++            if Default_SS_Size > 0 then
++               Stack_Size := Default_SS_Size;
++            else
++               Stack_Size := Runtime_Default_Sec_Stack_Size;
++            end if;
++
+          else
+             Stack_Size := Size;
+          end if;

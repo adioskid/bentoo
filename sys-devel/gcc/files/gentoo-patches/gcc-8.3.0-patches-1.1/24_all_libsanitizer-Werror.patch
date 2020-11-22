@@ -1,0 +1,17 @@
+libsanitizer does not respect --disable-werror
+
+https://bugs.gentoo.org/667104
+--- a/libsanitizer/libbacktrace/Makefile.am
++++ b/libsanitizer/libbacktrace/Makefile.am
+@@ -37,3 +37,3 @@ AM_CPPFLAGS = -I $(top_srcdir)/../include -I $(top_srcdir)/../libgcc \
+ WARN_FLAGS = -W -Wall -Wwrite-strings -Wmissing-format-attribute \
+-	     -Wcast-qual -Werror
++	     -Wcast-qual
+ C_WARN_FLAGS = $(WARN_FLAGS) -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
+--- a/libsanitizer/libbacktrace/Makefile.in
++++ b/libsanitizer/libbacktrace/Makefile.in
+@@ -297,3 +297,3 @@ AM_CPPFLAGS = -I $(top_srcdir)/../include -I $(top_srcdir)/../libgcc \
+ WARN_FLAGS = -W -Wall -Wwrite-strings -Wmissing-format-attribute \
+-	     -Wcast-qual -Werror
++	     -Wcast-qual
+ 

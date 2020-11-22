@@ -1,0 +1,37 @@
+Update O32 ABI pieces of sanitizer to make it compile again.
+
+https://gcc.gnu.org/bugzilla/PR85663
+diff --git a/libsanitizer/sanitizer_common/sanitizer_atomic_clang_other.h b/libsanitizer/sanitizer_common/sanitizer_atomic_clang_other.h
+index a0605bbbd..253f7b5dc 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_atomic_clang_other.h
++++ b/libsanitizer/sanitizer_common/sanitizer_atomic_clang_other.h
+@@ -37,3 +37,3 @@ static struct {
+   char pad[32 - sizeof(int)];
+-} __attribute__((aligned(32))) lock = {0};
++} __attribute__((aligned(32))) lock = {0, {0,}};
+ 
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform.h b/libsanitizer/sanitizer_common/sanitizer_platform.h
+index 1eb4d0c61..82875872c 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform.h
++++ b/libsanitizer/sanitizer_common/sanitizer_platform.h
+@@ -114,2 +114,11 @@
+ # define SANITIZER_MIPS 1
++# if defined(_MIPS_SIM) && _MIPS_SIM == _ABIO32
++#  define ONE_OF_MIPS_32_N32_64(a, b, c) (a)
++# elif defined(_MIPS_SIM) && _MIPS_SIM == _ABIN32
++#  define ONE_OF_MIPS_32_N32_64(a, b, c) (b)
++# elif defined(_MIPS_SIM) && _MIPS_SIM == _ABI64
++#  define ONE_OF_MIPS_32_N32_64(a, b, c) (c)
++# else
++#  define ONE_OF_MIPS_32_N32_64(a, b, c) sanitizer_platform_unknown_sim
++# endif
+ # if defined(__mips64)
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+index 4d11d0717..4c6e13830 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
++++ b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+@@ -88,3 +88,3 @@ namespace __sanitizer {
+                  SANITIZER_ANDROID ? FIRST_32_SECOND_64(104, 128) :
+-                                     FIRST_32_SECOND_64(160, 216);
++                                     ONE_OF_MIPS_32_N32_64(144, 160, 216);
+   const unsigned struct_kernel_stat64_sz = 104;

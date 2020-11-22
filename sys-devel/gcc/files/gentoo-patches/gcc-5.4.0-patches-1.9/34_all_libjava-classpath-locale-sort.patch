@@ -1,0 +1,57 @@
+From 3a52cf750bd9da06cffa7d642f1e74e77bfd8a8c Mon Sep 17 00:00:00 2001
+From: vapier <vapier@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Mon, 26 Oct 2015 18:32:41 +0000
+Subject: [PATCH] libjava: fix locale handling when sorting JNI methods
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When building under LANG=cs_CZ.UTF-8, the JNI method check fails:
+
+/bin/bash ../../scripts/check_jni_methods.sh
+Found a problem with the JNI methods declared and implemented.
+(<) missing in implementation, (>) missing in header files
+> Java_gnu_java_awt_peer_gtk_GtkClipboard_advertiseContent
+> Java_gnu_java_awt_peer_gtk_GtkClipboard_initNativeState
+... lots more ...
+
+While the sed commands are run under LC_ALL=C, the two sort commands are
+not, and they end up producing unexpected output (for the test).  Once we
+run both under LC_ALL=C, the check passes.  While we're here, we can also
+combine latter the `sort|uniq` into `sort -u` to match the earlier code.
+
+URL: https://bugs.gentoo.org/563710
+Reported-by: Miroslav Šulc <fordfrog@gentoo.org>
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@229388 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libjava/classpath/ChangeLog                       | 5 +++++
+ libjava/classpath/scripts/check_jni_methods.sh.in | 4 ++--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/libjava/classpath/scripts/check_jni_methods.sh.in b/libjava/classpath/scripts/check_jni_methods.sh.in
+index facf34b..fb9d104 100644
+--- a/libjava/classpath/scripts/check_jni_methods.sh.in
++++ b/libjava/classpath/scripts/check_jni_methods.sh.in
+@@ -14,7 +14,7 @@ grep -h '^JNIEXPORT .* Java_' @abs_top_srcdir@/include/*.h | \
+         LC_ALL=C sed -e 's,.*JNICALL \(Java_[a-z_A-Z0-9]*\).*$,\1,' > $TMPFILE
+ grep -h '^JNIEXPORT .* Java_' @abs_top_builddir@/include/*.h | \
+         LC_ALL=C sed -e 's,.*JNICALL \(Java_[a-z_A-Z0-9]*\).*$,\1,' >> $TMPFILE
+-sort -u $TMPFILE > $TMPFILE4
++LC_ALL=C sort -u $TMPFILE > $TMPFILE4
+ mv $TMPFILE4 $TMPFILE
+ 
+ # Find all methods in the JNI C source files.
+@@ -31,7 +31,7 @@ find @abs_top_srcdir@/native/jni -name \*.cpp | \
+ 	cut -f4 -d\  | \
+         LC_ALL=C sed -e 's,^\JNIEXPORT .* JNICALL \(Java_[a-z_A-Z0-9]*\).*$,\1,' >> $TMPFILE2
+ mv $TMPFILE2 $TMPFILE3
+-sort $TMPFILE3 | uniq > $TMPFILE2
++LC_ALL=C sort -u $TMPFILE3 > $TMPFILE2
+ rm $TMPFILE3
+ 
+ # Write temporary ignore file.
+-- 
+2.5.2
+

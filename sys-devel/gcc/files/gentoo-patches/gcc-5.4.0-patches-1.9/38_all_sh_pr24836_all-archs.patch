@@ -1,0 +1,27 @@
+gcc/configure doesn't handle all possible SH architectures
+
+http://gcc.gnu.org/PR24836
+
+
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -2924,7 +2924,7 @@ foo:	.long	25
+ 	tls_first_minor=14
+ 	tls_as_opt="-m64 -Aesame --fatal-warnings"
+ 	;;
+-  sh-*-* | sh[34]-*-*)
++  sh-*-* | sh[34]*-*-*)
+     conftest_s='
+ 	.section ".tdata","awT",@progbits
+ foo:	.long	25
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -22753,7 +22753,7 @@ foo:	.long	25
+ 	tls_first_minor=14
+ 	tls_as_opt="-m64 -Aesame --fatal-warnings"
+ 	;;
+-  sh-*-* | sh[34]-*-*)
++  sh-*-* | sh[34]*-*-*)
+     conftest_s='
+ 	.section ".tdata","awT",@progbits
+ foo:	.long	25

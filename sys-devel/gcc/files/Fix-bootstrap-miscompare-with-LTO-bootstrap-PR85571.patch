@@ -1,0 +1,183 @@
+From patchwork Wed May  2 10:23:46 2018
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: Fix bootstrap miscompare with LTO bootstrap (PR85571)
+X-Patchwork-Submitter: Richard Biener <rguenther@suse.de>
+X-Patchwork-Id: 907454
+Message-Id: <alpine.LSU.2.20.1805021219350.24704@zhemvz.fhfr.qr>
+To: gcc-patches@gcc.gnu.org
+Cc: Jakub Jelinek <jakub@redhat.com>
+Date: Wed, 2 May 2018 12:23:46 +0200 (CEST)
+From: Richard Biener <rguenther@suse.de>
+List-Id: <gcc-patches.gcc.gnu.org>
+
+The following fixes the LTO part of the -f[no-]checking miscompare issue.
+I introduce a compare-lto script similar to compare-debug where I strip
+the LTO option section and re-compare.  I have no easy way to test
+the nonplugin path and at least for targets using simple-object to
+wrap all LTO sections into one native sections we can't strip the
+option section anyway so this just disables compare for those.
+
+As a followup I'd like to add support to add extra files to compare
+and for LTO bootstrap we'd like to compare cc1plus$(exeext) and
+lto1$(exeext) - maybe I can come up with a pattern that works everywhere
+but I guess this would be a start.  But then for this we need PR85574
+to be fixed first.
+
+LTO bootstrapped on x86_64-unknown-linux-gnu.
+
+OK for trunk?
+
+Thanks,
+Richard.
+
+2018-05-02  Richard Biener  <rguenther@suse.de>
+
+        PR bootstrap/85571
+        config/
+        * bootstrap-lto-noplugin.mk: Disable compare.
+        * bootstrap-lto.mk: Supply contrib/compare-lto for do-compare.
+
+        contrib/
+        * compare-lto: New script derived from compare-debug.
+
+
+Property changes on: contrib/compare-lto
+
+Index: config/bootstrap-lto-noplugin.mk
+===================================================================
+--- a/config/bootstrap-lto-noplugin.mk    (revision 259829)
++++ b/config/bootstrap-lto-noplugin.mk    (working copy)
+@@ -6,3 +6,4 @@ STAGE3_CFLAGS += -flto=jobserver -frando
+ STAGEprofile_CFLAGS += -flto=jobserver -frandom-seed=1
+ STAGEtrain_CFLAGS += -flto=jobserver -frandom-seed=1
+ STAGEfeedback_CFLAGS += -flto=jobserver -frandom-seed=1
++do-compare = /bin/true
+Index: config/bootstrap-lto.mk
+===================================================================
+--- a/config/bootstrap-lto.mk     (revision 259829)
++++ b/config/bootstrap-lto.mk     (working copy)
+@@ -13,3 +13,5 @@ LTO_RANLIB = $$r/$(HOST_SUBDIR)/prev-gcc
+ LTO_EXPORTS = AR="$(LTO_AR)"; export AR; \
+              RANLIB="$(LTO_RANLIB)"; export RANLIB;
+ LTO_FLAGS_TO_PASS = AR="$(LTO_AR)" RANLIB="$(LTO_RANLIB)"
++
++do-compare = $(SHELL) $(srcdir)/contrib/compare-lto $$f1 $$f2
+Index: contrib/compare-lto
+===================================================================
+--- a/contrib/compare-lto (nonexistent)
++++ b/contrib/compare-lto (working copy)
+@@ -0,0 +1,111 @@
++#! /bin/sh
++
++# Compare copies of two given object files.
++
++# Copyright (C) 2007, 2008, 2009, 2010, 2012 Free Software Foundation
++# Originally by Alexandre Oliva <aoliva@redhat.com>
++# Modified for LTO bootstrap by Richard Biener <rguenther@suse.de>
++
++# This file is part of GCC.
++
++# GCC is free software; you can redistribute it and/or modify it under
++# the terms of the GNU General Public License as published by the Free
++# Software Foundation; either version 3, or (at your option) any later
++# version.
++
++# GCC is distributed in the hope that it will be useful, but WITHOUT
++# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++# License for more details.
++
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++rm='rm -f'
++
++case $1 in
++-p | --preserve)
++  rm='echo preserving'
++  shift
++  ;;
++esac
++
++if test $# != 2; then
++  echo 'usage: compare-lto file1.o file2.o' >&2
++  exit 1
++fi
++
++if test ! -f "$1"; then
++  echo "$1" does not exist >&2
++  exit 1
++fi
++
++if test ! -f "$2"; then
++  echo "$2" does not exist >&2
++  exit 1
++fi
++
++suf1=stripped
++while test -f "$1.$suf1"; do
++  suf1=$suf1.
++done
++
++suf2=stripped
++while test -f "$2.$suf2"; do
++  suf2=$suf2.
++done
++
++trap 'rm -f "$1.$suf1" "$2.$suf2"' 0 1 2 15
++
++if cmp "$1" "$2"; then
++  status=0
++else
++  status=1
++
++  cmd=
++  for t in objdump readelf eu-readelf; do
++    if ($t --help) 2>&1 | grep ' --\[*section-\]*headers' > /dev/null; then
++      cmd=$t
++      break
++    fi
++  done
++
++  # If there are LTO option sections, try to strip them off.
++  if test "x$cmd" = "x" ||
++     $cmd --section-headers "$1" | grep '.gnu.lto_.opts' > /dev/null ||
++     $cmd --section-headers "$2" | grep '.gnu.lto_.opts' > /dev/null ; then
++
++    echo stripping off LTO option section, then retrying >&2
++
++    seclist=".gnu.lto_.opts"
++    rsopts=`for sec in $seclist; do echo " --remove-section $sec"; done`
++
++    if (objcopy -v) 2>&1 | grep ' --remove-section' > /dev/null; then
++      objcopy $rsopts "$1" "$1.$suf1"
++      objcopy $rsopts "$2" "$2.$suf2"
++    elif (strip --help) 2>&1 | grep ' --remove-section' > /dev/null; then
++      cp "$1" "$1.$suf1"
++      strip $rsopts "$1.$suf1"
++
++      cp "$2" "$2.$suf2"
++      strip $rsopts "$2.$suf2"
++    else
++      echo failed to strip off LTO option section >&2
++    fi
++
++    trap 'rm -f "$1.$suf1" "$2.$suf2"' 0 1 2 15
++
++    if cmp "$1.$suf1" "$2.$suf2"; then
++      status=0
++    else
++      status=1
++    fi
++  fi
++fi
++
++$rm "$1.$suf1" "$2.$suf2"
++
++trap "exit $status; exit" 0 1 2 15
++
++exit $status
+

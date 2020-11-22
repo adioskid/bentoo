@@ -1,0 +1,188 @@
+https://github.com/ivmai/bdwgc/pull/123
+https://gcc.gnu.org/ml/gcc-patches/2015-08/msg01839.html
+
+From f95967708d08acdeabc0265baeaa1e9005c4bb7b Mon Sep 17 00:00:00 2001
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Sat, 29 Aug 2015 19:14:24 -0400
+Subject: [PATCH] boehm-gc: check for execinfo.h directly
+
+The current header depends on glibc version checks to determine whether
+execinfo.h exists which breaks uClibc.  Instead, add an explicit configure
+check for it.
+
+2015-08-29  Mike Frysinger  <vapier@gentoo.org>
+
+	* configure.ac: Call AC_CHECK_HEADERS([execinfo.h]).
+	* configure: Regenerated.
+	* include/gc.h [HAVE_EXECINFO_H]: Define GC_HAVE_BUILTIN_BACKTRACE.
+	* include/gc_config.h.in: Regenerated.
+---
+ boehm-gc/configure              | 105 +++++++++++++++++++++++++++++++++++++++-
+ boehm-gc/configure.ac           |   3 ++
+ boehm-gc/include/gc.h           |   2 +-
+ boehm-gc/include/gc_config.h.in |   3 ++
+ 4 files changed, 110 insertions(+), 3 deletions(-)
+
+diff --git a/boehm-gc/configure.ac b/boehm-gc/configure.ac
+index 1ccfe37e9d86..ea90ab205b53 100644
+--- a/boehm-gc/configure.ac
++++ b/boehm-gc/configure.ac
+@@ -317,6 +317,9 @@ case "$host" in
+     ;;
+ esac
+ 
++# Check for various headers.
++AC_CHECK_HEADERS([execinfo.h])
++
+ # extra LD Flags which are required for targets
+ case "${host}" in
+   *-*-darwin*)
+diff --git a/boehm-gc/configure b/boehm-gc/configure
+index a8e11dab41b3..7d2b1f7401f7 100755
+--- a/boehm-gc/configure
++++ b/boehm-gc/configure
+@@ -1945,6 +1945,93 @@ $as_echo "$ac_res" >&6; }
+   eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
+ 
+ } # ac_fn_c_check_member
++
++# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
++# -------------------------------------------------------
++# Tests whether HEADER exists, giving a warning if it cannot be compiled using
++# the include files in INCLUDES and setting the cache variable VAR
++# accordingly.
++ac_fn_c_check_header_mongrel ()
++{
++  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
++  if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
++  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
++$as_echo_n "checking for $2... " >&6; }
++if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
++  $as_echo_n "(cached) " >&6
++fi
++eval ac_res=\$$3
++	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
++$as_echo "$ac_res" >&6; }
++else
++  # Is the header compilable?
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
++$as_echo_n "checking $2 usability... " >&6; }
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++$4
++#include <$2>
++_ACEOF
++if ac_fn_c_try_compile "$LINENO"; then :
++  ac_header_compiler=yes
++else
++  ac_header_compiler=no
++fi
++rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
++$as_echo "$ac_header_compiler" >&6; }
++
++# Is the header present?
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
++$as_echo_n "checking $2 presence... " >&6; }
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++#include <$2>
++_ACEOF
++if ac_fn_c_try_cpp "$LINENO"; then :
++  ac_header_preproc=yes
++else
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
++$as_echo "$ac_header_preproc" >&6; }
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
++  yes:no: )
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
++$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
++$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
++    ;;
++  no:yes:* )
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
++$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
++$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
++$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
++$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
++    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
++$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
++    ;;
++esac
++  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
++$as_echo_n "checking for $2... " >&6; }
++if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
++  $as_echo_n "(cached) " >&6
++else
++  eval "$3=\$ac_header_compiler"
++fi
++eval ac_res=\$$3
++	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
++$as_echo "$ac_res" >&6; }
++fi
++  eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
++
++} # ac_fn_c_check_header_mongrel
+ cat >config.log <<_ACEOF
+ This file contains any messages produced by compilers while
+ running configure, to aid debugging if configure makes a mistake.
+@@ -15053,6 +15140,20 @@ fi
+     ;;
+ esac
+ 
++# Check for various headers.
++for ac_header in execinfo.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "execinfo.h" "ac_cv_header_execinfo_h" "$ac_includes_default"
++if test "x$ac_cv_header_execinfo_h" = x""yes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_EXECINFO_H 1
++_ACEOF
++
++fi
++
++done
++
++
+ # extra LD Flags which are required for targets
+ case "${host}" in
+   *-*-darwin*)
+diff --git a/boehm-gc/include/gc.h b/boehm-gc/include/gc.h
+index 6b38f2d0e6ca..bf50b294a3a7 100644
+--- a/boehm-gc/include/gc.h
++++ b/boehm-gc/include/gc.h
+@@ -503,7 +503,7 @@ GC_API GC_PTR GC_malloc_atomic_ignore_off_page GC_PROTO((size_t lb));
+ #if defined(__linux__) || defined(__GLIBC__)
+ # include <features.h>
+ # if (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1 || __GLIBC__ > 2) \
+-     && !defined(__ia64__)
++     && !defined(__ia64__) && defined(HAVE_EXECINFO_H)
+ #   ifndef GC_HAVE_BUILTIN_BACKTRACE
+ #     define GC_HAVE_BUILTIN_BACKTRACE
+ #   endif
+diff --git a/boehm-gc/include/gc_config.h.in b/boehm-gc/include/gc_config.h.in
+index 7ef9822c578e..818ce0999553 100644
+--- a/boehm-gc/include/gc_config.h.in
++++ b/boehm-gc/include/gc_config.h.in
+@@ -75,6 +75,9 @@
+ /* Define to 1 if you have the <dlfcn.h> header file. */
+ #undef HAVE_DLFCN_H
+ 
++/* Define to 1 if you have the <execinfo.h> header file. */
++#undef HAVE_EXECINFO_H
++
+ /* Define to 1 if you have the <inttypes.h> header file. */
+ #undef HAVE_INTTYPES_H
+ 
+-- 
+2.8.2
+

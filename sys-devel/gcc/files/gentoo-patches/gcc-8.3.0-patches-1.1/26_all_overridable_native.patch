@@ -1,0 +1,126 @@
+https://gcc.gnu.org/PR69471
+https://bugs.gentoo.org/679738
+
+From 8c0f695d83d1b4b92b9e7e8dad003701dbc04d27 Mon Sep 17 00:00:00 2001
+From: hjl <hjl@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sat, 23 Feb 2019 19:39:35 +0000
+Subject: [PATCH] driver: Also prune joined switches with negation
+
+When -march=native is passed to host_detect_local_cpu to the backend,
+it overrides all command lines after it.  That means
+
+$ gcc -march=native -march=skylake-avx512
+
+is the treated as
+
+$ gcc -march=skylake-avx512 -march=native
+
+Prune joined switches with Negative and RejectNegative to allow
+-march=skylake-avx512 to override previous -march=native on command-line.
+
+gcc/
+
+	PR driver/69471
+	* opts-common.c (prune_options): Also prune joined switches
+	with Negative and RejectNegative.
+	* config/i386/i386.opt (march=): Add Negative(march=).
+	(mtune=): Add Negative(mtune=).
+	* doc/options.texi: Document Negative used together with Joined
+	and RejectNegative.
+
+gcc/testsuite/
+
+	PR driver/69471
+	* gcc.dg/pr69471-1.c: New test.
+	* gcc.dg/pr69471-2.c: Likewise.
+	* gcc.target/i386/pr69471-3.c: Likewise.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@269164 138bc75d-0d04-0410-961f-82ee72b054a4
+--- a/gcc/config/i386/i386.opt
++++ b/gcc/config/i386/i386.opt
+@@ -253,7 +253,7 @@ EnumValue
+ Enum(ix86_align_data) String(cacheline) Value(ix86_align_data_type_cacheline)
+ 
+ march=
+-Target RejectNegative Joined Var(ix86_arch_string)
++Target RejectNegative Negative(march=) Joined Var(ix86_arch_string)
+ Generate code for given CPU.
+ 
+ masm=
+@@ -510,7 +510,7 @@ Target Report Mask(TLS_DIRECT_SEG_REFS)
+ Use direct references against %gs when accessing tls data.
+ 
+ mtune=
+-Target RejectNegative Joined Var(ix86_tune_string)
++Target RejectNegative Negative(mtune=) Joined Var(ix86_tune_string)
+ Schedule code for given CPU.
+ 
+ mtune-ctrl=
+--- a/gcc/opts-common.c
++++ b/gcc/opts-common.c
+@@ -1015,7 +1015,9 @@ prune_options (struct cl_decoded_option **decoded_options,
+ 	    goto keep;
+ 
+ 	  /* Skip joined switches.  */
+-	  if ((option->flags & CL_JOINED))
++	  if ((option->flags & CL_JOINED)
++	      && (!option->cl_reject_negative
++		  || (unsigned int) option->neg_index != opt_idx))
+ 	    goto keep;
+ 
+ 	  for (j = i + 1; j < old_decoded_options_count; j++)
+@@ -1027,8 +1029,11 @@ prune_options (struct cl_decoded_option **decoded_options,
+ 		continue;
+ 	      if (cl_options[next_opt_idx].neg_index < 0)
+ 		continue;
+-	      if ((cl_options[next_opt_idx].flags & CL_JOINED))
+-		  continue;
++	      if ((cl_options[next_opt_idx].flags & CL_JOINED)
++		  && (!cl_options[next_opt_idx].cl_reject_negative
++		      || ((unsigned int) cl_options[next_opt_idx].neg_index
++			  != next_opt_idx)))
++		continue;
+ 	      if (cancel_option (opt_idx, next_opt_idx, next_opt_idx))
+ 		break;
+ 	    }
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/pr69471-1.c
+@@ -0,0 +1,9 @@
++/* { dg-do compile } */
++/* { dg-options "-Wno-implicit-function-declaration -Wno-int-conversion -fno-builtin-free -fno-builtin-malloc" } */
++
++void *
++foo (void * p)
++{
++  free (p);
++  return malloc (p);
++}
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/pr69471-2.c
+@@ -0,0 +1,8 @@
++/* { dg-do compile } */
++/* { dg-options "-gstabs2 -gdwarf-4 -gstabs3" } */
++/* { dg-error "conflicts with prior selectio" "" { target *-*-* } 0 } */
++
++void
++foo (void)
++{
++}
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/i386/pr69471-3.c
+@@ -0,0 +1,11 @@
++/* { dg-do compile } */
++/* { dg-options "-march=native -march=knl" } */
++
++/* NB: We want to verify that -march=native -march=processor is the same
++   as -march=processor.  Since it is very unlikely that GCC will be built
++   on KNL, -march=native will have -mno-avx512er and -march=knl should
++   enable AVX512ER.  */
++
++#ifndef __AVX512ER__
++# error __AVX512ER__ is not defined
++#endif
+-- 
+2.21.0
+

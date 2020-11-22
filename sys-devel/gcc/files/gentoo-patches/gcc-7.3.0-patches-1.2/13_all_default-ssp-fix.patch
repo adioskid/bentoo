@@ -1,0 +1,54 @@
+We disable ssp on -nostdlib and -ffreestanding as we did on older gcc
+and change the buffer size.
+
+--- a/gcc/c-family/c-opts.c
++++ b/gcc/c-family/c-opts.c
+@@ -450,7 +450,14 @@
+ 
+     case OPT_ffreestanding:
+       value = !value;
++         if (global_options.x_flag_stack_protect == -1)
++               global_options.x_flag_stack_protect = 0;
+       /* Fall through.  */
++
++    case OPT_nostdlib:
++         if (global_options.x_flag_stack_protect == -1)
++               global_options.x_flag_stack_protect = 0;
++
+     case OPT_fhosted:
+       flag_hosted = value;
+       flag_no_builtin = !value;
+--- a/gcc/c-family/c.opt
++++ b/gcc/c-family/c.opt
+@@ -1647,6 +1647,10 @@ nostdinc++
+ C++ ObjC++
+ Do not search standard system include directories for C++.
+ 
++nostdlib
++C ObjC C++ ObjC++
++; Documented in common.opt
++
+ o
+ C ObjC C++ ObjC++ Joined Separate
+ ; Documented in common.opt
+--- a/gcc/gcc.c
++++ b/gcc/gcc.c
+@@ -1145,6 +1145,7 @@
+  %{-help=*:--help=%*}\
+  %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}}\
+  %{fsyntax-only:-o %j} %{-param*}\
++ %{nostdlib:-nostdlib}\
+  %{coverage:-fprofile-arcs -ftest-coverage}\
+  %{fprofile-arcs|fprofile-generate*|coverage:\
+    %{!fprofile-update=single:\
+--- a/gcc/params.def
++++ b/gcc/params.def
+@@ -673,7 +673,7 @@ DEFPARAM (PARAM_INTEGER_SHARE_LIMIT,
+ DEFPARAM (PARAM_SSP_BUFFER_SIZE,
+ 	  "ssp-buffer-size",
+ 	  "The lower bound for a buffer to be considered for stack smashing protection.",
+-	  8, 1, 0)
++	  4, 1, 0)
+ 
+ DEFPARAM (PARAM_MIN_SIZE_FOR_STACK_SHARING,
+ 	  "min-size-for-stack-sharing",

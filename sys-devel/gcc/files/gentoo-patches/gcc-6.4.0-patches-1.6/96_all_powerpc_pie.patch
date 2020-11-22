@@ -1,0 +1,84 @@
+https://bugs.gentoo.org/641474
+
+From e764842a5c6ae3aa81be7c8c2b710d92404b9590 Mon Sep 17 00:00:00 2001
+From: amodra <amodra@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Tue, 29 Aug 2017 08:27:02 +0000
+Subject: [PATCH] [RS6000] linux startfile/endfile
+
+These need to match the gnu-user.h definitions to support
+--enable-default-pie.  Otherwise we end up linking the wrong startup
+files when defaulting to PIE.
+
+	PR target/81170
+	PR target/81295
+	* config/rs6000/sysv4.h (STARTFILE_LINUX_SPEC): Upgrade to
+	match gnu-user.h startfile.
+	(ENDFILE_LINUX_SPEC): Similarly.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-6-branch@251405 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog             |  7 +++++++
+ gcc/config/rs6000/sysv4.h | 46 ++++++++++++++++++++++++++++------------------
+ 2 files changed, 35 insertions(+), 18 deletions(-)
+
+diff --git a/gcc/config/rs6000/sysv4.h b/gcc/config/rs6000/sysv4.h
+index ba35fd27d0f..f81ba6d1514 100644
+--- a/gcc/config/rs6000/sysv4.h
++++ b/gcc/config/rs6000/sysv4.h
+@@ -752,24 +752,34 @@ ENDIAN_SELECT(" -mbig", " -mlittle", DEFAULT_ASM_ENDIAN)
+ #define CRTOFFLOADEND ""
+ #endif
+ 
+-#ifdef HAVE_LD_PIE
+-#define	STARTFILE_LINUX_SPEC "\
+-%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
+-%{mnewlib:ecrti.o%s;:crti.o%s} \
+-%{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s} \
+-" CRTOFFLOADBEGIN
+-#else
+-#define	STARTFILE_LINUX_SPEC "\
+-%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}} \
+-%{mnewlib:ecrti.o%s;:crti.o%s} \
+-%{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s} \
+-" CRTOFFLOADBEGIN
+-#endif
+-
+-#define	ENDFILE_LINUX_SPEC "\
+-%{shared|pie:crtendS.o%s;:crtend.o%s} \
+-%{mnewlib:ecrtn.o%s;:crtn.o%s} \
+-" CRTOFFLOADEND
++/* STARTFILE_LINUX_SPEC should be the same as GNU_USER_TARGET_STARTFILE_SPEC
++   but with the mnewlib ecrti.o%s selection substituted for crti.o%s.  */
++#define	STARTFILE_LINUX_SPEC \
++  "%{shared:; \
++     pg|p|profile:gcrt1.o%s; \
++     static:crt1.o%s; \
++     " PIE_SPEC ":Scrt1.o%s; \
++     :crt1.o%s} \
++   %{mnewlib:ecrti.o%s;:crti.o%s} \
++   %{static:crtbeginT.o%s; \
++     shared|" PIE_SPEC ":crtbeginS.o%s; \
++     :crtbegin.o%s} \
++   %{fvtable-verify=none:%s; \
++     fvtable-verify=preinit:vtv_start_preinit.o%s; \
++     fvtable-verify=std:vtv_start.o%s} \
++   " CRTOFFLOADBEGIN
++
++/* ENDFILE_LINUX_SPEC should be the same as GNU_USER_TARGET_ENDFILE_SPEC
++   but with the mnewlib ecrtn.o%s selection substituted for crtn.o%s.  */
++#define ENDFILE_LINUX_SPEC \
++  "%{fvtable-verify=none:%s; \
++     fvtable-verify=preinit:vtv_end_preinit.o%s; \
++     fvtable-verify=std:vtv_end.o%s} \
++   %{static:crtend.o%s; \
++     shared|" PIE_SPEC ":crtendS.o%s; \
++     :crtend.o%s} \
++   %{mnewlib:ecrtn.o%s;:crtn.o%s} \
++   " CRTOFFLOADEND
+ 
+ #define LINK_START_LINUX_SPEC ""
+ 
+-- 
+2.15.1
+

@@ -1,0 +1,32 @@
+From 6a7c93905151724f7169612d64a5c8ce45dff9fb Mon Sep 17 00:00:00 2001
+From: doko <doko@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 31 May 2018 09:59:35 +0000
+Subject: [PATCH] 2018-05-31  Matthias Klose  <doko@ubuntu.com>
+
+        PR sanitizer/86012
+        * sanitizer_common/sanitizer_platform_limits_posix.cc: Define
+        SIZEOF_STRUCT_USTAT for 32bit sparc.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-7-branch@260992 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libsanitizer/ChangeLog                                      | 6 ++++++
+ .../sanitizer_common/sanitizer_platform_limits_posix.cc     | 2 +-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cc b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cc
+index 8017afd21c5..97eae3fc7bc 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cc
++++ b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cc
+@@ -253,7 +253,7 @@ namespace __sanitizer {
+   || defined(__x86_64__)
+ #define SIZEOF_STRUCT_USTAT 32
+ #elif defined(__arm__) || defined(__i386__) || defined(__mips__) \
+-  || defined(__powerpc__) || defined(__s390__)
++  || defined(__powerpc__) || defined(__s390__) || defined(__sparc__)
+ #define SIZEOF_STRUCT_USTAT 20
+ #else
+ #error Unknown size of struct ustat
+-- 
+2.18.0
+

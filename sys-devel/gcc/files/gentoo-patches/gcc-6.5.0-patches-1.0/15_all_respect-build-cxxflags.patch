@@ -1,0 +1,39 @@
+Pass CXXFLAGS as CXXFLAGS_FOR_BUILD to stage1.
+
+Fixes build failure when CXXFLAGS contains
+TARGET-specific flags.
+
+Tested on x86_64-pc-linux-gnu host as:
+    # CFLAGS='-O2 -mfpu=neon-vfpv4' CXXFLAGS='-O2 -mfpu=neon-vfpv4' \
+        armv7a-unknown-linux-gnueabihf-emerge -v1 sys-devel/gcc --quiet-build=n
+
+Fix by Peter Levine.
+https://bugs.gentoo.org/581406
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -170,6 +170,7 @@
+ # built for the build system to override those in BASE_FLAGS_TO_PASS.
+ EXTRA_BUILD_FLAGS = \
+ 	CFLAGS="$(CFLAGS_FOR_BUILD)" \
++	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)" \
+ 	LDFLAGS="$(LDFLAGS_FOR_BUILD)"
+ 
+ # This is the list of directories to built for the host system.
+@@ -710,6 +711,7 @@
+ 	"CC_FOR_BUILD=$(CC_FOR_BUILD)" \
+ 	"CFLAGS_FOR_BUILD=$(CFLAGS_FOR_BUILD)" \
+ 	"CXX_FOR_BUILD=$(CXX_FOR_BUILD)" \
++	"CXXFLAGS_FOR_BUILD=$(CXXFLAGS_FOR_BUILD)" \
+ 	"EXPECT=$(EXPECT)" \
+ 	"FLEX=$(FLEX)" \
+ 	"INSTALL=$(INSTALL)" \
+--- a/Makefile.tpl
++++ b/Makefile.tpl
+@@ -172,6 +172,7 @@
+ # built for the build system to override those in BASE_FLAGS_TO_PASS.
+ EXTRA_BUILD_FLAGS = \
+ 	CFLAGS="$(CFLAGS_FOR_BUILD)" \
++	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)" \
+ 	LDFLAGS="$(LDFLAGS_FOR_BUILD)"
+ 
+ # This is the list of directories to built for the host system.
