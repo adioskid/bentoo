@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-78esr-patches-04.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-06.tar.xz"
 
 LLVM_MAX_SLOT=11
 
@@ -57,7 +57,7 @@ SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz -> ${MOZ_P_DISTFILES}
 DESCRIPTION="Thunderbird Mail Client"
 HOMEPAGE="https://www.mozilla.org/thunderbird"
 
-KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm64 ~ppc64 x86"
 
 SLOT="0/$(ver_cut 1)"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
@@ -362,9 +362,9 @@ pkg_pretend() {
 
 		# Ensure we have enough disk space to compile
 		if use pgo || use lto || use debug ; then
-			CHECKREQS_DISK_BUILD="13G"
+			CHECKREQS_DISK_BUILD="13500M"
 		else
-			CHECKREQS_DISK_BUILD="5800M"
+			CHECKREQS_DISK_BUILD="6400M"
 		fi
 
 		check-reqs_pkg_pretend
@@ -381,9 +381,9 @@ pkg_setup() {
 
 		# Ensure we have enough disk space to compile
 		if use pgo || use lto || use debug ; then
-			CHECKREQS_DISK_BUILD="13G"
+			CHECKREQS_DISK_BUILD="13500M"
 		else
-			CHECKREQS_DISK_BUILD="5800M"
+			CHECKREQS_DISK_BUILD="6400M"
 		fi
 
 		check-reqs_pkg_setup
