@@ -15,7 +15,7 @@ SRC_URI="https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/${
 
 LICENSE="BSD GPL-3-with-openssl-exception LGPL-2+"
 SLOT="0"
-KEYWORDS="~amd64 ~ppc64"
+KEYWORDS="amd64 ~ppc64"
 IUSE="+dbus enchant +gtk +hunspell libressl lto pulseaudio +spell +webrtc +X"
 
 RDEPEND="
@@ -48,7 +48,7 @@ RDEPEND="
 	enchant? ( app-text/enchant:= )
 	gtk? (
 		dev-libs/glib:2
-		x11-libs/gdk-pixbuf:2[jpeg,X?]
+		x11-libs/gdk-pixbuf:2[jpeg]
 		x11-libs/gtk+:3[X?]
 		x11-libs/libX11
 	)

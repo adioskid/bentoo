@@ -73,11 +73,8 @@ BDEPEND="${PYTHON_DEPS}
 	)
 "
 
-# libgit2 should be at least same as bundled into libgit-sys #707746
 DEPEND="
-	>=dev-libs/libgit2-0.99:=
-	net-libs/libssh2:=
-	net-libs/http-parser:=
+	>=dev-libs/libgit2-1.1.0:=
 	net-misc/curl:=[http2,ssl]
 	sys-libs/zlib:=
 	!libressl? ( dev-libs/openssl:0= )
@@ -88,8 +85,11 @@ DEPEND="
 	)
 "
 
+# we need to block versions older than 1.47.0 due to layout changes.
 RDEPEND="${DEPEND}
 	app-eselect/eselect-rust
+	!<dev-lang/rust-1.47.0-r1
+	!<dev-lang/rust-bin-1.47.0-r1
 "
 
 REQUIRED_USE="|| ( ${ALL_LLVM_TARGETS[*]} )
@@ -123,7 +123,7 @@ PATCHES=(
 	"${FILESDIR}"/1.46.0-don-t-create-prefix-at-time-of-check.patch
 	"${FILESDIR}"/1.47.0-ignore-broken-and-non-applicable-tests.patch
 	"${FILESDIR}"/1.47.0-llvm-tensorflow-fix.patch
-	"${FILESDIR}"/gentoo-musl-target-specs.patch
+	"${FILESDIR}"/1.48.0-gentoo-musl-target-specs.patch
 )
 
 S="${WORKDIR}/${MY_P}-src"
@@ -177,19 +177,13 @@ pkg_pretend() {
 pkg_setup() {
 	pre_build_checks
 	python-any-r1_pkg_setup
-	use system-bootstrap && boostrap_rust_version_check
 
-	# required to link agains system libs, otherwise
-	# crates use bundled sources and compile own static version
-	export LIBGIT2_SYS_USE_PKG_CONFIG=1
-	export LIBSSH2_SYS_USE_PKG_CONFIG=1
-	export PKG_CONFIG_ALLOW_CROSS=1
+	use system-bootstrap && boostrap_rust_version_check
 
 	if use system-llvm; then
 		llvm_pkg_setup
 
 		local llvm_config="$(get_llvm_prefix "$LLVM_MAX_SLOT")/bin/llvm-config"
-
 		export LLVM_LINK_SHARED=1
 		export RUSTFLAGS="${RUSTFLAGS} -Lnative=$("${llvm_config}" --libdir)"
 	fi
@@ -515,15 +509,20 @@ src_install() {
 	use rls && symlinks+=( rls )
 	use rustfmt && symlinks+=( rustfmt cargo-fmt )
 
-	einfo "installing eselect-rust symlinks and paths"
+	einfo "installing eselect-rust symlinks and paths: ${symlinks[@]}"
 	local i
 	for i in "${symlinks[@]}"; do
 		# we need realpath on /usr/bin/* symlink return version-appended binary path.
 		# so /usr/bin/rustc should point to /usr/lib/rust/<ver>/bin/rustc-<ver>
 		# need to fix eselect-rust to remove this hack.
 		local ver_i="${i}-${PV}"
-		mv -v "${ED}/usr/lib/${PN}/${PV}/bin/${i}" "${ED}/usr/lib/${PN}/${PV}/bin/${ver_i}" || die
-		ln -v "${ED}/usr/lib/${PN}/${PV}/bin/${ver_i}" "${ED}/usr/lib/${PN}/${PV}/bin/${i}" || die
+		if [[ -f "${ED}/usr/lib/${PN}/${PV}/bin/${i}" ]]; then
+			einfo "Installing ${i} symlink"
+			ln -v "${ED}/usr/lib/${PN}/${PV}/bin/${i}" "${ED}/usr/lib/${PN}/${PV}/bin/${ver_i}" || die
+		else
+			ewarn "${i} symlink requested, but source file not found"
+			ewarn "please report this"
+		fi
 		dosym "../lib/${PN}/${PV}/bin/${ver_i}" "/usr/bin/${ver_i}"
 	done
 
@@ -531,7 +530,7 @@ src_install() {
 	dosym "${PV}/lib" "/usr/lib/${PN}/lib-${PV}"
 	dosym "${PV}/share/man" "/usr/lib/${PN}/man-${PV}"
 	dosym "rust/${PV}/lib/rustlib" "/usr/lib/rustlib-${PV}"
-	dosym "../../lib/${PN}/${PV}/share/doc" "/usr/share/doc/${P}"
+	dosym "../../lib/${PN}/${PV}/share/doc/rust" "/usr/share/doc/${P}"
 
 	newenvd - "50${P}" <<-_EOF_
 		LDPATH="${EPREFIX}/usr/lib/rust/lib"
@@ -576,10 +575,12 @@ src_install() {
 }
 
 pkg_postinst() {
-	eselect rust update --if-unset
+	eselect rust update
 
-	elog "Rust installs a helper script for calling GDB and LLDB,"
-	elog "for your convenience it is installed under /usr/bin/rust-{gdb,lldb}-${PV}."
+	if has_version sys-devel/gdb || has_version dev-util/lldb; then
+		elog "Rust installs a helper script for calling GDB and LLDB,"
+		elog "for your convenience it is installed under /usr/bin/rust-{gdb,lldb}-${PV}."
+	fi
 
 	if has_version app-editors/emacs; then
 		elog "install app-emacs/rust-mode to get emacs support for rust."
