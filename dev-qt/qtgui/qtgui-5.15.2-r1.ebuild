@@ -131,7 +131,6 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 PATCHES=(
 	"${FILESDIR}/qt-5.12-gcc-avx2.patch" # bug 672946
 	"${FILESDIR}/${PN}-5.14.1-cmake-macro-backward-compat.patch" # bug 703306
-	"${FILESDIR}/${P}-emit-qscreen-geometrychanged-when-dpi-changes.patch" # QTBUG-86604
 )
 
 src_prepare() {

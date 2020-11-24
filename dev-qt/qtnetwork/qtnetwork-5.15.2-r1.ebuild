@@ -48,8 +48,6 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 	:network
 )
 
-PATCHES=( "${FILESDIR}"/${P}-libressl.patch ) # Bug 562050, not upstreamable
-
 pkg_setup() {
 	use connman && QT5_TARGET_SUBDIRS+=(src/plugins/bearer/connman)
 	use networkmanager && QT5_TARGET_SUBDIRS+=(src/plugins/bearer/networkmanager)
