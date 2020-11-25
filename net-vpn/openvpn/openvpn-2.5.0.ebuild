@@ -11,13 +11,15 @@ HOMEPAGE="https://openvpn.net/"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 ~s390 ~sparc x86 ~amd64-linux ~x86-linux ~x86-macos"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x86-macos"
 
-IUSE="down-root examples inotify iproute2 libressl lz4 +lzo mbedtls pam"
-IUSE+=" pkcs11 +plugins selinux +ssl systemd test userland_BSD"
+IUSE="down-root examples inotify iproute2 libressl lz4 +lzo mbedtls +openssl
+	pam pkcs11 +plugins selinux systemd test userland_BSD"
 
 RESTRICT="!test? ( test )"
-REQUIRED_USE="pkcs11? ( ssl )
+REQUIRED_USE="
+	^^ ( openssl libressl mbedtls )
+	pkcs11? ( !mbedtls )
 	!plugins? ( !pam !down-root )
 	inotify? ( plugins )
 "
@@ -25,18 +27,13 @@ REQUIRED_USE="pkcs11? ( ssl )
 CDEPEND="
 	kernel_linux? (
 		iproute2? ( sys-apps/iproute2[-minimal] )
-		!iproute2? ( >=sys-apps/net-tools-1.60_p20160215155418 )
 	)
-	pam? ( sys-libs/pam )
-	ssl? (
-		!mbedtls? (
-			!libressl? ( >=dev-libs/openssl-0.9.8:0= )
-			libressl? ( dev-libs/libressl:0= )
-		)
-		mbedtls? ( net-libs/mbedtls:= )
-	)
+	libressl? ( dev-libs/libressl:0= )
 	lz4? ( app-arch/lz4 )
 	lzo? ( >=dev-libs/lzo-1.07 )
+	mbedtls? ( net-libs/mbedtls:= )
+	openssl? ( >=dev-libs/openssl-0.9.8:0= )
+	pam? ( sys-libs/pam )
 	pkcs11? ( >=dev-libs/pkcs11-helper-1.11 )
 	systemd? ( sys-apps/systemd )
 "
@@ -61,21 +58,16 @@ src_prepare() {
 }
 
 src_configure() {
-	local myeconfargs=(
-		$(use_enable inotify async-push)
-		$(use_enable ssl crypto)
-	)
-	if use ssl; then
+	local -a myeconfargs
+
+	if use libressl || ! use mbedtls; then
 		myeconfargs+=(
-			$(use_with ssl crypto-library $(usex mbedtls mbedtls openssl))
+			$(use_enable pkcs11)
 		)
-		if use libressl || ! use mbedtls; then
-			myeconfargs+=(
-				$(use_enable pkcs11)
-			)
-		fi
 	fi
 	myeconfargs+=(
+		$(use_enable inotify async-push)
+		--with-crypto-library=$(usex mbedtls mbedtls openssl)
 		$(use_enable lz4)
 		$(use_enable lzo)
 		$(use_enable plugins)
@@ -85,10 +77,9 @@ src_configure() {
 		$(use_enable systemd)
 	)
 	SYSTEMD_UNIT_DIR=$(systemd_get_systemunitdir) \
-	TMPFILES_DIR="/usr/lib/tmpfiles.d" \
-	IFCONFIG=/bin/ifconfig \
-	ROUTE=/bin/route \
-	econf "${myeconfargs[@]}"
+		TMPFILES_DIR="/usr/lib/tmpfiles.d" \
+		IPROUTE=$(usex iproute2 '/bin/ip' '') \
+		econf "${myeconfargs[@]}"
 }
 
 src_test() {
