@@ -2,13 +2,14 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 QT5_MODULE="qttools"
 inherit qt5-build
 
 DESCRIPTION="Tools for working with Qt translation data files"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="qml"
@@ -18,7 +19,9 @@ DEPEND="
 	~dev-qt/qtxml-${PV}
 	qml? ( ~dev-qt/qtdeclarative-${PV} )
 "
-RDEPEND="${DEPEND}"
+RDEPEND="${DEPEND}
+	dev-qt/qtchooser
+"
 
 QT5_TARGET_SUBDIRS=(
 	src/linguist

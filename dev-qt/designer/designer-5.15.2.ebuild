@@ -2,16 +2,17 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 QT5_MODULE="qttools"
 inherit desktop qt5-build xdg-utils
 
 DESCRIPTION="WYSIWYG tool for designing and building graphical user interfaces with QtWidgets"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~x86"
 fi
 
-IUSE="declarative webkit"
+IUSE="declarative"
 
 DEPEND="
 	~dev-qt/qtcore-${PV}:5=
@@ -21,16 +22,17 @@ DEPEND="
 	~dev-qt/qtwidgets-${PV}
 	~dev-qt/qtxml-${PV}
 	declarative? ( ~dev-qt/qtdeclarative-${PV}[widgets] )
-	webkit? ( >=dev-qt/qtwebkit-5.9.1:5 )
 "
-RDEPEND="${DEPEND}"
+RDEPEND="${DEPEND}
+	dev-qt/qtchooser
+"
 
 src_prepare() {
 	qt_use_disable_mod declarative quickwidgets \
 		src/designer/src/plugins/plugins.pro
 
-	qt_use_disable_mod webkit webkitwidgets \
-		src/designer/src/plugins/plugins.pro
+	sed -e "s/qtHaveModule(webkitwidgets)/false/g" \
+		-i src/designer/src/plugins/plugins.pro || die
 
 	qt5-build_src_prepare
 }

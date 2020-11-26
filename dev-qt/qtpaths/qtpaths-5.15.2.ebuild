@@ -8,7 +8,7 @@ inherit qt5-build
 DESCRIPTION="Command line client to QStandardPaths"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 ~arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE=""
@@ -16,4 +16,6 @@ IUSE=""
 DEPEND="
 	~dev-qt/qtcore-${PV}
 "
-RDEPEND="${DEPEND}"
+RDEPEND="${DEPEND}
+	dev-qt/qtchooser
+"

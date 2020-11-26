@@ -9,7 +9,7 @@ inherit qt5-build
 DESCRIPTION="Network abstraction library for the Qt5 framework"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="bindist connman gssapi libressl libproxy networkmanager sctp +ssl"
@@ -48,6 +48,8 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 	:network
 )
 
+PATCHES=( "${FILESDIR}"/${PN}-5.15.1-libressl.patch ) # Bug 562050, not upstreamable
+
 pkg_setup() {
 	use connman && QT5_TARGET_SUBDIRS+=(src/plugins/bearer/connman)
 	use networkmanager && QT5_TARGET_SUBDIRS+=(src/plugins/bearer/networkmanager)
@@ -63,4 +65,13 @@ src_configure() {
 		$(usex ssl -openssl-linked '')
 	)
 	qt5-build_src_configure
+}
+
+src_install() {
+	qt5-build_src_install
+	# workaround for bug 652650
+	if use ssl; then
+		sed -e "/^#define QT_LINKED_OPENSSL/s/$/ true/" \
+			-i "${D}${QT5_HEADERDIR}"/Gentoo/${PN}-qconfig.h || die
+	fi
 }

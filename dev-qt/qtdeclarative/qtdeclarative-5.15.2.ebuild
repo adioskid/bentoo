@@ -2,13 +2,14 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 PYTHON_COMPAT=( python3_{6,7,8} )
 inherit python-any-r1 qt5-build
 
 DESCRIPTION="The QML and Quick modules for the Qt5 framework"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="gles2-only +jit localstorage vulkan +widgets"
@@ -24,7 +25,7 @@ DEPEND="
 	widgets? ( ~dev-qt/qtwidgets-${PV}[gles2-only=] )
 "
 RDEPEND="${DEPEND}
-	!<dev-qt/qtquickcontrols-5.7:5
+	dev-qt/qtchooser
 "
 
 PATCHES=(

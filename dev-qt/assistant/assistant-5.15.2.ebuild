@@ -2,16 +2,17 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 QT5_MODULE="qttools"
 inherit desktop qt5-build xdg-utils
 
 DESCRIPTION="Tool for viewing on-line documentation in Qt help file format"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 ~arm arm64 ~hppa ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc64 ~sparc ~x86"
 fi
 
-IUSE="webkit"
+IUSE=""
 
 DEPEND="
 	~dev-qt/qtcore-${PV}:5=
@@ -21,7 +22,6 @@ DEPEND="
 	~dev-qt/qtprintsupport-${PV}
 	~dev-qt/qtsql-${PV}[sqlite]
 	~dev-qt/qtwidgets-${PV}
-	webkit? ( >=dev-qt/qtwebkit-5.9.1:5 )
 "
 RDEPEND="${DEPEND}"
 
@@ -30,8 +30,8 @@ QT5_TARGET_SUBDIRS=(
 )
 
 src_prepare() {
-	qt_use_disable_mod webkit webkitwidgets \
-		src/assistant/assistant/assistant.pro
+	sed -e "s/qtHaveModule(webkitwidgets)/false/g" \
+		-i src/assistant/assistant/assistant.pro || die
 
 	qt5-build_src_prepare
 }

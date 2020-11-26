@@ -8,7 +8,7 @@ inherit qt5-build
 DESCRIPTION="Qt5 module for inter-process communication over the D-Bus protocol"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE=""
@@ -17,7 +17,9 @@ DEPEND="
 	~dev-qt/qtcore-${PV}:5=
 	>=sys-apps/dbus-1.4.20
 "
-RDEPEND="${DEPEND}"
+RDEPEND="${DEPEND}
+	dev-qt/qtchooser
+"
 
 QT5_TARGET_SUBDIRS=(
 	src/dbus

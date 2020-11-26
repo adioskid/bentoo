@@ -10,7 +10,7 @@ DESCRIPTION="Cross-platform application development framework"
 SLOT=5/$(ver_cut 1-3)
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 IUSE="icu old-kernel systemd"
@@ -26,6 +26,7 @@ DEPEND="
 "
 RDEPEND="${DEPEND}
 	!<dev-qt/qtcore-4.8.7-r4:4
+	dev-qt/qtchooser
 "
 
 QT5_TARGET_SUBDIRS=(
@@ -45,9 +46,8 @@ QT5_GENTOO_PRIVATE_CONFIG=(
 )
 
 PATCHES=(
-	"${FILESDIR}/${PN}-5.14.1-cmake-macro-backward-compat.patch"  # bug 703306
-	"${FILESDIR}/${PN}-5.15.1-timezone-1.patch"                   # bug 737914
-	"${FILESDIR}/${PN}-5.15.1-timezone-2.patch"
+	"${FILESDIR}"/${PN}-5.14.1-cmake-macro-backward-compat.patch # bug 703306
+	"${FILESDIR}"/${PN}-5.15.1-timezone-{1,2}.patch # bug 737914
 )
 
 pkg_pretend() {

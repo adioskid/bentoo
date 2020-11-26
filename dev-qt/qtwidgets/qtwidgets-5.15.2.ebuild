@@ -9,7 +9,7 @@ inherit qt5-build
 DESCRIPTION="Set of components for creating classic desktop-style UIs for the Qt5 framework"
 
 if [[ ${QT5_BUILD_TYPE} == release ]]; then
-	KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc ~x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
 # keep IUSE defaults in sync with qtgui
@@ -25,7 +25,9 @@ DEPEND="
 		x11-libs/pango
 	)
 "
-RDEPEND="${DEPEND}"
+RDEPEND="${DEPEND}
+	dev-qt/qtchooser
+"
 
 QT5_TARGET_SUBDIRS=(
 	src/tools/uic
