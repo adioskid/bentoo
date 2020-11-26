@@ -102,7 +102,7 @@ LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
 
 [[ ${MY_PV} == *9999* ]] || \
-KEYWORDS="*"
+KEYWORDS="~amd64 ~arm ~arm64 ~amd64-linux"
 
 BDEPEND="
 	dev-util/intltool
@@ -125,7 +125,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	app-text/liblangtag
 	>=app-text/libmspub-0.1.0
 	>=app-text/libmwaw-0.3.1
-	app-text/libnumbertext
+	>=app-text/libnumbertext-1.0.6
 	>=app-text/libodfgen-0.1.0
 	app-text/libqxp
 	app-text/libstaroffice
@@ -143,7 +143,7 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dev-libs/icu:=
 	dev-libs/libassuan
 	dev-libs/libgpg-error
-	dev-libs/liborcus
+	dev-libs/liborcus:0/0.15
 	dev-libs/librevenge
 	dev-libs/libxml2
 	dev-libs/libxslt
@@ -244,7 +244,7 @@ DEPEND="${COMMON_DEPEND}
 	dev-perl/Archive-Zip
 	>=dev-util/cppunit-1.14.0
 	>=dev-util/gperf-3.1
-	dev-util/mdds
+	dev-util/mdds:1/1.5
 	media-libs/glm
 	sys-devel/ucpp
 	x11-base/xorg-proto
