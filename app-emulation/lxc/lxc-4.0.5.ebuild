@@ -1,19 +1,20 @@
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-inherit autotools bash-completion-r1 linux-info flag-o-matic pam readme.gentoo-r1
+inherit autotools bash-completion-r1 linux-info flag-o-matic optfeature pam readme.gentoo-r1 systemd verify-sig
 
 DESCRIPTION="LinuX Containers userspace utilities"
 HOMEPAGE="https://linuxcontainers.org/ https://github.com/lxc/lxc"
 SRC_URI="https://linuxcontainers.org/downloads/lxc/${P}.tar.gz
-	https://github.com/lxc/lxc/archive/${P}.tar.gz"
+	verify-sig? ( https://linuxcontainers.org/downloads/lxc/${P}.tar.gz.asc )"
 
-KEYWORDS=""
+KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
 
 LICENSE="LGPL-3"
 SLOT="0"
-IUSE="apparmor +caps doc examples libressl pam seccomp selinux +ssl +templates +tools"
+IUSE="apparmor +caps doc examples libressl man pam seccomp selinux +ssl +tools verify-sig"
 
 RDEPEND="app-misc/pax-utils
 	sys-apps/util-linux
@@ -28,32 +29,31 @@ RDEPEND="app-misc/pax-utils
 		libressl? ( dev-libs/libressl:0= )
 	)"
 DEPEND="${RDEPEND}
-	>=app-text/docbook-sgml-utils-0.6.14-r2
-	>=sys-kernel/linux-headers-3.2
+	>=sys-kernel/linux-headers-4
 	apparmor? ( sys-apps/apparmor )"
-BDEPEND="doc? ( app-doc/doxygen )"
-PDEPEND="templates? ( app-emulation/lxc-templates )"
+BDEPEND="doc? ( app-doc/doxygen )
+	man? ( app-text/docbook-sgml-utils )
+	verify-sig? ( app-crypt/openpgp-keys-linuxcontainers )"
 
 CONFIG_CHECK="~!NETPRIO_CGROUP
 	~CGROUPS
 	~CGROUP_CPUACCT
 	~CGROUP_DEVICE
-
 	~CGROUP_FREEZER
+
 	~CGROUP_SCHED
 	~CPUSETS
 	~IPC_NS
-
 	~MACVLAN
+
 	~MEMCG
 	~NAMESPACES
 	~NET_NS
-
 	~PID_NS
+
 	~POSIX_MQUEUE
 	~USER_NS
 	~UTS_NS
-
 	~VETH"
 
 ERROR_CGROUP_FREEZER="CONFIG_CGROUP_FREEZER: needed to freeze containers"
@@ -71,11 +71,11 @@ pkg_setup() {
 }
 
 PATCHES=(
-	"${FILESDIR}"/${PV}/${PN}-3.0.0-bash-completion.patch
-	"${FILESDIR}"/${PV}/${PN}-2.0.5-omit-sysconfig.patch # bug 558854
+	"${FILESDIR}"/${PN}-3.0.0-bash-completion.patch
+	"${FILESDIR}"/${PN}-2.0.5-omit-sysconfig.patch # bug 558854
 )
 
-S="${WORKDIR}/${P}"
+VERIFY_SIG_OPENPGP_KEY_PATH=${BROOT}/usr/share/openpgp-keys/linuxcontainers.asc
 
 src_prepare() {
 	default
@@ -85,8 +85,6 @@ src_prepare() {
 src_configure() {
 	append-flags -fno-strict-aliasing
 
-	# --enable-doc is for manpages which is why we don't link it to a "doc"
-	# USE flag. We always want man pages.
 	local myeconfargs=(
 		--bindir=/usr/bin
 		--localstatedir=/var
@@ -94,8 +92,10 @@ src_configure() {
 
 		--with-config-path=/var/lib/lxc
 		--with-distro=gentoo
+		--with-init-script=systemd
 		--with-rootfs-path=/var/lib/lxc/rootfs
 		--with-runtime-path=/run
+		--with-systemdsystemunitdir=$(systemd_get_systemunitdir)
 
 		--disable-asan
 		--disable-coverity-build
@@ -108,7 +108,6 @@ src_configure() {
 
 		--enable-bash
 		--enable-commands
-		--enable-doc
 		--enable-memfd-rexec
 		--enable-thread-safety
 
@@ -116,6 +115,7 @@ src_configure() {
 		$(use_enable caps capabilities)
 		$(use_enable doc api-docs)
 		$(use_enable examples)
+		$(use_enable man doc)
 		$(use_enable pam)
 		$(use_enable seccomp)
 		$(use_enable selinux)
@@ -141,20 +141,32 @@ src_install() {
 	find "${D}" -name '*.la' -delete -o -name '*.a' -delete || die
 
 	# Gentoo-specific additions!
-	newinitd "${FILESDIR}/${PV}/${PN}.initd" ${PN}
+	newinitd "${FILESDIR}/${PN}.initd.8" ${PN}
+
+	# Remember to compare our systemd unit file with the upstream one
+	# config/init/systemd/lxc.service.in
+	systemd_newunit "${FILESDIR}"/${PN}_at.service.4.0.0 "lxc@.service"
 
 	DOC_CONTENTS="
-	For openrc, there is an init script provided with the package.
-	You _should_ only need to symlink /etc/init.d/lxc to
-	/etc/init.d/lxc.configname to start the container defined in
-	/etc/lxc/configname.conf.
+		For openrc, there is an init script provided with the package.
+		You should only need to symlink /etc/init.d/lxc to
+		/etc/init.d/lxc.configname to start the container defined in
+		/etc/lxc/configname.conf.
 
-	If you want checkpoint/restore functionality, please install criu
-	(sys-process/criu)."
+		Correspondingly, for systemd a service file lxc@.service is installed.
+		Enable and start lxc@configname in order to start the container defined
+		in /etc/lxc/configname.conf."
 	DISABLE_AUTOFORMATTING=true
 	readme.gentoo_create_doc
 }
 
 pkg_postinst() {
 	readme.gentoo_print_elog
+
+	elog "Please run 'lxc-checkconfig' to see optional kernel features."
+	elog
+	elog "Optional uninstalled dependencies:"
+	optfeature "automatic template scripts" app-emulation/lxc-templates
+	optfeature "Debian-based distribution container image support" dev-util/debootstrap
+	optfeature "snapshot & restore functionality" sys-process/criu
 }
