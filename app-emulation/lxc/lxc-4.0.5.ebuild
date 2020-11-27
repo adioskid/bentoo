@@ -75,7 +75,7 @@ PATCHES=(
 	"${FILESDIR}"/${PV}/${PN}-2.0.5-omit-sysconfig.patch # bug 558854
 )
 
-S="${WORKDIR}/lxc-${P}"
+S="${WORKDIR}/${P}"
 
 src_prepare() {
 	default
