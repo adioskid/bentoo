@@ -5,7 +5,7 @@ EAPI=7
 
 inherit cmake
 
-DESCRIPTION="WPE backend designed for Linux desktop systems"
+DESCRIPTION="Platform-agnostic interfaces for WPE WebKit"
 HOMEPAGE="https://wpewebkit.org/"
 SRC_URI="https://wpewebkit.org/releases/${P}.tar.xz"
 
@@ -13,13 +13,11 @@ LICENSE="BSD-2"
 SLOT="1.0"
 IUSE=""
 
-KEYWORDS="*"
+KEYWORDS="~amd64 ~arm ~arm64 ~ia64 ~ppc64 ~sparc ~x86"
 
 RDEPEND="
 	media-libs/mesa[egl]
-	dev-libs/glib:2
-	>=dev-libs/wayland-1.10
-	gui-libs/libwpe:1.0
+	x11-libs/libxkbcommon
 "
 DEPEND="${RDEPEND}"
 BDEPEND="
