@@ -27,7 +27,7 @@ RDEPEND="
 	>=dev-libs/libxml2-2.4:=
 	dev-libs/json-glib:=
 	dev-libs/libassuan:=
-	>=dev-util/ostree-2019.5:=[gpg(+)]
+	>=dev-util/ostree-2020.8:=[gpg(+)]
 	|| (
 		dev-util/ostree[curl]
 		dev-util/ostree[soup]
