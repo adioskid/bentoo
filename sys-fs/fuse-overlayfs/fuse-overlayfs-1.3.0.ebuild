@@ -13,11 +13,10 @@ SRC_URI="https://github.com/containers/fuse-overlayfs/archive/${EGIT_COMMIT}.tar
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64"
-IUSE=""
 
 RDEPEND=">=sys-fs/fuse-3:="
-DEPEND="${RDEPEND}
-	virtual/pkgconfig"
+DEPEND="${RDEPEND}"
+BDEPEND="virtual/pkgconfig"
 
 S="${WORKDIR}/${PN}-${EGIT_COMMIT#v}"
 
