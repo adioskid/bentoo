@@ -48,10 +48,6 @@ src_prepare() {
 
 	sed -i -e 's:\(/README\)\("\):\1.gz\2:g' doc/readme.html || die
 
-	if ! use readline ; then
-		sed -i -e '/#define LUA_USE_READLINE/d' src/luaconf.h || die
-	fi
-
 	# Using dynamic linked lua is not recommended for performance
 	# reasons. http://article.gmane.org/gmane.comp.lang.lua.general/18519
 	# Mainly, this is of concern if your arch is poor with GPRs, like x86
@@ -95,6 +91,7 @@ multilib_src_compile() {
 
 	local myCFLAGS=""
 	use deprecated && myCFLAGS="-DLUA_COMPAT_5_3"
+	use readline && myCFLAGS="-DLUA_USE_READLINE"
 
 	case "${CHOST}" in
 		*-mingw*) : ;;

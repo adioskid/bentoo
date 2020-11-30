@@ -39,7 +39,7 @@ PATCH="${PN}-2.53.5_beta1-patches-02"
 
 DESCRIPTION="Seamonkey Web Browser"
 HOMEPAGE="http://www.seamonkey-project.org"
-KEYWORDS="~amd64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~ppc64 x86"
 
 SLOT="0"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
@@ -51,7 +51,7 @@ RESTRICT="!test? ( test )"
 
 SRC_URI+="
 	https://dev.gentoo.org/~polynomial-c/mozilla/patchsets/${PATCH}.tar.xz
-	https://dev.gentoo.org/~polynomial-c/mozilla/${PN}-2.53.5_beta1-perf-guide_checksum.patch
+	https://dev.gentoo.org/~polynomial-c/mozilla/${PN}-2.53.5.1-rust148-packed_simd.patch
 	system-libvpx? ( https://dev.gentoo.org/~polynomial-c/mozilla/${PN}-2.53.3-system_libvpx-1.8.patch.xz )
 "
 
@@ -188,6 +188,7 @@ src_prepare() {
 	# browser patches go here
 	pushd "${S}"/mozilla &>/dev/null || die
 	eapply "${WORKDIR}"/firefox
+	eapply "${DISTDIR}"/${PN}-2.53.5.1-rust148-packed_simd.patch
 	popd &>/dev/null || die
 
 	# Shell scripts sometimes contain DOS line endings; bug 391889
@@ -198,7 +199,6 @@ src_prepare() {
 	done
 
 	use system-libvpx && eapply "${WORKDIR}/${PN}-2.53.3-system_libvpx-1.8.patch"
-	eapply "${DISTDIR}/${PN}-2.53.5_beta1-perf-guide_checksum.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
