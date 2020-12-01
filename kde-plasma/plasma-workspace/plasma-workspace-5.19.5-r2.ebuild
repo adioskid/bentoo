@@ -5,9 +5,9 @@ EAPI=7
 
 ECM_HANDBOOK="forceoptional"
 ECM_TEST="forceoptional"
-KFMIN=5.74.0
+KFMIN=5.71.0
 PVCUT=$(ver_cut 1-3)
-QTMIN=5.15.1
+QTMIN=5.14.2
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
@@ -15,21 +15,17 @@ DESCRIPTION="KDE Plasma workspace"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
-IUSE="appstream +calendar +fontconfig geolocation gps qalculate screencast +semantic-desktop systemd telemetry"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
+IUSE="appstream +calendar geolocation gps qalculate qrcode +semantic-desktop systemd telemetry"
 
 REQUIRED_USE="gps? ( geolocation )"
 
-BDEPEND="virtual/pkgconfig"
 COMMON_DEPEND="
-	>=dev-libs/wayland-1.15
 	>=dev-qt/qtdbus-${QTMIN}:5
 	>=dev-qt/qtdeclarative-${QTMIN}:5[widgets]
-	>=dev-qt/qtgui-${QTMIN}:5=[jpeg]
+	>=dev-qt/qtgui-${QTMIN}:5[jpeg]
 	>=dev-qt/qtnetwork-${QTMIN}:5
 	>=dev-qt/qtsql-${QTMIN}:5
-	>=dev-qt/qtsvg-${QTMIN}:5
-	>=dev-qt/qtwayland-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtx11extras-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
@@ -70,7 +66,6 @@ COMMON_DEPEND="
 	>=kde-frameworks/kwindowsystem-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
 	>=kde-frameworks/plasma-${KFMIN}:5
-	>=kde-frameworks/prison-${KFMIN}:5[qml]
 	>=kde-frameworks/solid-${KFMIN}:5
 	>=kde-plasma/kscreenlocker-${PVCUT}:5
 	>=kde-plasma/kwin-${PVCUT}:5
@@ -84,7 +79,6 @@ COMMON_DEPEND="
 	x11-libs/libX11
 	x11-libs/libXau
 	x11-libs/libxcb
-	x11-libs/libXcursor
 	x11-libs/libXfixes
 	x11-libs/libXrender
 	x11-libs/libXtst
@@ -92,27 +86,16 @@ COMMON_DEPEND="
 	x11-libs/xcb-util-image
 	appstream? ( dev-libs/appstream[qt5] )
 	calendar? ( >=kde-frameworks/kholidays-${KFMIN}:5 )
-	fontconfig? (
-		media-libs/fontconfig
-		media-libs/freetype
-		x11-libs/libXft
-		x11-libs/xcb-util-image
-	)
 	geolocation? ( >=kde-frameworks/networkmanager-qt-${KFMIN}:5 )
 	gps? ( sci-geosciences/gpsd )
 	qalculate? ( sci-libs/libqalculate:= )
-	screencast? (
-		>=media-video/pipewire-0.3:=
-		x11-libs/libdrm
-	)
+	qrcode? ( >=kde-frameworks/prison-${KFMIN}:5 )
 	semantic-desktop? ( >=kde-frameworks/baloo-${KFMIN}:5 )
 	telemetry? ( dev-libs/kuserfeedback:5 )
 "
 DEPEND="${COMMON_DEPEND}
-	>=dev-libs/plasma-wayland-protocols-1.1.1
 	>=dev-qt/qtconcurrent-${QTMIN}:5
 	x11-base/xorg-proto
-	fontconfig? ( x11-libs/libXrender )
 "
 RDEPEND="${COMMON_DEPEND}
 	app-text/iso-codes
@@ -122,9 +105,9 @@ RDEPEND="${COMMON_DEPEND}
 	>=dev-qt/qtquickcontrols-${QTMIN}:5[widgets]
 	>=dev-qt/qtquickcontrols2-${QTMIN}:5
 	>=kde-apps/kio-extras-19.04.3:5
+	>=kde-frameworks/kquickcharts-${KFMIN}:5
 	>=kde-frameworks/kdesu-${KFMIN}:5
 	>=kde-frameworks/kirigami-${KFMIN}:5
-	>=kde-frameworks/kquickcharts-${KFMIN}:5
 	>=kde-plasma/ksysguard-${PVCUT}:5
 	>=kde-plasma/milou-${PVCUT}:5
 	>=kde-plasma/plasma-integration-${PVCUT}:5
@@ -134,29 +117,62 @@ RDEPEND="${COMMON_DEPEND}
 	x11-apps/xsetroot
 	systemd? ( sys-apps/dbus[user-session] )
 	!systemd? ( sys-apps/dbus )
-	!<kde-plasma/plasma-desktop-5.19.80:5
+	!<kde-plasma/plasma-desktop-5.16.80:5
 "
 PDEPEND="
 	>=kde-plasma/kde-cli-tools-${PVCUT}:5
 "
 
-PATCHES=( "${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch" )
+PATCHES=(
+	"${FILESDIR}/${PN}-5.14.2-split-libkworkspace.patch"
+	"${FILESDIR}/${PN}-5.19.2-use-PlasmaExtras.PlaceholderMessage.patch" # KDE-Bug #422684
+	"${FILESDIR}/${P}-gpsd-3.21.patch" # bug 742392
+	"${FILESDIR}/${P}-login-button-size.patch"
+	"${FILESDIR}/${P}-guard-against-no-virtual-desktops.patch" # KDE-Bug #427106
+)
 
 RESTRICT+=" test"
 
+pkg_setup() {
+	ecm_pkg_setup
+
+	local md5
+	local srcfile=/etc/plasma/XX/10-agent-XX.sh
+	local newdir="${EPREFIX}"/etc/xdg/plasma-workspace
+
+	if [[ -f "${EROOT}"${srcfile//XX/startup} ]]; then
+		md5=$(md5sum "${EROOT}"${srcfile//XX/startup})
+		if [[ ${md5%% *} != 90caaabb40b56bfbe65388841a6dd6ca ]]; then
+			elog "Existing modified ${EPREFIX}${srcfile//XX/startup} detected."
+			elog "Copying to ${newdir}/env/10-agent-startup.sh..."
+			cp -v "${EROOT}"${srcfile//XX/startup} "${T}"/ || die
+		fi
+	fi
+
+	if [[ -f "${EROOT}"${srcfile//XX/shutdown} ]]; then
+		md5=$(md5sum "${EROOT}"${srcfile//XX/shutdown})
+		if [[ ${md5%% *} != d7bffa0273f92abd999c7c3c43dbc23d ]]; then
+			elog "Existing modified ${EPREFIX}${srcfile//XX/shutdown} detected."
+			elog "Copying to ${newdir}/shutdown/10-agent-shutdown.sh..."
+			cp -v "${EROOT}"${srcfile//XX/shutdown} "${T}"/ || die
+		fi
+	fi
+}
+
 src_prepare() {
 	ecm_src_prepare
+
+	if [[ ! -f "${T}"/10-agent-startup.sh ]]; then
+		cp "${FILESDIR}"/10-agent-startup.sh "${T}"/ || die
+	fi
+	if [[ ! -f "${T}"/10-agent-shutdown.sh ]]; then
+		cp "${FILESDIR}"/10-agent-shutdown.sh "${T}"/ || die
+	fi
 
 	cmake_comment_add_subdirectory libkworkspace
 	# delete colliding libkworkspace translations
 	if [[ ${KDE_BUILD_TYPE} = release ]]; then
 		find po -type f -name "*po" -and -name "libkworkspace*" -delete || die
-	fi
-
-	# TODO: try to get a build switch upstreamed
-	if ! use screencast; then
-		sed -e "s/^pkg_check_modules.*PipeWire/#&/" \
-			-i CMakeLists.txt || die
 	fi
 }
 
@@ -165,9 +181,9 @@ src_configure() {
 		-DBUILD_xembed-sni-proxy=OFF
 		$(cmake_use_find_package appstream AppStreamQt)
 		$(cmake_use_find_package calendar KF5Holidays)
-		$(cmake_use_find_package fontconfig Fontconfig)
 		$(cmake_use_find_package geolocation KF5NetworkManagerQt)
 		$(cmake_use_find_package qalculate Qalculate)
+		$(cmake_use_find_package qrcode KF5Prison)
 		$(cmake_use_find_package semantic-desktop KF5Baloo)
 		$(cmake_use_find_package telemetry KUserFeedback)
 	)
@@ -182,17 +198,25 @@ src_install() {
 
 	# default startup and shutdown scripts
 	insinto /etc/xdg/plasma-workspace/env
-	doins "${FILESDIR}"/10-agent-startup.sh
+	doins "${T}"/10-agent-startup.sh
 
 	insinto /etc/xdg/plasma-workspace/shutdown
-	doins "${FILESDIR}"/10-agent-shutdown.sh
+	doins "${T}"/10-agent-shutdown.sh
 	fperms +x /etc/xdg/plasma-workspace/shutdown/10-agent-shutdown.sh
 }
 
 pkg_postinst () {
 	ecm_pkg_postinst
 
-	# Clean up pre-5.17.4 dirs
+	# Clean up pre-5.17.4 scripts
+	if [[ -e "${EROOT}"/etc/plasma/startup/10-agent-startup.sh ]]; then
+		rm "${EROOT}"/etc/plasma/startup/10-agent-startup.sh || die
+		elog "Removed obsolete ${EPREFIX}/etc/plasma/startup/10-agent-startup.sh"
+	fi
+	if [[ -e "${EROOT}"/etc/plasma/shutdown/10-agent-shutdown.sh ]]; then
+		rm "${EROOT}"/etc/plasma/shutdown/10-agent-shutdown.sh || die
+		elog "Removed obsolete ${EPREFIX}/etc/plasma/shutdown/10-agent-shutdown.sh"
+	fi
 	rmdir -v "${EROOT}"/etc/plasma{/startup,/shutdown,} 2> /dev/null
 
 	elog "To enable gpg-agent and/or ssh-agent in Plasma sessions,"

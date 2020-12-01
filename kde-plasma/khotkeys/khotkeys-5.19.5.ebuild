@@ -4,16 +4,16 @@
 EAPI=7
 
 ECM_HANDBOOK="forceoptional" # not optional until !kdelibs4support
-KFMIN=5.74.0
+KFMIN=5.71.0
 PVCUT=$(ver_cut 1-3)
-QTMIN=5.15.1
+QTMIN=5.14.2
 inherit ecm kde.org
 
 DESCRIPTION="KDE Plasma workspace hotkey module"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 IUSE=""
 
 COMMON_DEPEND="
@@ -35,6 +35,7 @@ COMMON_DEPEND="
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kwindowsystem-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
+	>=kde-plasma/libkworkspace-${PVCUT}:5
 	x11-libs/libX11
 	x11-libs/libXtst
 "
@@ -47,3 +48,8 @@ RDEPEND="${COMMON_DEPEND}
 	>=kde-frameworks/kded-${KFMIN}:5
 	>=kde-plasma/kde-cli-tools-${PVCUT}:5
 "
+
+src_prepare() {
+	ecm_src_prepare
+	ecm_punt_bogus_dep KF5 Plasma # TODO: upstream
+}

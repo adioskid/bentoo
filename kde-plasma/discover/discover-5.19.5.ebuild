@@ -4,8 +4,9 @@
 EAPI=7
 
 ECM_TEST="forceoptional"
-KFMIN=5.74.0
-QTMIN=5.15.1
+KFMIN=5.71.0
+PVCUT=$(ver_cut 1-3)
+QTMIN=5.14.2
 VIRTUALX_REQUIRED="test"
 inherit ecm kde.org
 
@@ -14,7 +15,7 @@ HOMEPAGE="https://userbase.kde.org/Discover"
 
 LICENSE="GPL-2" # TODO: CHECK
 SLOT="5"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
+KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 IUSE="+firmware telemetry"
 
 # libmarkdown (app-text/discount) only used in PackageKitBackend
