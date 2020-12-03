@@ -11,7 +11,7 @@ if [[ ${PV} = *9999* ]]; then
 	EGIT_CHECKOUT_DIR="${WORKDIR}/${P}/src/${EGO_PN}"
 	inherit git-r3
 else
-	DOCKER_GITCOMMIT=4484c46d9d
+	DOCKER_GITCOMMIT="5eb3275"
 	MY_PV=${PV/_/-}
 	SRC_URI="https://${EGO_PN}/archive/v${MY_PV}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="amd64 ~arm arm64 ppc64 ~x86"
@@ -55,9 +55,9 @@ RDEPEND="
 	>=dev-vcs/git-1.7
 	>=app-arch/xz-utils-4.9
 	dev-libs/libltdl
-	~app-emulation/containerd-1.3.7[apparmor?,btrfs?,device-mapper?,seccomp?,selinux?]
+	~app-emulation/containerd-1.3.9[apparmor?,btrfs?,device-mapper?,seccomp?,selinux?]
 	~app-emulation/runc-1.0.0_rc10[apparmor?,seccomp?,selinux(-)?]
-	~app-emulation/docker-proxy-0.8.0_p20200617
+	~app-emulation/docker-proxy-0.8.0_p20201105
 	container-init? ( >=sys-process/tini-0.18.0[static] )
 "
 
@@ -302,15 +302,32 @@ pkg_postinst() {
 
 	elog
 	elog "To use Docker, the Docker daemon must be running as root. To automatically"
-	elog "start the Docker daemon at boot, add Docker to the default runlevel:"
-	elog "  rc-update add docker default"
-	elog "Similarly for systemd:"
-	elog "  systemctl enable docker.service"
+	elog "start the Docker daemon at boot:"
+	if systemd_is_booted || has_version sys-apps/systemd; then
+		elog "  systemctl enable docker.service"
+	else
+		elog "  rc-update add docker default"
+	fi
 	elog
 	elog "To use Docker as a non-root user, add yourself to the 'docker' group:"
-	elog "  usermod -aG docker youruser"
+	elog '  usermod -aG docker <youruser>'
 	elog
 
-	elog " Devicemapper storage driver has been deprecated"
-	elog " It will be removed in a future release"
+	if use device-mapper; then
+		elog " Devicemapper storage driver has been deprecated"
+		elog " It will be removed in a future release"
+		elog
+	fi
+
+	if use overlay; then
+		elog " Overlay storage driver/USEflag has been deprecated"
+		elog " in favor of overlay2 (enabled unconditionally)"
+		elog
+	fi
+
+	if has_version sys-fs/zfs; then
+		elog " ZFS storage driver is available"
+		elog " Check https://docs.docker.com/storage/storagedriver/zfs-driver for more info"
+		elog
+	fi
 }

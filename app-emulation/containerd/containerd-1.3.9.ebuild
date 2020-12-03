@@ -5,7 +5,7 @@ EAPI=7
 
 # update on bump, look for https://github.com/docker\
 # docker-ce/blob/<docker ver OR branch>/components/engine/hack/dockerfile/install/containerd.installer
-CONTAINERD_COMMIT="8fba4e9a7d01810a393d5d25a3621dc101981175"
+CONTAINERD_COMMIT="ea765ab"
 EGO_PN="github.com/containerd/${PN}"
 
 inherit golang-vcs-snapshot toolchain-funcs
@@ -73,7 +73,7 @@ src_compile() {
 src_install() {
 	dobin bin/*
 	doman man/*
-	newinitd "${FILESDIR}"/${PN}.initd-r1 "${PN}"
+	newinitd "${FILESDIR}"/${PN}.initd "${PN}"
 	keepdir /var/lib/containerd
 
 	# we already installed manpages, remove markdown source

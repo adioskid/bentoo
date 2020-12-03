@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-83-patches-05.tar.xz"
+FIREFOX_PATCHSET="firefox-83-patches-06.tar.xz"
 
 LLVM_MAX_SLOT=11
 
@@ -73,7 +73,7 @@ BDEPEND="${PYTHON_DEPS}
 	app-arch/unzip
 	app-arch/zip
 	>=dev-util/cbindgen-0.15.0
-	>=net-libs/nodejs-10.19.0
+	>=net-libs/nodejs-10.21.1
 	virtual/pkgconfig
 	>=virtual/rust-1.43.0
 	|| (
