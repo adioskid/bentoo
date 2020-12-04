@@ -126,9 +126,9 @@ REQUIRED_USE="
 	video_cards_gallium-imx?	( video_cards_gallium-vivante )
 	video_cards_gallium-tegra? ( video_cards_gallium-nouveau )
 	video_cards_gallium-r300?	( x86? ( llvm ) amd64? ( llvm ) )
-	video_cards_gallium-radeonsi?	( llvm egl? )
+	video_cards_gallium-radeonsi?	( llvm egl )
 	video_cards_gallium-pl111? ( video_cards_gallium-vc4 )
-	video_cards_gallium-virgl? ( egl? )
+	video_cards_gallium-virgl? ( egl )
 	video_cards_gallium-vivante? ( gbm )
 "
 
@@ -154,11 +154,9 @@ RDEPEND="
 		>=x11-libs/libXxf86vm-1.1.3:=
 		>=x11-libs/libxshmfence-1.1:=
 		>=x11-proto/glproto-1.4.14:=
-		drm? (
-			>=x11-libs/libXrandr-1.3:=
-			>=x11-base/xcb-proto-1.13:=
-			>=x11-libs/libxcb-1.13:=
-		)
+		>=x11-libs/libXrandr-1.3:=
+		>=x11-base/xcb-proto-1.13:=
+		>=x11-libs/libxcb-1.13:=
 	)
 
 	wayland? (
