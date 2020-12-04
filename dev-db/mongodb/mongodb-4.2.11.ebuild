@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6..9} )
 
 SCONS_MIN_VERSION="2.5.0"
 CHECKREQS_DISK_BUILD="2400M"
@@ -20,7 +20,7 @@ SRC_URI="https://fastdl.mongodb.org/src/${MY_P}.tar.gz"
 
 LICENSE="Apache-2.0 SSPL-1"
 SLOT="0"
-KEYWORDS="amd64 ~arm64"
+KEYWORDS="~amd64 ~arm64"
 IUSE="debug kerberos libressl lto ssl test +tools"
 RESTRICT="!test? ( test )"
 
@@ -55,7 +55,7 @@ PDEPEND="tools? ( >=app-admin/mongo-tools-${PV} )"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.2.0-fix-scons.patch"
-	"${FILESDIR}/${PN}-4.0.0-no-compass.patch"
+	"${FILESDIR}/${PN}-4.2.10-no-compass.patch"
 )
 
 S="${WORKDIR}/${MY_P}"

@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_7 )
+PYTHON_COMPAT=( python3_{7,8} )
 
 inherit check-reqs cmake flag-o-matic pax-utils python-single-r1 \
 	toolchain-funcs xdg-utils
@@ -30,7 +30,7 @@ RESTRICT="!test? ( test )"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
 	alembic? ( openexr )
 	cuda? ( cycles )
-	cycles? ( openexr tiff openimageio )
+	cycles? ( openexr tbb tiff openimageio )
 	elbeem? ( tbb )
 	opencl? ( cycles )
 	openvdb? (
@@ -42,11 +42,15 @@ REQUIRED_USE="${PYTHON_REQUIRED_USE}
 
 RDEPEND="${PYTHON_DEPS}
 	dev-libs/boost:=[nls?,threads(+)]
+	dev-libs/gmp
+	dev-libs/pugixml
 	dev-libs/lzo:2=
 	$(python_gen_cond_dep '
 		dev-python/numpy[${PYTHON_USEDEP}]
 		dev-python/requests[${PYTHON_USEDEP}]
 	')
+	media-gfx/potrace
+	media-libs/fontconfig:=
 	media-libs/freetype:=
 	media-libs/glew:*
 	media-libs/libpng:=
@@ -60,6 +64,7 @@ RDEPEND="${PYTHON_DEPS}
 	collada? ( >=media-libs/opencollada-1.6.68 )
 	color-management? ( media-libs/opencolorio )
 	cuda? ( dev-util/nvidia-cuda-toolkit:= )
+	cycles? ( media-libs/freeglut )
 	ffmpeg? ( media-video/ffmpeg:=[x264,mp3,encode,theora,jpeg2k?] )
 	fftw? ( sci-libs/fftw:3.0= )
 	!headless? (
@@ -88,7 +93,7 @@ RDEPEND="${PYTHON_DEPS}
 		~media-gfx/openvdb-7.0.0[abi6-compat(-)?,abi7-compat(-)?]
 		dev-libs/c-blosc:=
 	)
-	osl? ( media-libs/osl )
+	osl? ( media-libs/osl:= )
 	sdl? ( media-libs/libsdl2[sound,joystick] )
 	sndfile? ( media-libs/libsndfile )
 	tbb? ( dev-cpp/tbb )
@@ -113,6 +118,8 @@ BDEPEND="
 	)
 	nls? ( sys-devel/gettext )
 "
+
+CMAKE_BUILD_TYPE="Release"
 
 blender_check_requirements() {
 	[[ ${MERGE_TYPE} != binary ]] && use openmp && tc-check-openmp
@@ -301,6 +308,15 @@ pkg_postinst() {
 	ewarn "If you are concerned about security, file a bug upstream:"
 	ewarn "  https://developer.blender.org/"
 	ewarn
+
+	if use python_single_target_python3_8; then
+		elog "You've enabled python-3.8 support for blender, which is still experimental."
+		elog "If you experience breakages with e.g. plugins, please switch to"
+		elog "python_single_target_python3_7 instead."
+		elog "Bug: https://bugs.gentoo.org/737388"
+		elog
+	fi
+
 	xdg_icon_cache_update
 	xdg_mimeinfo_database_update
 	xdg_desktop_database_update

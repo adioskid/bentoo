@@ -3,27 +3,29 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 PYTHON_REQ_USE=xml
 DISTUTILS_SINGLE_IMPL=1
 
+COMMIT=8c3d90cca72e2051b1b74dc0d731824ed5edf0de
+MY_PN="${PN}-qt"
 inherit distutils-r1 xdg
 
-MY_PN="${PN}-qt"
-
-DESCRIPTION="An award-winning free and open-source video editor"
+DESCRIPTION="Award-winning free and open-source video editor"
 HOMEPAGE="https://www.openshot.org/"
-SRC_URI="https://github.com/OpenShot/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/OpenShot/${MY_PN}/archive/${COMMIT}.tar.gz -> ${P}.tar.gz"
+S="${WORKDIR}/${MY_PN}-${COMMIT}"
 
 LICENSE="GPL-3+"
 SLOT="1"
-KEYWORDS="~amd64 ~x86"
+# KEYWORDS="~amd64 ~x86"
 IUSE="doc"
 
 RDEPEND="
 	$(python_gen_cond_dep '
 		dev-python/httplib2[${PYTHON_MULTI_USEDEP}]
-		dev-python/PyQt5[${PYTHON_MULTI_USEDEP},gui,svg,webkit,widgets]
+		dev-python/PyQt5[${PYTHON_MULTI_USEDEP},gui,svg,widgets]
+		dev-python/PyQtWebEngine[${PYTHON_MULTI_USEDEP}]
 		dev-python/pyzmq[${PYTHON_MULTI_USEDEP}]
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
 	')
@@ -34,8 +36,6 @@ BDEPEND="
 		doc? ( dev-python/sphinx[${PYTHON_MULTI_USEDEP}] )
 	')
 "
-
-S="${WORKDIR}/${MY_PN}-${PV}"
 
 src_prepare() {
 	distutils-r1_python_prepare_all
