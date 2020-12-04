@@ -43,7 +43,7 @@ done
 IUSE_VIDEO_CARDS="${ALL_DRI_CARDS} ${ALL_GALLIUM_CARDS}"
 
 IUSE_GL="+glvnd +opengl +glx +egl +gles1 +gles2"
-IUSE_PLATFORMS="+X +drm wayland +surfaceless android haiku"
+IUSE_PLATFORMS="+X +drm wayland android haiku"
 IUSE_CL="opencl +ocl-icd"
 IUSE_MEDIA="video_cards_vaapi video_cards_vdpau video_cards_xvmc video_cards_xa video_cards_openmax"
 
@@ -126,9 +126,9 @@ REQUIRED_USE="
 	video_cards_gallium-imx?	( video_cards_gallium-vivante )
 	video_cards_gallium-tegra? ( video_cards_gallium-nouveau )
 	video_cards_gallium-r300?	( x86? ( llvm ) amd64? ( llvm ) )
-	video_cards_gallium-radeonsi?	( llvm egl? ( || ( drm surfaceless ) ) )
+	video_cards_gallium-radeonsi?	( llvm egl? ( || ( drm ) ) )
 	video_cards_gallium-pl111? ( video_cards_gallium-vc4 )
-	video_cards_gallium-virgl? ( egl? ( || ( drm surfaceless ) ) )
+	video_cards_gallium-virgl? ( egl? ( || ( drm ) ) )
 	video_cards_gallium-vivante? ( gbm )
 "
 
@@ -452,7 +452,6 @@ src_configure() {
 	platform_enable X x11
 	platform_enable drm drm
 	platform_enable wayland wayland
-	platform_enable surfaceless surfaceless
 	platform_enable android android
 	platform_enable haiku haiku
 
