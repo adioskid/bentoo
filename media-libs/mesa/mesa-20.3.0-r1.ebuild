@@ -43,7 +43,7 @@ done
 IUSE_VIDEO_CARDS="${ALL_DRI_CARDS} ${ALL_GALLIUM_CARDS}"
 
 IUSE_GL="+glvnd +opengl +glx +egl +gles1 +gles2"
-IUSE_PLATFORMS="+X +drm wayland android haiku"
+IUSE_PLATFORMS="+X wayland android haiku"
 IUSE_CL="opencl +ocl-icd"
 IUSE_MEDIA="video_cards_vaapi video_cards_vdpau video_cards_xvmc video_cards_xa video_cards_openmax"
 
@@ -126,9 +126,9 @@ REQUIRED_USE="
 	video_cards_gallium-imx?	( video_cards_gallium-vivante )
 	video_cards_gallium-tegra? ( video_cards_gallium-nouveau )
 	video_cards_gallium-r300?	( x86? ( llvm ) amd64? ( llvm ) )
-	video_cards_gallium-radeonsi?	( llvm egl? ( || ( drm ) ) )
+	video_cards_gallium-radeonsi?	( llvm egl? )
 	video_cards_gallium-pl111? ( video_cards_gallium-vc4 )
-	video_cards_gallium-virgl? ( egl? ( || ( drm ) ) )
+	video_cards_gallium-virgl? ( egl? )
 	video_cards_gallium-vivante? ( gbm )
 "
 
@@ -153,7 +153,6 @@ RDEPEND="
 		!video_cards_dri3? ( >=x11-libs/libxcb-1.9.3:= )
 		>=x11-libs/libXxf86vm-1.1.3:=
 		>=x11-libs/libxshmfence-1.1:=
-		drm? ( >=x11-proto/dri2proto-2.8:= )
 		>=x11-proto/glproto-1.4.14:=
 		drm? (
 			>=x11-libs/libXrandr-1.3:=
