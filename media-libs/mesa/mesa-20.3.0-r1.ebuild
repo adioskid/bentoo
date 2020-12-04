@@ -447,7 +447,6 @@ src_configure() {
 
 	# Enable the various platforms
 	platform_enable X x11
-	platform_enable drm drm
 	platform_enable wayland wayland
 	platform_enable android android
 	platform_enable haiku haiku
