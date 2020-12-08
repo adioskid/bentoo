@@ -5,7 +5,7 @@ EAPI=7
 
 inherit check-reqs cuda toolchain-funcs unpacker
 
-DRIVER_PV="455.23.05"
+DRIVER_PV="455.32.00"
 
 DESCRIPTION="NVIDIA CUDA Toolkit (compiler and friends)"
 HOMEPAGE="https://developer.nvidia.com/cuda-zone"

@@ -34,7 +34,7 @@ patches() {
 }
 
 # The version of readline this bash normally ships with.
-READLINE_VER="8.0"
+READLINE_VER="8.1"
 
 DESCRIPTION="The standard GNU Bourne again shell"
 HOMEPAGE="http://tiswww.case.edu/php/chet/bash/bashtop.html"
@@ -46,7 +46,8 @@ fi
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+[[ "${PV}" == *_rc* ]] || \
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="afs bashlogger examples mem-scramble +net nls plugins +readline"
 
 DEPEND="
@@ -64,7 +65,6 @@ S="${WORKDIR}/${MY_P}"
 
 PATCHES=(
 	# Patches from Chet sent to bashbug ml
-	"${FILESDIR}"/${PN}-5.0-history-append.patch
 	"${FILESDIR}"/${PN}-5.0-syslog-history-extern.patch
 )
 
@@ -103,6 +103,7 @@ src_prepare() {
 	touch -r . doc/* || die
 
 	eapply -p0 "${PATCHES[@]}"
+	eapply "${FILESDIR}/${PN}-5.1-parallel_make.patch"
 	eapply_user
 }
 
