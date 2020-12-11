@@ -10,7 +10,7 @@ HOMEPAGE="https://zoom.us/"
 SRC_URI="https://zoom.us/client/${PV}/${PN}_x86_64.tar.xz -> ${P}_x86_64.tar.xz"
 S="${WORKDIR}/${PN}"
 
-LICENSE="all-rights-reserved Apache-2.0" # Apache-2.0 for icon
+LICENSE="all-rights-reserved"
 SLOT="0"
 KEYWORDS="-* ~amd64"
 IUSE="bundled-libjpeg-turbo +bundled-qt pulseaudio wayland"
@@ -49,18 +49,24 @@ RDEPEND="!games-engines/zoom
 		dev-qt/qtlocation:5
 		dev-qt/qtnetwork:5
 		dev-qt/qtquickcontrols:5[widgets]
+		dev-qt/qtquickcontrols2:5
 		dev-qt/qtscript:5
 		dev-qt/qtsvg:5
 		dev-qt/qtwidgets:5
 		wayland? ( dev-qt/qtwayland )
 	)"
 
-BDEPEND="!pulseaudio? ( dev-util/bbe )"
+BDEPEND="dev-util/bbe"
 
 QA_PREBUILT="opt/zoom/*"
 
 src_prepare() {
 	default
+
+	# The tarball doesn't contain an icon, so extract it from the binary
+	bbe -s -b '/<svg width="32"/:/<\x2fsvg>\n/' -e 'J 1;D' zoom >zoom.svg \
+		&& [[ -s zoom.svg ]] || die "Extraction of icon failed"
+
 	if ! use pulseaudio; then
 		# For some strange reason, zoom cannot use any ALSA sound devices if
 		# it finds libpulse. This causes breakage if media-sound/apulse[sdk]
@@ -97,10 +103,9 @@ src_install() {
 
 		(	# Remove libs and plugins with unresolved soname dependencies
 			cd "${ED}"/opt/zoom || die
-			rm -r Qt/labs/calendar Qt/labs/location QtQml/RemoteObjects \
-				QtQuick/Controls.2 QtQuick/LocalStorage QtQuick/Particles.2 \
-				QtQuick/Scene2D QtQuick/Scene3D QtQuick/Shapes \
-				QtQuick/Templates.2 QtQuick/XmlListModel \
+			rm -r Qt/labs/location QtQml/RemoteObjects \
+				QtQuick/LocalStorage QtQuick/Particles.2 QtQuick/Scene2D \
+				QtQuick/Scene3D QtQuick/Shapes QtQuick/XmlListModel \
 				platforms/libqeglfs.so platforms/libqlinuxfb.so || die
 			use wayland || rm -r libQt5Wayland*.so* QtWayland wayland* \
 				platforms/libqwayland*.so || die
@@ -108,13 +113,10 @@ src_install() {
 	fi
 
 	make_wrapper zoom /opt/zoom{/zoom,} $(usex bundled-qt /opt/zoom "")
-	make_desktop_entry "zoom %U" Zoom zoom-videocam "" \
+	make_desktop_entry "zoom %U" Zoom zoom "" \
 		"MimeType=x-scheme-handler/zoommtg;application/x-zoom;"
-	# The tarball doesn't contain an icon, so take a generic camera icon
-	# from https://github.com/google/material-design-icons, modified to be
-	# white on a blue background
-	doicon -s scalable "${FILESDIR}"/zoom-videocam.svg
-	doicon -s 24 "${FILESDIR}"/zoom-videocam.xpm
+	doicon zoom.svg
+	doicon -s scalable zoom.svg
 	readme.gentoo_create_doc
 }
 

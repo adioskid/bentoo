@@ -3,53 +3,55 @@
 
 EAPI=7
 
-ECM_TEST="forceoptional"
+ECM_HANDBOOK="forceoptional"
+ECM_HANDBOOK_DIR="docs"
+ECM_TEST="true"
 KDE_ORG_CATEGORY="kdevelop"
-KDE_ORG_NAME="kdev-python"
-PYTHON_COMPAT=( python3_{7,8,9} )
-KFMIN=5.70.0
-QTMIN=5.12.3
-inherit ecm kde.org python-single-r1
+KDE_ORG_NAME="kdev-php"
+KFMIN=5.74.0
+QTMIN=5.15.1
+VIRTUALX_REQUIRED="test"
+inherit ecm kde.org
 
-DESCRIPTION="Python plugin for KDevelop"
+DESCRIPTION="PHP plugin for KDevelop"
 HOMEPAGE="https://www.kdevelop.org/"
 
 if [[ ${KDE_BUILD_TYPE} = release ]]; then
-	KEYWORDS="~amd64 x86"
+	KEYWORDS="~amd64 ~x86"
 fi
 
-LICENSE="GPL-2" # TODO: CHECK
+LICENSE="GPL-2 LGPL-2"
 SLOT="5"
 IUSE=""
 
-REQUIRED_USE="${PYTHON_REQUIRED_USE}"
-
-DEPEND="${PYTHON_DEPS}
+BDEPEND="
+	test? ( dev-util/kdevelop:5[test] )
+"
+DEPEND="
 	>=dev-qt/qtgui-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
+	dev-util/kdevelop-pg-qt:5
 	dev-util/kdevelop:5=
-	>=kde-frameworks/kcompletion-${KFMIN}:5
+	>=kde-frameworks/kcmutils-${KFMIN}:5
 	>=kde-frameworks/kconfig-${KFMIN}:5
+	>=kde-frameworks/kconfigwidgets-${KFMIN}:5
 	>=kde-frameworks/kcoreaddons-${KFMIN}:5
 	>=kde-frameworks/ki18n-${KFMIN}:5
 	>=kde-frameworks/kio-${KFMIN}:5
-	>=kde-frameworks/kitemmodels-${KFMIN}:5
-	>=kde-frameworks/knewstuff-${KFMIN}:5
-	>=kde-frameworks/kparts-${KFMIN}:5
 	>=kde-frameworks/ktexteditor-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
 	>=kde-frameworks/threadweaver-${KFMIN}:5
 "
-RDEPEND="${DEPEND}
-	$(python_gen_cond_dep '
-		dev-python/pycodestyle[${PYTHON_MULTI_USEDEP}]
-	')
-"
+RDEPEND="${DEPEND}"
 
+# remaining tests fail for some, bug 668530
 RESTRICT+=" test"
 
-pkg_setup() {
-	python-single-r1_pkg_setup
-	ecm_pkg_setup
+src_test() {
+	# tests hang, bug 667922
+	local myctestargs=(
+		-E "(completionbenchmark|duchain_multiplefiles)"
+	)
+	ecm_src_test
 }

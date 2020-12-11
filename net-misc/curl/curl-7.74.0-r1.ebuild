@@ -12,8 +12,8 @@ SRC_URI="https://curl.haxx.se/download/${P}.tar.xz"
 LICENSE="curl"
 SLOT="0"
 #KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-IUSE="adns alt-svc brotli +ftp gnutls gopher +http2 idn +imap ipv6 kerberos ldap libressl mbedtls metalink nss +openssl +pop3 +progress-meter rtmp samba +smtp ssh ssl static-libs test telnet +tftp threads winssl zstd"
+KEYWORDS="~alpha ~amd64 ~arm arm64 hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 sparc x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+IUSE="adns alt-svc brotli +ftp gnutls gopher hsts +http2 idn +imap ipv6 kerberos ldap libressl mbedtls metalink nss +openssl +pop3 +progress-meter rtmp samba +smtp ssh ssl static-libs test telnet +tftp threads winssl zstd"
 IUSE+=" curl_ssl_gnutls curl_ssl_libressl curl_ssl_mbedtls curl_ssl_nss +curl_ssl_openssl curl_ssl_winssl"
 IUSE+=" nghttp3 quiche"
 IUSE+=" elibc_Winnt"
@@ -90,7 +90,7 @@ REQUIRED_USE="
 		)
 	)"
 
-DOCS=( CHANGES README docs/FEATURES docs/INTERNALS.md \
+DOCS=( CHANGES README docs/FEATURES.md docs/INTERNALS.md \
 	docs/FAQ docs/BUGS.md docs/CONTRIBUTE.md )
 
 MULTILIB_WRAPPED_HEADERS=(
@@ -190,6 +190,7 @@ multilib_src_configure() {
 		--enable-file \
 		$(use_enable ftp) \
 		$(use_enable gopher) \
+		$(use_enable hsts) \
 		--enable-http \
 		$(use_enable imap) \
 		$(use_enable ldap) \
@@ -221,7 +222,6 @@ multilib_src_configure() {
 		$(use_enable progress-meter) \
 		--enable-proxy \
 		--disable-sspi \
-		--disable-socketpair \
 		$(use_enable static-libs static) \
 		$(use_enable threads threaded-resolver) \
 		$(use_enable threads pthreads) \

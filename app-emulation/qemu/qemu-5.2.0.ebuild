@@ -6,8 +6,6 @@ EAPI="7"
 PYTHON_COMPAT=( python3_{6,7,8,9} )
 PYTHON_REQ_USE="ncurses,readline"
 
-PLOCALES="bg de_DE fr_FR hu it sv tr zh_CN"
-
 FIRMWARE_ABI_VERSION="4.0.0-r50"
 
 inherit eutils linux-info toolchain-funcs multilib python-r1 \
@@ -16,7 +14,9 @@ inherit eutils linux-info toolchain-funcs multilib python-r1 \
 if [[ ${PV} = *9999* ]]; then
 	EGIT_REPO_URI="https://git.qemu.org/git/qemu.git"
 	EGIT_SUBMODULES=(
-		tests/fp/berkeley-{test,soft}float-3
+		meson
+		tests/fp/berkeley-softfloat-3
+		tests/fp/berkeley-testfloat-3
 		ui/keycodemapdb
 	)
 	inherit git-r3
@@ -223,11 +223,6 @@ RDEPEND="${CDEPEND}
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-2.11.1-capstone_include_path.patch
-	"${FILESDIR}"/${PN}-4.0.0-mkdir_systemtap.patch #684902
-	"${FILESDIR}"/${PN}-4.2.0-cflags.patch
-	"${FILESDIR}"/${PN}-5.1.0-pixman-for-vhost-user-gpu.patch
-	"${FILESDIR}"/${PN}-5.1.0-usb-oob-CVE-2020-14364.patch #743649
-	"${FILESDIR}"/${PN}-5.1.0-usb-host-workaround-libusb-bug.patch #753305
 )
 
 QA_PREBUILT="
@@ -235,10 +230,13 @@ QA_PREBUILT="
 	usr/share/qemu/openbios-ppc
 	usr/share/qemu/openbios-sparc64
 	usr/share/qemu/openbios-sparc32
+	usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.elf
+	usr/share/qemu/opensbi-riscv32-generic-fw_dynamic.elf
 	usr/share/qemu/palcode-clipper
 	usr/share/qemu/s390-ccw.img
 	usr/share/qemu/s390-netboot.img
-	usr/share/qemu/u-boot.e500"
+	usr/share/qemu/u-boot.e500
+"
 
 QA_WX_LOAD="usr/bin/qemu-i386
 	usr/bin/qemu-x86_64
@@ -261,7 +259,8 @@ QA_WX_LOAD="usr/bin/qemu-i386
 	usr/bin/qemu-armeb
 	usr/bin/qemu-sparc32plus
 	usr/bin/qemu-s390x
-	usr/bin/qemu-unicore32"
+	usr/bin/qemu-unicore32
+"
 
 DOC_CONTENTS="If you don't have kvm compiled into the kernel, make sure you have the
 kernel module loaded before running kvm. The easiest way to ensure that the
@@ -336,7 +335,7 @@ check_targets() {
 	local var=$1 mak=$2
 	local detected sorted
 
-	pushd "${S}"/default-configs >/dev/null || die
+	pushd "${S}"/default-configs/targets/ >/dev/null || die
 
 	# Force C locale until glibc is updated. #564936
 	detected=$(echo $(printf '%s\n' *-${mak}.mak | sed "s:-${mak}.mak::" | LC_COLLATE=C sort -u))
@@ -351,29 +350,6 @@ check_targets() {
 	popd >/dev/null
 }
 
-handle_locales() {
-	# Make sure locale list is kept up-to-date.
-	local detected sorted
-	detected=$(echo $(cd po && printf '%s\n' *.po | grep -v messages.po | sed 's:.po$::' | sort -u))
-	sorted=$(echo $(printf '%s\n' ${PLOCALES} | sort -u))
-	if [[ ${sorted} != "${detected}" ]] ; then
-		eerror "The ebuild needs to be kept in sync."
-		eerror "PLOCALES: ${sorted}"
-		eerror " po/*.po: ${detected}"
-		die "sync PLOCALES"
-	fi
-
-	# Deal with selective install of locales.
-	if use nls ; then
-		# Delete locales the user does not want. #577814
-		rm_loc() { rm po/$1.po || die; }
-		l10n_for_each_disabled_locale_do rm_loc
-	else
-		# Cheap hack to disable gettext .mo generation.
-		rm -f po/*.po
-	fi
-}
-
 src_prepare() {
 	check_targets IUSE_SOFTMMU_TARGETS softmmu
 	check_targets IUSE_USER_TARGETS linux-user
@@ -386,9 +362,6 @@ src_prepare() {
 
 	# Verbose builds
 	MAKEOPTS+=" V=1"
-
-	# Run after we've applied all patches.
-	handle_locales
 
 	# Remove bundled copy of libfdt
 	rm -r dtc || die
@@ -414,7 +387,6 @@ qemu_src_configure() {
 		--datadir=/usr/share
 		--docdir=/usr/share/doc/${PF}/html
 		--mandir=/usr/share/man
-		--with-confsuffix=/qemu
 		--localstatedir=/var
 		--disable-bsd-user
 		--disable-containers # bug #732972
@@ -443,6 +415,7 @@ qemu_src_configure() {
 		$(use_enable debug debug-info)
 		$(use_enable debug debug-tcg)
 		$(use_enable doc docs)
+		$(use_enable nls gettext)
 		$(use_enable plugins)
 		$(use_enable xattr attr)
 	)
@@ -454,6 +427,14 @@ qemu_src_configure() {
 			echo "--disable-${2:-$1}"
 		else
 			use_enable "$@"
+		fi
+	}
+	# Enable option only for softmmu build, but not 'user' or 'tools'
+	conf_softmmu() {
+		if [[ ${buildtype} == "softmmu" ]] ; then
+			use_enable "$@"
+		else
+			echo "--disable-${2:-$1}"
 		fi
 	}
 	conf_opts+=(
@@ -484,7 +465,7 @@ qemu_src_configure() {
 		$(conf_notuser rbd)
 		$(conf_notuser sasl vnc-sasl)
 		$(conf_notuser sdl)
-		$(conf_notuser sdl-image)
+		$(conf_softmmu sdl-image)
 		$(conf_notuser seccomp)
 		$(conf_notuser slirp slirp system)
 		$(conf_notuser smartcard)
@@ -744,7 +725,7 @@ src_install() {
 	doins "${FILESDIR}/bridge.conf"
 
 	cd "${S}"
-	dodoc Changelog MAINTAINERS docs/specs/pci-ids.txt
+	dodoc MAINTAINERS docs/specs/pci-ids.txt
 	newdoc pc-bios/README README.pc-bios
 
 	# Disallow stripping of prebuilt firmware files.

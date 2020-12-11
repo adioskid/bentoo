@@ -4,7 +4,7 @@
 EAPI=6
 inherit desktop eapi7-ver linux-info pax-utils toolchain-funcs wxwidgets
 
-MY_PV="$(ver_cut 1-2)-Update$(ver_cut 4)"
+MY_PV="$(ver_cut 1-2)-Update$(ver_cut 4)_MacOSX"
 DESCRIPTION="Disk encryption with strong security based on TrueCrypt"
 HOMEPAGE="https://www.veracrypt.fr/en/Home.html"
 SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_${MY_PV}.tar.gz -> ${P}.tar.gz"
@@ -15,7 +15,7 @@ SRC_URI="https://github.com/${PN}/VeraCrypt/archive/VeraCrypt_${MY_PV}.tar.gz ->
 # For this reason, we don't have to worry about their licenses
 LICENSE="Apache-2.0 BSD truecrypt-3.0"
 SLOT="0"
-KEYWORDS="amd64"
+KEYWORDS="~amd64"
 IUSE="+asm cpu_flags_x86_sse2 cpu_flags_x86_sse4_1 cpu_flags_x86_ssse3 doc X"
 RESTRICT="bindist mirror"
 
