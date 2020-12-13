@@ -1,0 +1,21 @@
+diff --git a/hook/nvidia-container-runtime-hook/hook_config.go b/hook/nvidia-container-runtime-hook/hook_config.go
+index c8e1038..30fe082 100644
+--- a/hook/nvidia-container-runtime-hook/hook_config.go
++++ b/hook/nvidia-container-runtime-hook/hook_config.go
+@@ -39,6 +39,7 @@ type HookConfig struct {
+ }
+ 
+ func getDefaultHookConfig() (config HookConfig) {
++	video_group := "root:video"
+ 	return HookConfig{
+ 		DisableRequire: false,
+ 		SwarmResource:  nil,
+@@ -50,7 +51,7 @@ func getDefaultHookConfig() (config HookConfig) {
+ 			Ldcache:     nil,
+ 			LoadKmods:   true,
+ 			NoCgroups:   false,
+-			User:        nil,
++			User:        &video_group,
+ 			Ldconfig:    nil,
+ 		},
+ 	}
