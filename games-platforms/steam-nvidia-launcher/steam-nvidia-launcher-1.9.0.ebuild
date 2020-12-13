@@ -10,8 +10,8 @@ SLOT="0"
 KEYWORDS="amd64"
 
 GITHUB_REPO="steam-launcher"
-GITHUB_USER="funtoo"
-GITHUB_TAG="230c21ae862f99aea61c711ef51facb58bca7938"
+GITHUB_USER="adioskid"
+GITHUB_TAG="9c9bdb14ed6cb1e63a4fad860c926d8b1f9b5d98"
 SRC_URI="https://www.github.com/${GITHUB_USER}/${GITHUB_REPO}/tarball/${GITHUB_TAG} -> ${PN}-${GITHUB_TAG}.tar.gz"
 DOCKER_IMG_DRIVER=455.45.01
 RDEPEND="
