@@ -1,0 +1,137 @@
+https://bugs.gentoo.org/558466
+https://gcc.gnu.org/PR67310
+
+From 2a7c98f6327a25a352fd338e8e12ee66ca7a6f63 Mon Sep 17 00:00:00 2001
+From: uros <uros@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sun, 5 Jun 2016 15:47:50 +0000
+Subject: [PATCH]
+
+2016-06-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2016-06-01  Uros Bizjak  <ubizjak@gmail.com>
+		    Jocelyn Mayer  <l_indien@magic.fr>
+
+	PR target/67310
+	* config/i386/driver-i386.c (host_detect_local_cpu): Correctly
+	detect processor family for signature_CENTAUR_ebx.
+	<case PROCESSOR_I486>: Pass c3, winchip2 or winchip-c6 for
+	signature_CENTAUR_ebx.
+	<case PROCESSOR _PENTIUMPRO>: Pass c3-2 for signature_CENTAUR_ebx.
+	<default>: Pass x86-64 for has_longmode.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@237100 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                 | 14 +++++++++
+ gcc/config/i386/driver-i386.c | 73 ++++++++++++++++++++++++++-----------------
+ 2 files changed, 58 insertions(+), 29 deletions(-)
+
+diff --git a/gcc/config/i386/driver-i386.c b/gcc/config/i386/driver-i386.c
+index 1c6c22172d49..c2cdb49ff686 100644
+--- a/gcc/config/i386/driver-i386.c
++++ b/gcc/config/i386/driver-i386.c
+@@ -630,33 +630,27 @@ const char *host_detect_local_cpu (int argc, const char **argv)
+     }
+   else if (vendor == signature_CENTAUR_ebx)
+     {
+-      if (arch)
++      processor = PROCESSOR_GENERIC;
++
++      switch (family)
+ 	{
+-	  switch (family)
+-	    {
+-	    case 6:
+-	      if (model > 9)
+-		/* Use the default detection procedure.  */
+-		processor = PROCESSOR_GENERIC;
+-	      else if (model == 9)
+-		cpu = "c3-2";
+-	      else if (model >= 6)
+-		cpu = "c3";
+-	      else
+-		processor = PROCESSOR_GENERIC;
+-	      break;
+-	    case 5:
+-	      if (has_3dnow)
+-		cpu = "winchip2";
+-	      else if (has_mmx)
+-		cpu = "winchip2-c6";
+-	      else
+-		processor = PROCESSOR_GENERIC;
+-	      break;
+-	    default:
+-	      /* We have no idea.  */
+-	      processor = PROCESSOR_GENERIC;
+-	    }
++	default:
++	  /* We have no idea.  */
++	  break;
++
++	case 5:
++	  if (has_3dnow || has_mmx)
++	    processor = PROCESSOR_I486;
++	  break;
++
++	case 6:
++	  if (model > 9 || has_longmode)
++	    /* Use the default detection procedure.  */
++	    ;
++	  else if (model == 9)
++	    processor = PROCESSOR_PENTIUMPRO;
++	  else if (model >= 6)
++	    processor = PROCESSOR_I486;
+ 	}
+     }
+   else
+@@ -687,7 +681,18 @@ const char *host_detect_local_cpu (int argc, const char **argv)
+       /* Default.  */
+       break;
+     case PROCESSOR_I486:
+-      cpu = "i486";
++      if (arch && vendor == signature_CENTAUR_ebx)
++	{
++	  if (model >= 6)
++	    cpu = "c3";
++	  else if (has_3dnow)
++	    cpu = "winchip2";
++	  else
++	    /* Assume WinChip C6.  */
++	    cpu = "winchip-c6";
++	}
++      else
++	cpu = "i486";
+       break;
+     case PROCESSOR_PENTIUM:
+       if (arch && has_mmx)
+@@ -804,8 +809,13 @@ const char *host_detect_local_cpu (int argc, const char **argv)
+ 		/* It is Pentium M.  */
+ 		cpu = "pentium-m";
+ 	      else if (has_sse)
+-		/* It is Pentium III.  */
+-		cpu = "pentium3";
++		{
++		  if (vendor == signature_CENTAUR_ebx)
++		    cpu = "c3-2";
++		  else
++		    /* It is Pentium III.  */
++		    cpu = "pentium3";
++		}
+ 	      else if (has_mmx)
+ 		/* It is Pentium II.  */
+ 		cpu = "pentium2";
+@@ -886,6 +896,11 @@ const char *host_detect_local_cpu (int argc, const char **argv)
+ 	      else
+ 		cpu = "prescott";
+ 	    }
++	  else if (has_longmode)
++	    /* Perhaps some emulator?  Assume x86-64, otherwise gcc
++	       -march=native would be unusable for 64-bit compilations,
++	       as all the CPUs below are 32-bit only.  */
++	    cpu = "x86-64";
+ 	  else if (has_sse2)
+ 	    cpu = "pentium4";
+ 	  else if (has_cmov)
+-- 
+2.8.2
+

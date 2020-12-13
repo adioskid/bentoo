@@ -1,0 +1,30 @@
+From 919e63e824a673c63575f753c861c330860e632a Mon Sep 17 00:00:00 2001
+From: hp <hp@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sun, 9 Sep 2018 18:12:14 +0000
+Subject: [PATCH] 	PR target/85666 	* config/mmix/mmix.c
+ (mmix_assemble_integer): Handle byte-size 	non-CONST_INT rtx:es using
+ assemble_integer_with_op ".byte".
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@264183 138bc75d-0d04-0410-961f-82ee72b054a4
+--- a/gcc/config/mmix/mmix.c
++++ b/gcc/config/mmix/mmix.c
+@@ -1370,8 +1370,14 @@ mmix_assemble_integer (rtx x, unsigned int size, int aligned_p)
+       case 1:
+ 	if (GET_CODE (x) != CONST_INT)
+ 	  {
+-	    aligned_p = 0;
+-	    break;
++	    /* There is no "unaligned byte" op or generic function to
++	       which we can punt, so we have to handle this here.  As
++	       the expression isn't a plain literal, the generated
++	       assembly-code can't be mmixal-equivalent (i.e. "BYTE"
++	       won't work) and thus it's ok to emit the default op
++	       ".byte". */
++	    assemble_integer_with_op ("\t.byte\t", x);
++	    return true;
+ 	  }
+ 	fputs ("\tBYTE\t", asm_out_file);
+ 	mmix_print_operand (asm_out_file, x, 'B');
+-- 
+2.19.0
+

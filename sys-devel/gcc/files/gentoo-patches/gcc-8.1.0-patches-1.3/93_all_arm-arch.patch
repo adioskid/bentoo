@@ -1,0 +1,16 @@
+Fix -march= flag autodetection.
+
+Bug: https://gcc.gnu.org/PR85658
+diff --git a/gcc/config/arm/parsecpu.awk b/gcc/config/arm/parsecpu.awk
+index 56c762b3b..1135f735b 100644
+--- a/gcc/config/arm/parsecpu.awk
++++ b/gcc/config/arm/parsecpu.awk
+@@ -485,7 +485,7 @@ function check_fpu (name) {
+ function check_arch (name) {
+     exts = split (name, extensions, "+")
+ 
+-    if (! extensions[1] in arch_isa) {
++    if (! (extensions[1] in arch_isa)) {
+ 	return "error"
+     }
+ 

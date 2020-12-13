@@ -1,0 +1,55 @@
+We disable ssp on -nostdlib and -ffreestanding as we did on older gcc
+and change the buffer size.
+
+--- a/gcc/c-family/c-opts.c	2016-03-08 23:30:44.000000000 +0100
++++ b/gcc/c-family/c-opts.c	2016-09-18 18:42:10.231644014 +0200
+@@ -436,7 +436,15 @@ c_common_handle_option (size_t scode, co
+ 
+     case OPT_ffreestanding:
+       value = !value;
++	  if (global_options.x_flag_stack_protect == -1)
++		global_options.x_flag_stack_protect = 0;
+       /* Fall through....  */
++
++	case OPT_nostdlib:
++	  if (global_options.x_flag_stack_protect == -1)
++		global_options.x_flag_stack_protect = 0;
++	  /* Fall through....  */
++
+     case OPT_fhosted:
+       flag_hosted = value;
+       flag_no_builtin = !value;
+--- a/gcc/c-family/c.opt	2016-03-23 18:51:56.000000000 +0100
++++ b/gcc/c-family/c.opt	2016-09-18 18:46:17.071649782 +0200
+@@ -1647,6 +1647,10 @@ nostdinc++
+ C++ ObjC++
+ Do not search standard system include directories for C++.
+ 
++nostdlib
++C ObjC C++ ObjC++
++; Documented in common.opt
++
+ o
+ C ObjC C++ ObjC++ Joined Separate
+ ; Documented in common.opt
+--- a/gcc/gcc.c	2016-02-19 23:18:38.000000000 +0100
++++ b/gcc/gcc.c	2016-09-18 18:47:35.621651618 +0200
+@@ -1132,6 +1143,7 @@ static const char *cc1_options =
+  %{-help=*:--help=%*}\
+  %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}}\
+  %{fsyntax-only:-o %j} %{-param*}\
++ %{nostdlib:-nostdlib}\
+  %{coverage:-fprofile-arcs -ftest-coverage}";
+ 
+ static const char *asm_options =
+--- a/gcc/params.def	2016-03-30 09:47:40.000000000 +0200
++++ b/gcc/params.def	2016-09-19 12:56:58.443179039 +0200
+@@ -673,7 +673,7 @@ DEFPARAM (PARAM_INTEGER_SHARE_LIMIT,
+ DEFPARAM (PARAM_SSP_BUFFER_SIZE,
+ 	  "ssp-buffer-size",
+ 	  "The lower bound for a buffer to be considered for stack smashing protection.",
+-	  8, 1, 0)
++	  4, 1, 0)
+ 
+ DEFPARAM (PARAM_MIN_SIZE_FOR_STACK_SHARING,
+ 	  "min-size-for-stack-sharing",

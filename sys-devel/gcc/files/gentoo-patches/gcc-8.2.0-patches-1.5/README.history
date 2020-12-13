@@ -1,0 +1,47 @@
+1.5		27 Oct 2018
+	+ 111_all_ubd-hog-PR85704.patch
+	U 105_all_libgfortran-Werror.patch
+	+ 112_all_libstdcxx-no-vtv.patch
+	+ 113_all_ICE-on-strncmp-PR87099.patch
+
+1.4		01 Oct 2018
+	+ 105_all_libgfortran-Werror.patch
+	+ 106_all_libgomp-Werror.patch
+	+ 107_all_libitm-Werror.patch
+	+ 108_all_libatomic-Werror.patch
+	+ 109_all_libbacktrace-Werror.patch
+	+ 110_all_libsanitizer-Werror.patch
+
+1.3		23 Sep 2018
+	+ 101_all_x32-fix-eh-return-address.patch
+	+ 102_all_respect-build-cxxflags.patch
+	+ 103_all_mmix-fix-85666-p1.patch
+	+ 104_all_mmix-fix-85666-p2.patch
+
+1.2		12 Aug 2018
+	- 100_all-isl-include.patch
+	+ 100_all_isl-include.patch
+
+1.1		12 Aug 2018
+	+ 98_all_sh_textrel-on-libitm.patch
+	+ 99_all_m68k-textrel-on-libgcc.patch
+	+ 100_all-isl-include.patch
+
+1.0		08 Aug 2018
+	+ 95_all_ia64-TEXTREL.patch
+	+ 97_all_disable-systemtap-switch.patch
+	+ 94_all_mips-o32-asan.patch
+	+ 13_all_default-ssp-fix.patch
+	+ 35_all_i386_libgcc_note.GNU-stack.patch
+	+ 55_all_extra-options.patch
+	+ 92_all_sh-drop-sysroot-suffix.patch
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 13_all_default-ssp-fix.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 54_all_nopie-all-flags.patch
+	+ 90_all_pr55930-dependency-tracking.patch

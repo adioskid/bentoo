@@ -1,0 +1,89 @@
+On Hardened we add some options like -fstack-clash-protection and -z now
+
+--- a/gcc/common.opt	2018-03-28 16:51:09.000000000 +0200
++++ a/gcc/common.opt	2018-04-30 15:35:55.274096877 +0200
+@@ -2367,7 +2367,7 @@ Common Alias(fstack-check=, specific, no
+ Insert stack checking code into the program.  Same as -fstack-check=specific.
+ 
+ fstack-clash-protection
+-Common Report Var(flag_stack_clash_protection) Optimization
++Common Report Var(flag_stack_clash_protection) Optimization Init(-1)
+ Insert code to probe each page of stack space as it is allocated to protect
+ from stack-clash style attacks.
+ 
+--- a/gcc/defaults.h	2018-01-03 11:03:58.000000000 +0100
++++ b/gcc/defaults.h	2018-05-01 12:41:29.522851451 +0200
+@@ -1435,6 +1435,15 @@ see the files COPYING3 and COPYING.RUNTI
+ #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
+ #endif
+ 
++/* Default value for flag_clash_protector when flag_clash_protector is
++   initialized to -1.  */
++#ifdef ENABLE_ESP
++#define DEFAULT_FLAG_SCP 1
++#endif
++#ifndef DEFAULT_FLAG_SCP
++#define DEFAULT_FLAG_SCP 0
++#endif
++
+ /* By default, the C++ compiler will use function addresses in the
+    vtable entries.  Setting this nonzero tells the compiler to use
+    function descriptors instead.  The value of this macro says how
+--- a/gcc/toplev.c	2018-02-13 17:18:37.000000000 +0100
++++ b/toplev.c	2018-04-30 16:46:37.244027303 +0200
+@@ -1682,6 +1682,10 @@ process_options (void)
+ 
+   /* -fstack-clash-protection is not currently supported on targets
+      where the stack grows up.  */
++  if (flag_stack_clash_protection == -1)
++    {
++      flag_stack_clash_protection = DEFAULT_FLAG_SCP;
++    }
+   if (flag_stack_clash_protection && !STACK_GROWS_DOWNWARD)
+     {
+       warning_at (UNKNOWN_LOCATION, 0,
+
+--- a/libgcc/Makefile.in	2011-11-22 04:01:02.000000000 +0100
++++ b/libgcc/Makefile.in	2011-12-25 15:18:22.449610631 +0100
+@@ -225,7 +225,7 @@ endif
+ LIBGCC2_DEBUG_CFLAGS = -g
+ LIBGCC2_CFLAGS = -O2 $(LIBGCC2_INCLUDES) $(GCC_CFLAGS) $(HOST_LIBGCC2_CFLAGS) \
+ 		 $(LIBGCC2_DEBUG_CFLAGS) -DIN_LIBGCC2 \
+-		 -fbuilding-libgcc -fno-stack-protector \
++		 -fbuilding-libgcc -fno-stack-protector -fno-stack-clash-protection \
+ 		 $(INHIBIT_LIBC_CFLAGS)
+ 
+ # Additional options to use when compiling libgcc2.a.
+@@ -279,7 +290,7 @@ INTERNAL_CFLAGS = $(CFLAGS) $(LIBGCC2_CF
+   -finhibit-size-directive -fno-inline -fno-exceptions \
+   -fno-zero-initialized-in-bss -fno-toplevel-reorder -fno-tree-vectorize \
+   -fbuilding-libgcc -fno-stack-protector $(FORCE_EXPLICIT_EH_REGISTRY) \
+-  $(INHIBIT_LIBC_CFLAGS)
++  -fno-stack-clash-protection $(INHIBIT_LIBC_CFLAGS)
+ 
+ # Extra flags to use when compiling crt{begin,end}.o.
+ CRTSTUFF_T_CFLAGS =
+--- a/gcc/gcc.c	2016-02-19 23:18:38.000000000 +0100
++++ b/gcc/gcc.c	2016-05-02 22:56:10.185721270 +0200
+@@ -868,6 +868,12 @@ proper position among the other output f
+ #endif
+ #endif
+ 
++#ifdef EXTRA_OPTIONS
++#define LINK_NOW_SPEC "%{!nonow:-z now} "
++#else
++#define LINK_NOW_SPEC ""
++#endif
++
+ #ifdef ENABLE_DEFAULT_PIE
+ #define NO_PIE_SPEC		"no-pie|static"
+ #define PIE_SPEC		NO_PIE_SPEC "|r|shared:;"
+@@ -1013,7 +1020,7 @@ proper position among the other output f
+     %(linker) " \
+     LINK_PLUGIN_SPEC \
+    "%{flto|flto=*:%<fcompare-debug*} \
+-    %{flto} %{fno-lto} %{flto=*} %l " LINK_PIE_SPEC \
++    %{flto} %{fno-lto} %{flto=*} %l " LINK_PIE_SPEC LINK_NOW_SPEC \
+    "%{fuse-ld=*:-fuse-ld=%*} " LINK_COMPRESS_DEBUG_SPEC \
+    "%X %{o*} %{e*} %{N} %{n} %{r}\
+     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}} \

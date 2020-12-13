@@ -1,0 +1,32 @@
+Index: gcc/ChangeLog
+===================================================================
+diff --git a/gcc/ChangeLog b/gcc/ChangeLog
+--- a/gcc/ChangeLog	(revision 270854)
++++ b/gcc/ChangeLog	(revision 270854)
+@@ -1,3 +1,10 @@
++2018-11-07  Max Filippov  <jcmvbkbc@gmail.com>
++
++	Backport from mainline
++	2018-11-05  Max Filippov  <jcmvbkbc@gmail.com>
++
++	* config/xtensa/uclinux.h (XTENSA_ALWAYS_PIC): Change to 0.
++
+ 2018-10-26  Release Manager
+ 
+ 	* GCC 6.5.0 released.
+Index: gcc/config/xtensa/uclinux.h
+===================================================================
+diff --git a/gcc/config/xtensa/uclinux.h b/gcc/config/xtensa/uclinux.h
+--- a/gcc/config/xtensa/uclinux.h	(revision 270854)
++++ b/gcc/config/xtensa/uclinux.h	(revision 270854)
+@@ -59,8 +59,8 @@
+ #undef LOCAL_LABEL_PREFIX
+ #define LOCAL_LABEL_PREFIX	"."
+ 
+-/* Always enable "-fpic" for Xtensa Linux.  */
+-#define XTENSA_ALWAYS_PIC 1
++/* Don't enable "-fpic" for Xtensa uclinux.  */
++#define XTENSA_ALWAYS_PIC 0
+ 
+ #undef TARGET_LIBC_HAS_FUNCTION
+ #define TARGET_LIBC_HAS_FUNCTION no_c99_libc_has_function

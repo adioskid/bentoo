@@ -1,0 +1,41 @@
+Backport of upstream https://gcc.gnu.org/PR86712
+
+From 7bb408709cd28034e1bfbd0596887997bcdccee4 Mon Sep 17 00:00:00 2001
+From: law <law@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 3 Aug 2018 20:53:08 +0000
+Subject: [PATCH] 	* config/sh/sjlj.S: Adjust to use PIC vs normal code
+ to avoid 	absolute relocation in a shared library.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@263299 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libitm/ChangeLog             |   5 +++++
+ libitm/config/sh/.sjlj.S.swp | Bin 0 -> 12288 bytes
+ libitm/config/sh/sjlj.S      |   4 ++--
+ 3 files changed, 7 insertions(+), 2 deletions(-)
+ create mode 100644 libitm/config/sh/.sjlj.S.swp
+
+diff --git a/libitm/config/sh/sjlj.S b/libitm/config/sh/sjlj.S
+index 043f36749be..f265ab8f898 100644
+--- a/libitm/config/sh/sjlj.S
++++ b/libitm/config/sh/sjlj.S
+@@ -53,7 +53,7 @@ _ITM_beginTransaction:
+ #else
+ 	cfi_def_cfa_offset (4*10)
+ #endif
+-#if defined HAVE_ATTRIBUTE_VISIBILITY || !defined __PIC__
++#if !defined __PIC__
+ 	mov.l	.Lbegin, r1
+ 	jsr	@r1
+ 	 mov	r15, r5
+@@ -78,7 +78,7 @@ _ITM_beginTransaction:
+ 
+ 	.align  2
+ .Lbegin:
+-#if defined HAVE_ATTRIBUTE_VISIBILITY || !defined __PIC__
++#if !defined __PIC__
+ 	.long	GTM_begin_transaction
+ #else
+ 	.long	GTM_begin_transaction@PCREL-(.Lbegin0-.)
+-- 
+2.18.0
+

@@ -1,0 +1,48 @@
+1.9		27 Aug 2018
+	+ 96_all_libsanitizer-avoidustat.h-glibc-2.28-part-1.patch
+	+ 97_all_libsanitizer-avoidustat.h-glibc-2.28-part-2.patch
+1.8		12 Jan 2018
+	+ 95_all_libjava-ucontext.patch
+1.7		26 Oct 2017
+	+ 94_all_no-sigaltstack.patch
+1.6		26 Oct 2017
+	+ 93_all_ucontext-to-ucontext_t.patch
+1.5		24 Oct 2017
+	+ 92_all_asan-signal_h.patch
+1.4		06 Aug 2017
+	+ 91_all_compatibility_fix_with_perl_5.26.patch
+1.3		01 Feb 2017
+	+ 71_all_gcc-5-march-native-pr67310.patch
+	+ 78_all_gcc-5-pr71442
+	- 95_all_gcc5-head-snapshot-diff-20161227.patch
+1.2		27 Dec 2016
+	+ 95_all_gcc5-head-snapshot-diff-20161227.patch
+	- 95_all_gcc5-head-snapshot-diff-20161226.patch
+1.1		26 Dec 2016
+	- 71_all_gcc-5-march-native-pr67310.patch
+	+ 95_all_gcc5-head-snapshot-diff-20161226.patch
+1.0		12 Jun 2016
+	+ 05_all_gcc-spec-env.patch
+	+ 09_all_default-ssp.patch
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 20_all_msgfmt-libstdc++-link.patch
+	+ 24_all_boehm-gc-execinfo.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 26_all_alpha-asm-mcpu.patch
+	+ 29_all_arm_armv4t-default.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 34_all_libjava-classpath-locale-sort.patch
+	+ 38_all_sh_pr24836_all-archs.patch
+	+ 42_all_superh_default-multilib.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 52_all_netbsd-Bsymbolic.patch
+	+ 53_all_libitm-no-fortify-source.patch
+	+ 67_all_gcc-poison-system-directories.patch
+	+ 70_all_gcc-5-pr546752.patch
+	+ 71_all_gcc-5-march-native-pr67310.patch
+	+ 74_all_gcc5_isl-dl.patch
+	+ 77_all_gcc-5-pr65958.patch
+	+ 90_all_pr55930-dependency-tracking.patch

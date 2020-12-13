@@ -1,0 +1,26 @@
+1.0		03 May 2019
+	+ 01_all_default-fortify-source.patch
+	+ 02_all_default-warn-format-security.patch
+	+ 03_all_default-warn-trampolines.patch
+	+ 04_all_default-ssp-fix.patch
+	+ 05_all_alpha-mieee-default.patch
+	+ 06_all_ia64_note.GNU-stack.patch
+	+ 07_all_i386_libgcc_note.GNU-stack.patch
+	+ 08_all_libiberty-asprintf.patch
+	+ 09_all_libiberty-pic.patch
+	+ 10_all_nopie-all-flags.patch
+	+ 11_all_extra-options.patch
+	+ 12_all_pr55930-dependency-tracking.patch
+	+ 13_all_sh-drop-sysroot-suffix.patch
+	+ 14_all_ia64-TEXTREL.patch
+	+ 15_all_disable-systemtap-switch.patch
+	+ 16_all_m68k-textrel-on-libgcc.patch
+	+ 17_all_respect-build-cxxflags.patch
+	+ 18_all_libgfortran-Werror.patch
+	+ 19_all_libgomp-Werror.patch
+	+ 20_all_libitm-Werror.patch
+	+ 21_all_libatomic-Werror.patch
+	+ 22_all_libbacktrace-Werror.patch
+	+ 23_all_libsanitizer-Werror.patch
+	+ 24_all_libstdcxx-no-vtv.patch
+	+ 25_all_ia64-bootstrap.patch

@@ -1,0 +1,261 @@
+2014-04-27  Magnus Granberg  <zorry@gentoo.org>
+
+	Patch orig: Debian/Ubuntu
+	# 484714
+	We Add -fstack-protector-strong as default and change
+	ssp-buffer-size
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -3238,6 +3238,9 @@ case $build in
+     esac ;;
+ esac
+ 
++# Needed when we build with -fstack-protector as default.
++stage1_cflags="$stage1_cflags -fno-stack-protector"
++
+ AC_SUBST(stage1_cflags)
+ 
+ # Enable --enable-checking in stage1 of the compiler.
+--- a/configure
++++ b/configure
+@@ -14453,7 +14453,8 @@ case $build in
+     esac ;;
+ esac
+ 
+-
++# Needed when we build with -fstack-protector as default.
++stage1_cflags="$stage1_cflags -fno-stack-protector"
+ 
+ # Enable --enable-checking in stage1 of the compiler.
+ # Check whether --enable-stage1-checking was given.
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -362,7 +362,7 @@ BUILD_PREFIX_1 = @BUILD_PREFIX_1@
+ 
+ # Flags to pass to stage2 and later makes.  They are defined
+ # here so that they can be overridden by Makefile fragments.
+-BOOT_CFLAGS= -g -O2
++BOOT_CFLAGS= -g -O2 -fno-stack-protector
+ BOOT_LDFLAGS=
+ BOOT_ADAFLAGS= -gnatpg
+ 
+@@ -408,9 +408,9 @@ GNATMAKE = @GNATMAKE@
+ 
+ CFLAGS = @CFLAGS@
+ LDFLAGS = @LDFLAGS@
+-LIBCFLAGS = $(CFLAGS)
++LIBCFLAGS = $(CFLAGS) -fno-stack-protector
+ CXXFLAGS = @CXXFLAGS@
+-LIBCXXFLAGS = $(CXXFLAGS) -fno-implicit-templates
++LIBCXXFLAGS = $(CXXFLAGS) -fno-implicit-templates -fno-stack-protector
+ GOCFLAGS = $(CFLAGS)
+ 
+ TFLAGS =
+--- a/gcc/doc/invoke.texi
++++ b/gcc/doc/invoke.texi
+@@ -9239,6 +9251,11 @@ Like @option{-fstack-protector} but incl
+ be protected --- those that have local array definitions, or have
+ references to local frame addresses.
+ 
++NOTE: In Gentoo GCC 4.9.0 and later versions this option is enabled by default
++for C, C++, ObjC, and ObjC++ if none of the options @option{-fno-stack-protector},
++@option{-nostdlib}, @option{-ffreestanding}, @option{-fstack-protector},
++@option{-fstack-protector-strong}, or @option{-fstack-protector-all} are found.
++
+ @item -fstack-protector-explicit
+ @opindex fstack-protector-explicit
+ Like @option{-fstack-protector} but only protects those functions which
+@@ -9461,6 +9465,9 @@
+ The minimum size of buffers (i.e.@: arrays) that receive stack smashing
+ protection when @option{-fstack-protection} is used.
+ 
++NOTE: In Gentoo this is change from "8" to "4", to increase
++the number of functions protected by the stack protector.
++
+ @item min-size-for-stack-sharing
+ The minimum size of variables taking part in stack slot sharing when not
+ optimizing. The default value is 32.
+--- a/gcc/cp/lang-specs.h
++++ b/gcc/cp/lang-specs.h
+@@ -46,7 +46,7 @@ along with GCC; see the file COPYING3.  If not see
+ 		%(cpp_options) %2 -o %{save-temps*:%b.ii} %{!save-temps*:%g.ii} \n}\
+       cc1plus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(ssp_default) %2\
+ 	%{!fsyntax-only:%{!fdump-ada-spec*:-o %g.s %{!o*:--output-pch=%i.gch}\
+         %W{o*:--output-pch=%*}}%V}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+@@ -57,11 +57,11 @@ along with GCC; see the file COPYING3.  If not see
+ 		%(cpp_options) %2 -o %{save-temps*:%b.ii} %{!save-temps*:%g.ii} \n}\
+       cc1plus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(ssp_default) %2\
+        %{!fsyntax-only:%(invoke_as)}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {".ii", "@c++-cpp-output", 0, 0, 0},
+   {"@c++-cpp-output",
+    "%{!M:%{!MM:%{!E:\
+-    cc1plus -fpreprocessed %i %(cc1_options) %2\
++    cc1plus -fpreprocessed %i %(cc1_options) %(ssp_default) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+--- a/gcc/gcc.c
++++ b/gcc/gcc.c
+@@ -651,6 +651,19 @@ proper position among the other output files.  */
+ #define LINK_GCC_C_SEQUENCE_SPEC "%G %L %G"
+ #endif
+ 
++#ifndef SSP_DEFAULT_SPEC
++#if defined ( TARGET_LIBC_PROVIDES_SSP ) && defined ( EFAULT_SSP )
++#define SSP_DEFAULT_SPEC "%{fno-stack-protector|fstack-protector| \
++  fstack-protector-strong|fstack-protector-all| \
++  ffreestanding|nostdlib:;:-fstack-protector-strong}"
++/* Add -fno-stack-protector for the use of gcc-specs-ssp.  */
++#define CC1_SSP_DEFAULT_SPEC "%{!fno-stack-protector:}"
++#else
++#define SSP_DEFAULT_SPEC ""
++#define CC1_SSP_DEFAULT_SPEC ""
++#endif
++#endif
++
+ #ifndef LINK_SSP_SPEC
+ #ifdef TARGET_LIBC_PROVIDES_SSP
+ #define LINK_SSP_SPEC "%{fstack-protector:}"
+@@ -771,7 +781,7 @@ proper position among the other output f
+ 
+ static const char *asm_debug = ASM_DEBUG_SPEC;
+ static const char *cpp_spec = CPP_SPEC;
+-static const char *cc1_spec = CC1_SPEC;
++static const char *cc1_spec = CC1_SPEC CC1_SSP_DEFAULT_SPEC;
+ static const char *cc1plus_spec = CC1PLUS_SPEC;
+ static const char *link_gcc_c_sequence_spec = LINK_GCC_C_SEQUENCE_SPEC;
+ static const char *link_ssp_spec = LINK_SSP_SPEC;
+@@ -777,6 +785,8 @@ static const char *cc1_spec = CC1_SPEC;
+ static const char *cc1plus_spec = CC1PLUS_SPEC;
+ static const char *link_gcc_c_sequence_spec = LINK_GCC_C_SEQUENCE_SPEC;
+ static const char *link_ssp_spec = LINK_SSP_SPEC;
++static const char *ssp_default_spec = SSP_DEFAULT_SPEC;
++static const char *cc1_ssp_default_spec = CC1_SSP_DEFAULT_SPEC;
+ static const char *asm_spec = ASM_SPEC;
+ static const char *asm_final_spec = ASM_FINAL_SPEC;
+ static const char *link_spec = LINK_SPEC;
+@@ -835,7 +844,7 @@ static const char *cpp_unique_options =
+ static const char *cpp_options =
+ "%(cpp_unique_options) %1 %{m*} %{std*&ansi&trigraphs} %{W*&pedantic*} %{w}\
+  %{f*} %{g*:%{!g0:%{g*} %{!fno-working-directory:-fworking-directory}}} %{O*}\
+- %{undef} %{save-temps*:-fpch-preprocess}";
++ %{undef} %{save-temps*:-fpch-preprocess} %(ssp_default)";
+ 
+ /* This contains cpp options which are not passed when the preprocessor
+    output will be used by another program.  */
+@@ -1015,9 +1024,9 @@ static const struct compiler default_compilers[] =
+       %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+ 	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+ 	    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+-	  %(cc1_options)}\
++	  %(cc1_options) %(ssp_default)}\
+       %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+-	  cc1 %(cpp_unique_options) %(cc1_options)}}}\
++	  cc1 %(cpp_unique_options) %(cc1_options) %(ssp_default)}}}\
+       %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 1},
+   {"-",
+    "%{!E:%e-E or -x required when input is from standard input}\
+@@ -1040,7 +1049,7 @@ static const struct compiler default_compilers[] =
+                     %W{o*:--output-pch=%*}}%V}}}}}}", 0, 0, 0},
+   {".i", "@cpp-output", 0, 0, 0},
+   {"@cpp-output",
+-   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
++   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %(ssp_default) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {".s", "@assembler", 0, 0, 0},
+   {"@assembler",
+    "%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}", 0, 0, 0},
+@@ -1267,6 +1276,8 @@ static struct spec_list static_specs[] =
+   INIT_STATIC_SPEC ("cc1plus",			&cc1plus_spec),
+   INIT_STATIC_SPEC ("link_gcc_c_sequence",	&link_gcc_c_sequence_spec),
+   INIT_STATIC_SPEC ("link_ssp",			&link_ssp_spec),
++  INIT_STATIC_SPEC ("ssp_default",		&ssp_default_spec),
++  INIT_STATIC_SPEC ("cc1_ssp_default",	&cc1_ssp_default_spec),
+   INIT_STATIC_SPEC ("endfile",			&endfile_spec),
+   INIT_STATIC_SPEC ("link",			&link_spec),
+   INIT_STATIC_SPEC ("lib",			&lib_spec),
+--- a/gcc/objc/lang-specs.h
++++ b/gcc/objc/lang-specs.h
+@@ -29,9 +29,9 @@ along with GCC; see the file COPYING3.  If not see
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}\
++	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+-	    cc1obj %(cpp_unique_options) %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}}\
++	    cc1obj %(cpp_unique_options) %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}}}\
+         %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objective-c-header",
+      "%{E|M|MM:cc1obj -E %{traditional|traditional-cpp:-traditional-cpp}\
+@@ -40,18 +40,18 @@ along with GCC; see the file COPYING3.  If not see
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %b.mi %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++	    cc1obj -fpreprocessed %b.mi %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}\
+                         -o %g.s %{!o*:--output-pch=%i.gch}\
+                         %W{o*:--output-pch=%*}%V}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+-	    cc1obj %(cpp_unique_options) %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++	    cc1obj %(cpp_unique_options) %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}\
+                         -o %g.s %{!o*:--output-pch=%i.gch}\
+                         %W{o*:--output-pch=%*}%V}}}}}", 0, 0, 0},
+   {".mi", "@objective-c-cpp-output", 0, 0, 0},
+   {"@objective-c-cpp-output",
+-     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc-cpp-output",
+       "%nobjc-cpp-output is deprecated; please use objective-c-cpp-output instead\n\
+-       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %(ssp_default) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+--- a/gcc/objcp/lang-specs.h
++++ b/gcc/objcp/lang-specs.h
+@@ -36,7 +36,7 @@ along with GCC; see the file COPYING3.  If not see
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(ssp_default) %2\
+         -o %g.s %{!o*:--output-pch=%i.gch} %W{o*:--output-pch=%*}%V}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {"@objective-c++",
+@@ -46,16 +46,16 @@ along with GCC; see the file COPYING3.  If not see
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(ssp_default) %2\
+        %{!fsyntax-only:%(invoke_as)}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {".mii", "@objective-c++-cpp-output", 0, 0, 0},
+   {"@objective-c++-cpp-output",
+    "%{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(cc1_options) %(ssp_default) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc++-cpp-output",
+    "%nobjc++-cpp-output is deprecated; please use objective-c++-cpp-output instead\n\
+     %{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(cc1_options) %(ssp_default) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+--- a/gcc/params.def
++++ b/gcc/params.def
+@@ -662,7 +662,7 @@ DEFPARAM (PARAM_INTEGER_SHARE_LIMIT,
+ DEFPARAM (PARAM_SSP_BUFFER_SIZE,
+ 	  "ssp-buffer-size",
+ 	  "The lower bound for a buffer to be considered for stack smashing protection",
+-	  8, 1, 0)
++	  4, 1, 0)
+ 
+ /* When we thread through a block we have to make copies of the
+    statements within the block.  Clearly for large blocks the code
