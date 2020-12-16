@@ -121,6 +121,10 @@ BDEPEND="
 	virtual/pkgconfig
 "
 
+PATCHES=(
+	"${FILESDIR}"/pulseaudio-11.1-disable-flat-volumes.patch # bug 627894
+)
+
 pkg_pretend() {
 	CONFIG_CHECK="~HIGH_RES_TIMERS"
 	WARNING_HIGH_RES_TIMERS="CONFIG_HIGH_RES_TIMERS:\tis not set (required for enabling timer-based scheduling in pulseaudio)\n"
@@ -196,8 +200,8 @@ multilib_src_configure() {
 		local PKGCONFIG="$(tc-getPKG_CONFIG)"
 		myconf+=(
 			--enable-systemd-login
-			SYSTEMDLOGIN_CFLAGS="$(${PKGCONFIG} --cflags "libelogind" 2>/dev/null)"
-			SYSTEMDLOGIN_LIBS="$(${PKGCONFIG} --libs "libelogind" 2>/dev/null)"
+			SYSTEMDLOGIN_CFLAGS="$(${PKGCONFIG} --cflags "libelogind")"
+			SYSTEMDLOGIN_LIBS="$(${PKGCONFIG} --libs "libelogind")"
 		)
 	fi
 

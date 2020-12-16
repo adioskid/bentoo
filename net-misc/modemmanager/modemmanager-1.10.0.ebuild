@@ -5,7 +5,7 @@ EAPI=6
 GNOME2_LA_PUNT="yes"
 VALA_USE_DEPEND="vapigen"
 
-inherit gnome2 readme.gentoo-r1 systemd udev vala
+inherit gnome2 readme.gentoo-r1 systemd toolchain-funcs udev vala
 
 DESCRIPTION="Modem and mobile broadband management libraries"
 HOMEPAGE="https://www.freedesktop.org/wiki/Software/ModemManager/"
@@ -13,7 +13,7 @@ SRC_URI="https://www.freedesktop.org/software/ModemManager/ModemManager-${PV}.ta
 
 LICENSE="GPL-2+"
 SLOT="0/1" # subslot = dbus interface version, i.e. N in org.freedesktop.ModemManager${N}
-KEYWORDS="~alpha amd64 arm ~arm64 ~ia64 ~mips ppc ppc64 ~sparc x86"
+KEYWORDS="~alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 ~sparc x86"
 
 IUSE="elogind +introspection mbim policykit +qmi systemd +udev vala"
 REQUIRED_USE="
@@ -75,10 +75,11 @@ src_configure() {
 		$(use_enable vala)
 	)
 	if use elogind; then
+		local pkgconfig="$(tc-getPKG_CONFIG)"
 		myconf+=(
 			--with-systemd-suspend-resume
-			LIBSYSTEMD_LOGIN_CFLAGS=`pkg-config --cflags "libelogind" 2>/dev/null`
-			LIBSYSTEMD_LOGIN_LIBS=`pkg-config --libs "libelogind" 2>/dev/null`
+			LIBSYSTEMD_LOGIN_CFLAGS="$(${pkgconfig} --cflags "libelogind")"
+			LIBSYSTEMD_LOGIN_LIBS="$(${pkgconfig} --libs "libelogind")"
 		)
 	fi
 	gnome2_src_configure "${myconf[@]}"
