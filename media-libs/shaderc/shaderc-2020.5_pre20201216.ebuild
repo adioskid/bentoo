@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{3_6,3_7,3_8} )
+PYTHON_COMPAT=( python{3_6,3_7,3_8,3_9} )
 
 CMAKE_ECLASS=cmake
 
@@ -11,7 +11,9 @@ inherit cmake-multilib python-any-r1
 
 DESCRIPTION="Collection of tools, libraries and tests for shader compilation"
 HOMEPAGE="https://github.com/google/shaderc"
-SRC_URI="https://github.com/google/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+EGIT_COMMIT="4089217d30c1f035c44a08255b875b5fea4f4bc5"
+SRC_URI="https://github.com/google/${PN}/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
+S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -19,12 +21,12 @@ KEYWORDS="~amd64 ~ppc64 ~x86"
 IUSE="doc test"
 
 RDEPEND="
-	>=dev-util/glslang-8.13.3560_pre20200404[${MULTILIB_USEDEP}]
-	>=dev-util/spirv-tools-2020.3[${MULTILIB_USEDEP}]
+	>=dev-util/glslang-10.11.0.0_pre20201216[${MULTILIB_USEDEP}]
+	>=dev-util/spirv-tools-2020.6[${MULTILIB_USEDEP}]
 "
 DEPEND="${RDEPEND}
 	${PYTHON_DEPS}
-	>=dev-util/spirv-headers-1.5.3
+	>=dev-util/spirv-headers-1.5.4.1
 	doc? ( dev-ruby/asciidoctor )
 	test? (
 		dev-cpp/gtest
@@ -33,7 +35,7 @@ DEPEND="${RDEPEND}
 "
 
 PATCHES=(
-		"${FILESDIR}"/${PN}-2020.1-fix-build.patch
+		"${FILESDIR}"/${PN}-2020.4-fix-build.patch
 )
 
 # https://github.com/google/shaderc/issues/470
@@ -70,6 +72,7 @@ src_prepare() {
 multilib_src_configure() {
 	local mycmakeargs=(
 		-DSHADERC_SKIP_TESTS="$(usex !test)"
+		-DSHADERC_ENABLE_WERROR_COMPILE="false"
 	)
 	cmake_src_configure
 }
