@@ -19,7 +19,7 @@ RDEPEND="app-arch/xz-utils
 DEPEND="${RDEPEND}"
 
 PATCHES=(
-	"${FILESDIR}/${P}-fix-uclibc-ng.patch" #741972
+	"${FILESDIR}/${PN}-1.4.5-fix-uclibc-ng.patch" #741972
 )
 
 src_prepare() {
