@@ -52,6 +52,8 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
+PATCHES=( "${FILESDIR}/${P}"-revert-bold-breakage.patch )
+
 src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package X X11)
