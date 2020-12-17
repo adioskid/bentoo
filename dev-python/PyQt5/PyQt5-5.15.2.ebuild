@@ -18,7 +18,7 @@ fi
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ~ppc ~ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~x86"
 
 # TODO: QtNfc, QtQuick3D, QtRemoteObjects, QtTextToSpeech
 IUSE="bluetooth dbus debug declarative designer examples gles2-only gui help location
@@ -52,7 +52,7 @@ REQUIRED_USE="
 "
 
 # Minimal supported version of Qt.
-QT_PV="5.14:5"
+QT_PV="5.15:5"
 
 RDEPEND="${PYTHON_DEPS}
 	>=dev-python/PyQt5-sip-4.19.23:=[${PYTHON_USEDEP}]
