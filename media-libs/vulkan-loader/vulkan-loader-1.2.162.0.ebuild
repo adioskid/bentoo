@@ -9,7 +9,7 @@ inherit flag-o-matic cmake-utils python-any-r1 toolchain-funcs
 
 DESCRIPTION="Vulkan Installable Client Driver (ICD) Loader"
 HOMEPAGE="https://github.com/KhronosGroup/Vulkan-Loader"
-SRC_URI="https://api.github.com/repos/KhronosGroup/Vulkan-Loader/tarball/sdk-1.2.162.0 -> vulkan-loader-1.2.162.0.tar.gz"
+SRC_URI="https://api.github.com/repos/KhronosGroup/Vulkan-Loader/tarball/sdk-1.2.154.1 -> vulkan-loader-1.2.154.1.tar.gz"
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -30,11 +30,6 @@ PDEPEND="layers? ( media-libs/vulkan-layers:= )"
 src_unpack() {
 	unpack ${A}
 	mv "${WORKDIR}"/KhronosGroup-Vulkan-Loader-* ${S} || die
-}
-
-post_src_prepare() {
-	# on 64-bit systems, have pkgconfig file reference 'libvulkan' not 'libvulkan64'.
-	sed -i -e s'/^Libs:.*$/Libs: -L${libdir} -lvulkan/' loader/vulkan.pc.in || die
 }
 
 src_configure() {
