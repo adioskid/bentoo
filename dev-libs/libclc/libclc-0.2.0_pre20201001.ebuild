@@ -4,7 +4,7 @@
 EAPI=7
 PYTHON_COMPAT=( python3_{6..9} )
 
-inherit llvm prefix python-any-r1 toolchain-funcs
+inherit cmake llvm prefix python-any-r1 toolchain-funcs
 
 DESCRIPTION="OpenCL C library"
 HOMEPAGE="https://libclc.llvm.org/"
@@ -13,7 +13,7 @@ SRC_URI="https://dev.gentoo.org/~mgorny/dist/${P}.tar.xz"
 
 LICENSE="Apache-2.0-with-LLVM-exceptions || ( MIT BSD )"
 SLOT="0"
-KEYWORDS="amd64 x86"
+KEYWORDS="amd64 ~x86"
 IUSE_VIDEO_CARDS="video_cards_nvidia video_cards_r600 video_cards_radeonsi"
 IUSE="${IUSE_VIDEO_CARDS}"
 REQUIRED_USE="|| ( ${IUSE_VIDEO_CARDS} )"
@@ -24,19 +24,11 @@ BDEPEND="
 		sys-devel/clang:11
 		sys-devel/clang:10
 		sys-devel/clang:9
-		sys-devel/clang:8
 	)
 	${PYTHON_DEPS}"
 
 llvm_check_deps() {
 	has_version -b "sys-devel/clang:${LLVM_SLOT}"
-}
-
-src_prepare() {
-	default
-	if use prefix; then
-		hprefixify configure.py
-	fi
 }
 
 pkg_setup() {
@@ -50,16 +42,13 @@ src_configure() {
 	use video_cards_nvidia && libclc_targets+=("nvptx--" "nvptx64--" "nvptx--nvidiacl" "nvptx64--nvidiacl")
 	use video_cards_r600 && libclc_targets+=("r600--")
 	use video_cards_radeonsi && libclc_targets+=("amdgcn--" "amdgcn-mesa-mesa3d" "amdgcn--amdhsa")
-
+	# TODO: spirv
 	[[ ${#libclc_targets[@]} ]] || die "libclc target missing!"
 
-	./configure.py \
-		--with-cxx-compiler="$(tc-getCXX)" \
-		--with-llvm-config="$(get_llvm_prefix "${LLVM_MAX_SLOT}")/bin/llvm-config" \
-		--prefix="${EPREFIX}/usr" \
-		"${libclc_targets[@]}" || die
-}
-
-src_compile() {
-	emake VERBOSE=1
+	libclc_targets=${libclc_targets[*]}
+	local mycmakeargs=(
+		-DLIBCLC_TARGETS_TO_BUILD="${libclc_targets// /;}"
+		-DLLVM_CONFIG="$(get_llvm_prefix "${LLVM_MAX_SLOT}")/bin/llvm-config"
+	)
+	cmake_src_configure
 }
