@@ -66,6 +66,10 @@ src_compile() {
 	# configure.py appends CFLAGS to CXXFLAGS
 	unset CFLAGS
 
+	# enable LFS, bug #760848
+	export CXXFLAGS+=" -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+	BUILD_CXXFLAGS+=" -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+
 	run_for_build ${EPYTHON} configure.py --bootstrap --verbose || die
 
 	if tc-is-cross-compiler; then
