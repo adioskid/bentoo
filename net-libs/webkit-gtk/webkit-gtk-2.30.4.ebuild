@@ -1,13 +1,11 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
-CMAKE_MAKEFILE_GENERATOR="ninja"
+EAPI=7
 PYTHON_COMPAT=( python3_{6..8} )
 USE_RUBY="ruby24 ruby25 ruby26 ruby27"
-CMAKE_MIN_VERSION=3.10
 
-inherit check-reqs cmake-utils flag-o-matic gnome2 pax-utils python-any-r1 ruby-single toolchain-funcs virtualx
+inherit check-reqs cmake flag-o-matic gnome2 pax-utils python-any-r1 ruby-single toolchain-funcs virtualx
 
 MY_P="webkitgtk-${PV}"
 DESCRIPTION="Open source web browser engine"
@@ -16,7 +14,7 @@ SRC_URI="https://www.webkitgtk.org/releases/${MY_P}.tar.xz"
 
 LICENSE="LGPL-2+ BSD"
 SLOT="4/37" # soname version of libwebkit2gtk-4.0
-KEYWORDS="amd64 ~arm arm64 ~ppc64 ~sparc x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~sparc ~x86"
 
 IUSE="aqua +egl gamepad +geolocation gles2-only gnome-keyring +gstreamer gtk-doc +introspection +jpeg2k +jumbo-build libnotify +opengl seccomp spell systemd wayland +X"
 
@@ -104,9 +102,10 @@ RDEPEND="
 	gamepad? ( >=dev-libs/libmanette-0.2.4 )
 "
 unset wpe_depend
+DEPEND="${RDEPEND}"
 # paxctl needed for bug #407085
 # Need real bison, not yacc
-DEPEND="${RDEPEND}
+BDEPEND="
 	${PYTHON_DEPS}
 	${RUBY_DEPS}
 	>=app-accessibility/at-spi2-core-2.5.3
@@ -124,6 +123,7 @@ DEPEND="${RDEPEND}
 
 	gtk-doc? ( >=dev-util/gtk-doc-1.32 )
 	geolocation? ( dev-util/gdbus-codegen )
+	>=dev-util/cmake-3.10
 "
 #	test? (
 #		dev-python/pygobject:3[python_targets_python2_7]
@@ -169,13 +169,12 @@ pkg_setup() {
 }
 
 src_prepare() {
-	eapply "${FILESDIR}"/${PV}-icu68.patch
 	eapply "${FILESDIR}"/${PN}-2.24.4-eglmesaext-include.patch # bug 699054 # https://bugs.webkit.org/show_bug.cgi?id=204108
 	eapply "${FILESDIR}"/2.28.2-opengl-without-X-fixes.patch
 	eapply "${FILESDIR}"/2.28.2-non-jumbo-fix.patch
 	eapply "${FILESDIR}"/2.28.4-non-jumbo-fix2.patch
-	eapply "${FILESDIR}"/${PV}-fix-noGL-build.patch
-	cmake-utils_src_prepare
+	eapply "${FILESDIR}"/2.30.3-fix-noGL-build.patch
+	cmake_src_prepare
 	gnome2_src_prepare
 }
 
@@ -211,7 +210,7 @@ src_configure() {
 	local rubyimpl
 	local ruby_interpreter=""
 	for rubyimpl in ${USE_RUBY}; do
-		if has_version --host-root "virtual/rubygems[ruby_targets_${rubyimpl}]"; then
+		if has_version -b "virtual/rubygems[ruby_targets_${rubyimpl}]"; then
 			ruby_interpreter="-DRUBY_EXECUTABLE=$(type -P ${rubyimpl})"
 		fi
 	done
@@ -239,7 +238,7 @@ src_configure() {
 		-DENABLE_API_TESTS=$(usex test)
 		-DENABLE_GTKDOC=$(usex gtk-doc)
 		-DENABLE_GEOLOCATION=$(usex geolocation) # Runtime optional (talks over dbus service)
-		$(cmake-utils_use_find_package gles2-only OpenGLES2)
+		$(cmake_use_find_package gles2-only OpenGLES2)
 		-DENABLE_GLES2=$(usex gles2-only)
 		-DENABLE_VIDEO=$(usex gstreamer)
 		-DENABLE_WEB_AUDIO=$(usex gstreamer)
@@ -253,8 +252,8 @@ src_configure() {
 		-DENABLE_GAMEPAD=$(usex gamepad)
 		-DENABLE_WAYLAND_TARGET=$(usex wayland)
 		-DUSE_WPE_RENDERER=${use_wpe_renderer} # WPE renderer is used to implement accelerated compositing under wayland
-		$(cmake-utils_use_find_package egl EGL)
-		$(cmake-utils_use_find_package opengl OpenGL)
+		$(cmake_use_find_package egl EGL)
+		$(cmake_use_find_package opengl OpenGL)
 		-DENABLE_X11_TARGET=$(usex X)
 		-DENABLE_GRAPHICS_CONTEXT_GL=${opengl_enabled}
 		-DENABLE_WEBGL=${opengl_enabled}
@@ -274,24 +273,24 @@ src_configure() {
 #		mycmakeargs+=( -DUSE_LD_GOLD=OFF )
 #	fi
 
-	WK_USE_CCACHE=NO cmake-utils_src_configure
+	WK_USE_CCACHE=NO cmake_src_configure
 }
 
 src_compile() {
-	cmake-utils_src_compile
+	cmake_src_compile
 }
 
 src_test() {
 	# Prevents test failures on PaX systems
 	pax-mark m $(list-paxables Programs/*[Tt]ests/*) # Programs/unittests/.libs/test*
 
-	cmake-utils_src_test
+	cmake_src_test
 }
 
 src_install() {
-	cmake-utils_src_install
+	cmake_src_install
 
 	# Prevents crashes on PaX systems, bug #522808
-	pax-mark m "${ED}usr/libexec/webkit2gtk-4.0/jsc" "${ED}usr/libexec/webkit2gtk-4.0/WebKitWebProcess"
-	pax-mark m "${ED}usr/libexec/webkit2gtk-4.0/WebKitPluginProcess"
+	pax-mark m "${ED}/usr/libexec/webkit2gtk-4.0/jsc" "${ED}/usr/libexec/webkit2gtk-4.0/WebKitWebProcess"
+	pax-mark m "${ED}/usr/libexec/webkit2gtk-4.0/WebKitPluginProcess"
 }
