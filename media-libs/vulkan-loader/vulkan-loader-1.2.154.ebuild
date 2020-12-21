@@ -1,38 +1,42 @@
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
+MY_PN=Vulkan-Loader
 CMAKE_ECLASS="cmake"
-PYTHON_COMPAT=( python3_{7,8} )
-inherit flag-o-matic cmake-utils python-any-r1 toolchain-funcs
+PYTHON_COMPAT=( python3_{6,7,8} )
+inherit flag-o-matic cmake-multilib python-any-r1 toolchain-funcs
 
+if [[ ${PV} == *9999* ]]; then
+	EGIT_REPO_URI="https://github.com/KhronosGroup/${MY_PN}.git"
+	EGIT_SUBMODULES=()
+	inherit git-r3
+else
+	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+	KEYWORDS="amd64 arm arm64 ~ppc ppc64 ~riscv x86"
+	S="${WORKDIR}"/${MY_PN}-${PV}
+fi
 
 DESCRIPTION="Vulkan Installable Client Driver (ICD) Loader"
 HOMEPAGE="https://github.com/KhronosGroup/Vulkan-Loader"
-SRC_URI="https://api.github.com/repos/KhronosGroup/Vulkan-Loader/tarball/sdk-1.2.162.0 -> vulkan-loader-1.2.162.0.tar.gz"
 
 LICENSE="Apache-2.0"
 SLOT="0"
-KEYWORDS="*"
 IUSE="layers wayland X"
 
 BDEPEND=">=dev-util/cmake-3.10.2"
 DEPEND="${PYTHON_DEPS}
-	=dev-util/vulkan-headers-$(ver_cut 1-3)*
-	wayland? ( dev-libs/wayland:= )
+	~dev-util/vulkan-headers-1.2.154
+	wayland? ( dev-libs/wayland:=[${MULTILIB_USEDEP}] )
 	X? (
-		x11-libs/libX11:=
-		x11-libs/libXrandr:=
+		x11-libs/libX11:=[${MULTILIB_USEDEP}]
+		x11-libs/libXrandr:=[${MULTILIB_USEDEP}]
 	)
 "
-PDEPEND="layers? ( media-libs/vulkan-layers:= )"
+PDEPEND="layers? ( media-libs/vulkan-layers:=[${MULTILIB_USEDEP}] )"
 
-src_unpack() {
-	unpack ${A}
-	mv "${WORKDIR}"/KhronosGroup-Vulkan-Loader-* ${S} || die
-}
-
-src_configure() {
+multilib_src_configure() {
 	# Integrated clang assembler doesn't work with x86 - Bug #698164
 	if tc-is-clang && [[ ${ABI} == x86 ]]; then
 		append-cflags -fno-integrated-as
@@ -47,13 +51,13 @@ src_configure() {
 		-DBUILD_WSI_XLIB_SUPPORT=$(usex X)
 		-DVULKAN_HEADERS_INSTALL_DIR="${ESYSROOT}/usr"
 	)
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
-src_install() {
+multilib_src_install() {
 	keepdir /etc/vulkan/icd.d
 
-	cmake-utils_src_install
+	cmake_src_install
 }
 
 pkg_postinst() {
