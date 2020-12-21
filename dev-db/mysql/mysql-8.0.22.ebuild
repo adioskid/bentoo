@@ -12,7 +12,7 @@ MY_PV="${PV//_pre*}"
 MY_P="${PN}-${MY_PV}"
 
 # Patch version
-PATCH_SET="https://dev.gentoo.org/~whissi/dist/mysql/${PN}-8.0.22-patches-01.tar.xz"
+PATCH_SET="https://dev.gentoo.org/~whissi/dist/mysql/${PN}-8.0.22-patches-02.tar.xz"
 
 SRC_URI="https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-boost-${MY_PV}.tar.gz
 	https://cdn.mysql.com/archives/mysql-8.0/mysql-boost-${MY_PV}.tar.gz
@@ -54,7 +54,7 @@ COMMON_DEPEND="
 	!libressl? ( >=dev-libs/openssl-1.0.0:0= )
 	server? (
 		dev-libs/icu:=
-		dev-libs/libevent:=[ssl]
+		dev-libs/libevent:=[ssl,threads]
 		>=dev-libs/protobuf-3.8:=
 		net-libs/libtirpc:=
 		cjk? ( app-text/mecab:= )

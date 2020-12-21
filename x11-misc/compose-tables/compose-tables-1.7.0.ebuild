@@ -12,14 +12,14 @@ SRC_URI="${XORG_BASE_INDIVIDUAL_URI}/lib/libX11-${PV}.tar.${XORG_TARBALL_SUFFIX}
 S="${WORKDIR}/libX11-${PV}/"
 
 DESCRIPTION="X.Org Compose Key tables from libX11"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos"
+KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 ~riscv s390 sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos"
 
 # Only needed by configure
 DEPEND="
 	x11-base/xorg-proto
 	>=x11-libs/libxcb-1.11.1
 	x11-libs/xtrans"
-RDEPEND="x11-libs/libX11"
+RDEPEND="!<x11-libs/libX11-1.7.0"
 
 XORG_CONFIGURE_OPTIONS=(
 	--without-xmlto

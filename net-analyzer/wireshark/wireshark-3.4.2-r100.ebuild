@@ -3,9 +3,10 @@
 
 EAPI=7
 
+LUA_COMPAT=( lua5-{1..2} )
 PYTHON_COMPAT=( python3_{6..9} )
 
-inherit fcaps flag-o-matic multilib python-any-r1 qmake-utils xdg-utils cmake
+inherit fcaps flag-o-matic lua-single python-any-r1 qmake-utils xdg-utils cmake
 
 DESCRIPTION="A network protocol analyzer formerly known as ethereal"
 HOMEPAGE="https://www.wireshark.org/"
@@ -13,7 +14,7 @@ SRC_URI="https://www.wireshark.org/download/src/all-versions/${P/_/}.tar.xz"
 LICENSE="GPL-2"
 
 SLOT="0/${PV}"
-KEYWORDS="~alpha amd64 arm ~arm64 ~hppa ~ia64 ~ppc64 x86"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~ppc64 ~x86"
 IUSE="
 	androiddump bcg729 brotli +capinfos +captype ciscodump +dftest doc dpauxmon
 	+dumpcap +editcap http2 ilbc kerberos libxml2 lto lua lz4 maxminddb
@@ -36,7 +37,7 @@ CDEPEND="
 	ilbc? ( media-libs/libilbc )
 	kerberos? ( virtual/krb5 )
 	libxml2? ( dev-libs/libxml2 )
-	lua? ( >=dev-lang/lua-5.1:0= )
+	lua? ( ${LUA_DEPS} )
 	lz4? ( app-arch/lz4 )
 	maxminddb? ( dev-libs/libmaxminddb )
 	minizip? ( sys-libs/zlib[minizip] )
@@ -90,13 +91,19 @@ RDEPEND="
 	selinux? ( sec-policy/selinux-wireshark )
 "
 REQUIRED_USE="
+	lua? ( ${LUA_REQUIRED_USE} )
 	plugin-ifdemo? ( plugins )
 "
 RESTRICT="test"
 PATCHES=(
 	"${FILESDIR}"/${PN}-2.6.0-redhat.patch
+	"${FILESDIR}"/${PN}-3.4.2-cmake-lua-version.patch
 	"${FILESDIR}"/${PN}-99999999-ui-needs-wiretap.patch
 )
+
+pkg_setup() {
+	use lua && lua-single_pkg_setup
+}
 
 src_configure() {
 	local mycmakeargs
