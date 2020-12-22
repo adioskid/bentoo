@@ -82,7 +82,7 @@ src_install() {
 	exeinto /opt/zoom
 	doins -r json ringtone sip timezones translations
 	doins *.pcm *.sh Embedded.properties version.txt
-	doexe zoom zoom.sh zopen ZoomLauncher
+	doexe zoom zopen ZoomLauncher
 	dosym8 -r {"/usr/$(get_libdir)",/opt/zoom}/libmpg123.so
 	dosym8 -r {"/usr/$(get_libdir)",/opt/zoom}/libquazip.so
 
