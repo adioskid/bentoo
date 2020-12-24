@@ -38,7 +38,7 @@ src_unpack(){
 
 src_install(){
 	insinto /opt/${MY_PN}
-	doins -r usr/share/${MY_PN}/* || die
+	doins -r usr/share/* || die
 	if [[ "${PV}" == *beta* ]]; then
 		fperms +x "/opt/${MY_PN}/MongoDB Compass Beta"
 		dosym "/opt/${MY_PN}/MongoDB Compass Beta" /usr/bin/${MY_PN}
