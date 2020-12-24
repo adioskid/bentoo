@@ -4,7 +4,7 @@
 EAPI=7
 
 PLOCALES="ar bn ca cs da de es et fi fr hi_IN hu is it ja kk ko lt lv nb nl nn pl pt_BR pt_PT ro ru sk sr sr@ijekavian sr@ijekavianlatin sr@latin sv tr uk zh_CN zh_TW"
-inherit cmake l10n systemd user
+inherit cmake l10n user
 
 DESCRIPTION="Simple Desktop Display Manager"
 HOMEPAGE="https://github.com/sddm/sddm"
@@ -13,10 +13,10 @@ SRC_URI="https://github.com/${PN}/${PN}/releases/download/v${PV}/${P}.tar.xz"
 LICENSE="GPL-2+ MIT CC-BY-3.0 CC-BY-SA-3.0 public-domain"
 SLOT="0"
 KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
-IUSE="elogind +pam systemd test"
+IUSE="elogind +pam test"
 RESTRICT="!test? ( test )"
 
-REQUIRED_USE="?? ( elogind systemd )"
+REQUIRED_USE="?? ( elogind )"
 
 BDEPEND="
 	dev-python/docutils
@@ -34,8 +34,7 @@ RDEPEND="
 	x11-libs/libxcb[xkb]
 	elogind? ( sys-auth/elogind )
 	pam? ( sys-libs/pam )
-	systemd? ( sys-apps/systemd:= )
-	!systemd? ( sys-power/upower )
+	sys-power/upower
 "
 DEPEND="${RDEPEND}
 	test? ( >=dev-qt/qttest-5.9.4:5 )
@@ -73,7 +72,6 @@ src_prepare() {
 src_configure() {
 	local mycmakeargs=(
 		-DENABLE_PAM=$(usex pam)
-		-DNO_SYSTEMD=$(usex '!systemd')
 		-DUSE_ELOGIND=$(usex 'elogind')
 		-DBUILD_MAN_PAGES=ON
 		-DDBUS_CONFIG_FILENAME="org.freedesktop.sddm.conf"
@@ -104,5 +102,4 @@ pkg_postinst() {
 	enewgroup ${PN}
 	enewuser ${PN} -1 -1 /var/lib/${PN} ${PN},video
 
-	systemd_reenable sddm.service
 }
