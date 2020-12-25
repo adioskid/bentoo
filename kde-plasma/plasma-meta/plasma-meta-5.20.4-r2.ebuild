@@ -55,7 +55,7 @@ RDEPEND="
 	display-manager? (
 		sddm? (
 			>=kde-plasma/sddm-kcm-${PV}:${SLOT}
-			x11-misc/sddm[elogind]
+			x11-misc/sddm
 		)
 		!sddm? ( x11-misc/lightdm )
 	)

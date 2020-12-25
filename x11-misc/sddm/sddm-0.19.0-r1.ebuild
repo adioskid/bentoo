@@ -43,13 +43,10 @@ PATCHES=(
 	"${FILESDIR}/${PN}-0.18.0-Xsession.patch" # bug 611210
 	"${FILESDIR}/${PN}-0.18.0-sddmconfdir.patch"
 	# fix for groups: https://github.com/sddm/sddm/issues/1159
-	"${FILESDIR}/${P}-revert-honor-PAM-supplemental-groups.patch"
-	"${FILESDIR}/${P}-honor-PAM-supplemental-groups-v2.patch"
-	# fix for ReuseSession=true
-	"${FILESDIR}/${P}-only-reuse-online-sessions.patch"
+	"${FILESDIR}/${PN}-0.18.1-revert-honor-PAM-supplemental-groups.patch"
+	"${FILESDIR}/${PN}-0.18.1-honor-PAM-supplemental-groups-v2.patch"
 	# TODO: fix properly
 	"${FILESDIR}/${PN}-0.16.0-ck2-revert.patch" # bug 633920
-	"${FILESDIR}/pam-1.4-substack.patch"
 )
 
 src_prepare() {
