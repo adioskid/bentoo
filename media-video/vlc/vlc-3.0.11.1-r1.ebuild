@@ -19,7 +19,7 @@ else
 	else
 		SRC_URI="https://download.videolan.org/pub/videolan/testing/${MY_P}/${MY_P}.tar.xz"
 	fi
-	KEYWORDS="amd64 ~arm arm64 ppc ppc64 -sparc x86"
+	KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 -sparc ~x86"
 fi
 inherit autotools flag-o-matic toolchain-funcs virtualx xdg
 
@@ -180,7 +180,7 @@ RDEPEND="
 		>=media-libs/speex-1.2.0
 		media-libs/speexdsp
 	)
-	srt? ( net-libs/srt )
+	srt? ( >=net-libs/srt-1.4.2 )
 	ssl? ( net-libs/gnutls:= )
 	svg? (
 		gnome-base/librsvg:2
@@ -228,6 +228,7 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.2.8-freerdp-2.patch # bug 590164
 	"${FILESDIR}"/${PN}-3.0.6-fdk-aac-2.0.0.patch # bug 672290
 	"${FILESDIR}"/${PN}-3.0.8-qt-5.15.patch # TODO: upstream
+	"${FILESDIR}"/${PN}-3.0.11.1-srt-1.4.2.patch # bug 758062
 )
 
 DOCS=( AUTHORS THANKS NEWS README doc/fortunes.txt )
