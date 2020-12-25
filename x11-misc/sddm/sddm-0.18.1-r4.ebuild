@@ -16,7 +16,7 @@ KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
 IUSE="elogind +pam test"
 RESTRICT="!test? ( test )"
 
-REQUIRED_USE="?? ( elogind )"
+REQUIRED_USE="elogind"
 
 BDEPEND="
 	dev-python/docutils
@@ -101,5 +101,4 @@ pkg_postinst() {
 
 	enewgroup ${PN}
 	enewuser ${PN} -1 -1 /var/lib/${PN} ${PN},video
-
 }
