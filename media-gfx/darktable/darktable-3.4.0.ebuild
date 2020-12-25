@@ -7,7 +7,7 @@ LUA_COMPAT=( lua5-3 )
 
 inherit cmake flag-o-matic lua-single toolchain-funcs xdg
 
-DOC_PV="3.0.0"
+DOC_PV="3.4.0"
 MY_PV="${PV/_/}"
 MY_P="${P/_/.}"
 
@@ -19,7 +19,7 @@ SRC_URI="https://github.com/darktable-org/${PN}/releases/download/release-${MY_P
 LICENSE="GPL-3 CC-BY-3.0"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64"
-LANGS=" de es fr he it pl pt-BR ru sl"
+LANGS=" af cs de es fi fr he hu it pl pt-BR ru sk sl"
 IUSE="colord cups cpu_flags_x86_sse3 doc flickr geolocation gmic gnome-keyring gphoto2 graphicsmagick jpeg2k kwallet
 	lto lua nls opencl openmp openexr system-lua tools webp
 	${LANGS// / l10n_}"

@@ -16,7 +16,7 @@ LICENSE="LGPL-2+ BSD"
 SLOT="4/37" # soname version of libwebkit2gtk-4.0
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~sparc ~x86"
 
-IUSE="aqua +egl gamepad +geolocation gles2-only gnome-keyring +gstreamer gtk-doc +introspection +jpeg2k +jumbo-build libnotify +opengl seccomp spell systemd wayland +X"
+IUSE="aqua +egl examples gamepad +geolocation gles2-only gnome-keyring +gstreamer gtk-doc +introspection +jpeg2k +jumbo-build libnotify +opengl seccomp spell systemd wayland +X"
 
 # gstreamer with opengl/gles2 needs egl
 REQUIRED_USE="
@@ -240,6 +240,7 @@ src_configure() {
 		-DENABLE_GEOLOCATION=$(usex geolocation) # Runtime optional (talks over dbus service)
 		$(cmake_use_find_package gles2-only OpenGLES2)
 		-DENABLE_GLES2=$(usex gles2-only)
+		-DENABLE_MINIBROWSER=$(usex examples)
 		-DENABLE_VIDEO=$(usex gstreamer)
 		-DENABLE_WEB_AUDIO=$(usex gstreamer)
 		-DENABLE_INTROSPECTION=$(usex introspection)
@@ -258,8 +259,8 @@ src_configure() {
 		-DENABLE_GRAPHICS_CONTEXT_GL=${opengl_enabled}
 		-DENABLE_WEBGL=${opengl_enabled}
 		-DENABLE_BUBBLEWRAP_SANDBOX=$(usex seccomp)
-		-DBWRAP_EXECUTABLE="${EPREFIX}"/usr/bin/bwrap # If bubblewrap[suid] then portage makes it go-r and cmake find_program fails with that
-		-DCMAKE_BUILD_TYPE=Release
+		-DBWRAP_EXECUTABLE:FILEPATH="${EPREFIX}"/usr/bin/bwrap # If bubblewrap[suid] then portage makes it go-r and cmake find_program fails with that
+		-DDBUS_PROXY_EXECUTABLE:FILEPATH="${EPREFIX}"/usr/bin/xdg-dbus-proxy
 		-DPORT=GTK
 		${ruby_interpreter}
 	)
@@ -272,6 +273,9 @@ src_configure() {
 #	else
 #		mycmakeargs+=( -DUSE_LD_GOLD=OFF )
 #	fi
+
+	# https://bugs.gentoo.org/761238
+	append-cppflags -DNDEBUG
 
 	WK_USE_CCACHE=NO cmake_src_configure
 }
