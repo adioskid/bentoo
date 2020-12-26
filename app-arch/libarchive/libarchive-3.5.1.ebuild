@@ -10,7 +10,7 @@ SRC_URI="https://www.libarchive.org/downloads/${P}.tar.gz"
 
 LICENSE="BSD BSD-2 BSD-4 public-domain"
 SLOT="0/13"
-KEYWORDS="~alpha amd64 arm arm64 hppa ia64 ~m68k ~mips ppc ppc64 ~riscv s390 ~sh sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 IUSE="acl blake2 +bzip2 +e2fsprogs expat +iconv kernel_linux libressl lz4 +lzma lzo nettle static-libs +threads xattr +zlib zstd"
 
 RDEPEND="
@@ -39,11 +39,8 @@ DEPEND="${RDEPEND}
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-3.3.3-libressl.patch
+	"${FILESDIR}"/${PN}-3.5.0-darwin-strnlen.patch  # drop on next release
 )
-
-# Various test problems, starting with the fact that sandbox
-# explodes on long paths. https://bugs.gentoo.org/598806
-RESTRICT="test"
 
 src_prepare() {
 	default
@@ -97,9 +94,19 @@ multilib_src_compile() {
 	fi
 }
 
+src_test() {
+	mkdir -p "${T}"/bin || die
+	# tests fail when lbzip2[symlink] is used in place of ref bunzip2
+	ln -s "${BROOT}/bin/bunzip2" "${T}"/bin || die
+	local -x PATH=${T}/bin:${PATH}
+	multilib-minimal_src_test
+}
+
 multilib_src_test() {
-	# Replace the default src_test so that it builds tests in parallel
-	multilib_is_native_abi && emake check
+	# sandbox is breaking long symlink behavior
+	local -x SANDBOX_ON=0
+	local -x LD_PRELOAD=
+	emake check
 }
 
 multilib_src_install() {
