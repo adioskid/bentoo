@@ -13,7 +13,7 @@ IUSE="bluetooth +browser-integration crypt +desktop-portal discover +display-man
 +elogind grub gtk +handbook +kwallet +legacy-systray +networkmanager
 plymouth pulseaudio qrcode +sddm sdk +smart thunderbolt +wallpapers"
 
-REQUIRED_USE="^^ ( elogind )"
+REQUIRED_USE="elogind"
 
 RDEPEND="
 	>=kde-plasma/breeze-${PV}:${SLOT}
