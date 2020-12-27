@@ -1,4 +1,4 @@
-# Copyright 2008-2019 Gentoo Authors
+# Copyright 2008-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -22,8 +22,8 @@ else
 fi
 
 LICENSE="BSD"
-SLOT="0/20"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~sh ~x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos"
+SLOT="0/24"
+KEYWORDS="amd64 ~arm ~arm64 ppc64 x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos"
 IUSE=""
 
 BDEPEND="~dev-libs/protobuf-${PV}
@@ -39,12 +39,15 @@ if [[ "${PV}" == "9999" ]]; then
 fi
 
 src_prepare() {
-	default
+	pushd "${WORKDIR}/protobuf-${PV}" > /dev/null || die
+	eapply_user
+	popd > /dev/null || die
+
 	java-pkg-2_src_prepare
 }
 
 src_compile() {
-	"${EPREFIX}/usr/bin/protoc" --java_out=core/src/main/java -I../src ../src/google/protobuf/descriptor.proto || die
+	"${BROOT}/usr/bin/protoc" --java_out=core/src/main/java -I../src ../src/google/protobuf/descriptor.proto || die
 	JAVA_SRC_DIR="core/src/main/java" JAVA_JAR_FILENAME="protobuf.jar" java-pkg-simple_src_compile
 }
 

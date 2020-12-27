@@ -13,7 +13,7 @@ if [[ ${PV} == "9999" ]] ; then
 	inherit autotools git-r3
 else
 	SRC_URI="ftp://ftp.astron.com/pub/file/${P}.tar.gz"
-	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~ppc-aix ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
+	KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ppc64 ~riscv s390 sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 fi
 
 DESCRIPTION="identify a file's format by scanning binary data for patterns"
@@ -21,7 +21,7 @@ HOMEPAGE="https://www.darwinsys.com/file/"
 
 LICENSE="BSD-2"
 SLOT="0"
-IUSE="bzip2 lzma python static-libs zlib"
+IUSE="bzip2 lzma python seccomp static-libs zlib"
 REQUIRED_USE="python? ( ${PYTHON_REQUIRED_USE} )"
 
 DEPEND="
@@ -33,18 +33,22 @@ DEPEND="
 	)
 	zlib? ( >=sys-libs/zlib-1.2.8-r1[${MULTILIB_USEDEP}] )"
 RDEPEND="${DEPEND}
-	python? ( !dev-python/python-magic )"
+	python? ( !dev-python/python-magic )
+	seccomp? ( sys-libs/libseccomp[${MULTILIB_USEDEP}] )"
 
 PATCHES=(
-	"${FILESDIR}"/${P}-Revert-PR-93-iaeiaeiaeiae-Do-as-the-comment-says-and.patch
-	"${FILESDIR}"/${P}-td-is-for-ptrdiff_t-not-for-off_t.patch
-	"${FILESDIR}"/${P}-The-executable-bit-is-only-set-when-DF_1_PIE-bit-is-.patch
+	"${FILESDIR}/file-5.39-add-missing-termios.patch" #728416
+	"${FILESDIR}/file-5.39-seccomp-musl.patch"
+	"${FILESDIR}/file-5.39-portage-sandbox.patch" #713710 #728978
 )
 
 src_prepare() {
 	default
 
-	[[ ${PV} == "9999" ]] && eautoreconf
+	if [[ ${PV} == 9999 ]]; then
+		eautoreconf
+	fi
+
 	elibtoolize
 
 	# don't let python README kill main README #60043
@@ -54,10 +58,10 @@ src_prepare() {
 
 multilib_src_configure() {
 	local myeconfargs=(
-		--disable-libseccomp
 		--enable-fsect-man5
 		$(use_enable bzip2 bzlib)
 		$(use_enable lzma xzlib)
+		$(use_enable seccomp libseccomp)
 		$(use_enable static-libs static)
 		$(use_enable zlib)
 	)
