@@ -40,7 +40,7 @@ RDEPEND="
 	mpi? ( >=virtual/mpi-2.0-r4[${MULTILIB_USEDEP},cxx,threads] )
 	python? (
 		${PYTHON_DEPS}
-		numpy? ( $(python_gen_cond_dep 'dev-python/numpy[${PYTHON_USEDEP}]' -3) )
+		numpy? ( dev-python/numpy[${PYTHON_USEDEP}] )
 	)
 	zlib? ( sys-libs/zlib:=[${MULTILIB_USEDEP}] )
 	zstd? ( app-arch/zstd:=[${MULTILIB_USEDEP}] )"
@@ -53,9 +53,6 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-1.71.0-disable_icu_rpath.patch
 	"${FILESDIR}"/${PN}-1.71.0-context-x32.patch
 	"${FILESDIR}"/${PN}-1.71.0-build-auto_index-tool.patch
-	# upstream unresponsive to pull request
-	# https://github.com/boostorg/python/pull/286
-	"${FILESDIR}"/${PN}-1.73-boost-python-cleanup.patch
 	# Boost.MPI's __init__.py doesn't work on Py3
 	"${FILESDIR}"/${PN}-1.73-boost-mpi-python-PEP-328.patch
 	# Remove annoying #pragma message
