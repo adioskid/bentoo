@@ -13,7 +13,7 @@ if [[ ${PV} == *9999* ]]; then
 	SRC_URI=""
 else
 	SRC_URI="https://ftp.gimp.org/pub/${PN}/${PV:0:3}/${P}.tar.xz"
-	KEYWORDS="~alpha amd64 ~arm arm64 ~hppa ~ia64 ~mips ~ppc ppc64 -sparc x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
+	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 -sparc ~x86 ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
 fi
 
 DESCRIPTION="A dynamic, any to any, pixel format conversion library"
@@ -21,7 +21,7 @@ HOMEPAGE="https://gegl.org/babl/"
 
 LICENSE="LGPL-3"
 SLOT="0"
-IUSE="introspection lcms vala cpu_flags_x86_avx2 cpu_flags_x86_f16c cpu_flags_x86_mmx cpu_flags_x86_sse cpu_flags_x86_sse2 cpu_flags_x86_sse3 cpu_flags_x86_sse4_1"
+IUSE="introspection lcms vala cpu_flags_x86_avx2 cpu_flags_x86_f16c cpu_flags_x86_mmx cpu_flags_x86_sse cpu_flags_x86_sse2 cpu_flags_x86_sse4_1"
 REQUIRED_USE="vala? ( introspection )"
 
 BDEPEND="
@@ -55,7 +55,6 @@ src_configure() {
 		$(meson_use cpu_flags_x86_mmx enable-mmx)
 		$(meson_use cpu_flags_x86_sse enable-sse)
 		$(meson_use cpu_flags_x86_sse2 enable-sse2)
-		$(meson_use cpu_flags_x86_sse3 enable-sse3)
 		$(meson_use cpu_flags_x86_sse4_1 enable-sse4_1)
 	)
 	meson_src_configure
