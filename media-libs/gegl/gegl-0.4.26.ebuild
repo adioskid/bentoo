@@ -39,7 +39,7 @@ RESTRICT="!test? ( test )"
 RDEPEND="
 	>=dev-libs/glib-2.44:2
 	>=dev-libs/json-glib-1.2.6
-	>=media-libs/babl-0.1.84[introspection?,lcms?,vala?]
+	>=media-libs/babl-0.1.78[introspection?,lcms?,vala?]
 	media-libs/libnsgif
 	>=media-libs/libpng-1.6.0:0=
 	>=sys-libs/zlib-1.2.0
@@ -63,7 +63,6 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}"
 BDEPEND="
-	${PYTHON_DEPS}
 	dev-lang/perl
 	>=dev-util/gtk-doc-am-1
 	>=sys-devel/gettext-0.19.8
@@ -81,8 +80,11 @@ PATCHES=(
 )
 
 python_check_deps() {
-	use test || return 0
 	has_version -b ">=dev-python/pygobject-3.2:3[${PYTHON_USEDEP}]"
+}
+
+pkg_setup() {
+	use test && python-any-r1_pkg_setup
 }
 
 src_prepare() {
@@ -103,15 +105,6 @@ src_prepare() {
 		sed -i "s:/bin/gegl:/bin/gegl-0.4:g" "${S}/tests/mipmap/${item}" || die
 		sed -i "s:/tools/gegl-imgcmp:/tools/gegl-imgcmp-0.4:g" "${S}/tests/mipmap/${item}" || die
 	done
-
-	# fix 'build'headers from *.cl on gentoo-hardened, bug 739816
-	pushd "${S}/opencl/" || die
-	for file in *.cl; do
-		if [ -f "$file" ]; then
-			"${EPYTHON}" cltostring.py "${file}" || die
-		fi
-	done
-	popd || die
 
 	gnome2_environment_reset
 
