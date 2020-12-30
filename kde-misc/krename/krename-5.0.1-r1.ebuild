@@ -13,7 +13,7 @@ HOMEPAGE="https://apps.kde.org/en/krename https://userbase.kde.org/KRename"
 
 if [[ ${KDE_BUILD_TYPE} != live ]]; then
 	SRC_URI="mirror://kde/stable/${PN}/${PV}/src/${P}.tar.xz"
-	KEYWORDS="amd64 ~arm64 x86"
+	KEYWORDS="amd64 ~arm64 ~x86"
 fi
 
 LICENSE="GPL-2"
@@ -22,6 +22,7 @@ IUSE="exif pdf taglib truetype"
 
 BDEPEND="sys-devel/gettext"
 DEPEND="
+	>=dev-qt/qtdeclarative-${QTMIN}:5
 	>=dev-qt/qtgui-${QTMIN}:5
 	>=dev-qt/qtwidgets-${QTMIN}:5
 	>=dev-qt/qtxml-${QTMIN}:5
@@ -34,7 +35,6 @@ DEPEND="
 	>=kde-frameworks/kio-${KFMIN}:5
 	>=kde-frameworks/kitemviews-${KFMIN}:5
 	>=kde-frameworks/kjobwidgets-${KFMIN}:5
-	>=kde-frameworks/kjs-${KFMIN}:5
 	>=kde-frameworks/kservice-${KFMIN}:5
 	>=kde-frameworks/kwidgetsaddons-${KFMIN}:5
 	>=kde-frameworks/kxmlgui-${KFMIN}:5
@@ -45,6 +45,8 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
+PATCHES=( "${FILESDIR}/${P}-no-kjs.patch" )
+
 src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package exif LibExiv2)
@@ -52,6 +54,5 @@ src_configure() {
 		$(cmake_use_find_package taglib Taglib)
 		$(cmake_use_find_package truetype Freetype)
 	)
-
 	ecm_src_configure
 }

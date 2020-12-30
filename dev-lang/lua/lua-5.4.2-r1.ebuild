@@ -86,12 +86,12 @@ multilib_src_compile() {
 	cd src
 
 	local myCFLAGS=""
-	use deprecated && myCFLAGS="-DLUA_COMPAT_5_3"
-	use readline && myCFLAGS="-DLUA_USE_READLINE"
+	use deprecated && myCFLAGS+="-DLUA_COMPAT_5_3 "
+	use readline && myCFLAGS+="-DLUA_USE_READLINE "
 
 	case "${CHOST}" in
 		*-mingw*) : ;;
-		*) myCFLAGS+=" -DLUA_USE_LINUX" ;;
+		*) myCFLAGS+="-DLUA_USE_LINUX " ;;
 	esac
 
 	emake CC="${CC}" CFLAGS="${myCFLAGS} ${CFLAGS}" \

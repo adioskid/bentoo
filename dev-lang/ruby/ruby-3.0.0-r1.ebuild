@@ -65,7 +65,7 @@ PDEPEND="
 	xemacs? ( app-xemacs/ruby-modes )"
 
 src_prepare() {
-	eapply "${FILESDIR}"/"${SLOT}"/010*.patch
+	eapply "${FILESDIR}"/"${SLOT}"/{001,010}*.patch
 
 	einfo "Unbundling gems..."
 	cd "$S"
