@@ -2,8 +2,6 @@
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: alternatives.eclass
-# @MAINTAINER:
-# maintainer-needed@gentoo.org
 # @AUTHOR:
 # Original author: Alastair Tse <liquidx@gentoo.org> (03 Oct 2003)
 # @BLURB: Creates symlink to the latest version of multiple slotted packages.

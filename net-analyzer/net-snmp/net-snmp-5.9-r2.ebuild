@@ -14,13 +14,13 @@ DESCRIPTION="Software for generating and retrieving SNMP data"
 HOMEPAGE="http://www.net-snmp.org/"
 SRC_URI="
 	https://dev.gentoo.org/~jer/${PN}-5.7.3-patches-3.tar.xz
-	https://dev.gentoo.org/~jer/${P}.tar.xz
+	https://megalink.dl.sourceforge.net/project/net-snmp/net-snmp/${PV}/${P}.tar.gz
 "
 
 # GPL-2 for the init scripts
 LICENSE="HPND BSD GPL-2"
 SLOT="0/40"
-KEYWORDS="~alpha ~amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc x86"
+KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
 IUSE="
 	X bzip2 doc elf kmem ipv6 libressl lm-sensors mfd-rewrites minimal mysql
 	netlink pcap pci perl python rpm selinux smux ssl tcpd ucd-compat zlib
