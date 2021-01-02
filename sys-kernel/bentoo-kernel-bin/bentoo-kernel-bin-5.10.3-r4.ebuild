@@ -53,7 +53,6 @@ src_unpack() {
 
 }
 
-
 src_install() {
 
 	# if not use nvidia card, remove the modules.
@@ -64,14 +63,13 @@ src_install() {
 
 	# install kernel image.
 	insinto /boot/
-	doins boot/config-${PV}-bentoo
-	doins boot/System.map-${PV}-bentoo
-	doins boot/vmlinuz-${PV}-bentoo
+	mv boot/{config-${PV}-bentoo,System.map-${PV}-bentoo,vmlinuz-${PV}-bentoo} "${ED}/boot/" || die
+
 
 	# install initramfs
 	if use initramfs;
 	then
-		doins boot/initramfs-${PV}-bentoo
+		mv boot/initramfs-${PV}-bentoo "${ED}/boot/" || die
 	fi
 
 	# install microcode
@@ -79,27 +77,24 @@ src_install() {
 	then
 		if use amd;
 		then
-			doins boot/amd-uc.img
+			mv boot/amd-uc.img "${ED}/boot/" || die
 		fi
 		if use intel;
 		then
-			doins boot/intel-uc.img
-			doins boot/early_ucode.cpio
+			mv boot/{intel-uc.img,early_ucode.cpio} "${ED}/boot/" || die
 		fi
 	fi
 
 	# install modules.
 	insinto /lib/modules/
-	doins -r lib/modules/*
-
-	# create source folder to map on eselect kernel.
-	insinto /usr/src/
+	mv lib/modules/* "${ED}/lib/modules/" || die
 	
 	if use source;
 	then
-		cd source && doins -r usr/src/*
+		cd source && mv * "${ED}" || die
 	else
-		doins -r usr/src/*
+		insinto /usr/src/
+		mv usr/src/* "${ED}/usr/src/" || die
 	fi
 
 	if ! use source;
