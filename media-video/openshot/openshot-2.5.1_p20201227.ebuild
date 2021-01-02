@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -7,7 +7,7 @@ PYTHON_COMPAT=( python3_{7,8,9} )
 PYTHON_REQ_USE=xml
 DISTUTILS_SINGLE_IMPL=1
 
-COMMIT=8c3d90cca72e2051b1b74dc0d731824ed5edf0de
+COMMIT=5056d240c5dff1a9191ca2e0f7a8813c57b5b5ca
 MY_PN="${PN}-qt"
 inherit distutils-r1 xdg
 
