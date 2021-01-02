@@ -9,7 +9,7 @@ inherit autotools flag-o-matic multiprocessing pax-utils \
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-${PV}-r1"
+PATCHSET="python-gentoo-patches-${PV}"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -18,8 +18,8 @@ SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}"
-KEYWORDS="~alpha ~amd64 arm arm64 hppa ~ia64 ~m68k ~mips ppc ~ppc64 ~riscv ~s390 sparc x86"
+SLOT="${PYVER}/${PYVER}m"
+KEYWORDS="~alpha amd64 arm arm64 hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv s390 sparc x86"
 IUSE="bluetooth build examples gdbm hardened ipv6 libressl +ncurses +readline sqlite +ssl test tk wininst +xml"
 RESTRICT="!test? ( test )"
 
@@ -77,7 +77,6 @@ src_prepare() {
 	# force correct number of jobs
 	# https://bugs.gentoo.org/737660
 	local jobs=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")
-	sed -i -e "s:-j0:-j${jobs}:" Makefile.pre.in || die
 	sed -i -e "/self\.parallel/s:True:${jobs}:" setup.py || die
 
 	eautoreconf
@@ -116,11 +115,6 @@ src_configure() {
 	if is-flagq -O3; then
 		is-flagq -fstack-protector-all && replace-flags -O3 -O2
 		use hardened && replace-flags -O3 -O2
-	fi
-
-	# https://bugs.gentoo.org/700012
-	if is-flagq -flto || is-flagq '-flto=*'; then
-		append-cflags $(test-flags-CC -ffat-lto-objects)
 	fi
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
@@ -309,11 +303,13 @@ src_install() {
 	chmod +x "${scriptdir}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
 		"${scriptdir}/python-config" || die
-	# 2to3, pydoc
+	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
 		"${scriptdir}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
 		"${scriptdir}/pydoc" || die
+	ln -s "../../../bin/pyvenv-${PYVER}" \
+		"${scriptdir}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
