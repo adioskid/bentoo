@@ -35,12 +35,6 @@ BDEPEND="
 	dev-util/intltool
 	virtual/pkgconfig"
 
-DOCS=( AUTHORS ChangeLog NEWS NOTES README TODO )
-
-PATCHES=(
-	"${FILESDIR}"/${P}-gcc-10.patch
-)
-
 src_configure() {
 	local myconf=(
 		--libexecdir="${EPREFIX}"/usr/$(get_libdir)
@@ -58,8 +52,7 @@ src_configure() {
 }
 
 src_install() {
-	emake DESTDIR="${D}" install
-	einstalldocs
+	default
 	find "${D}" -name '*.la' -delete || die
 }
 

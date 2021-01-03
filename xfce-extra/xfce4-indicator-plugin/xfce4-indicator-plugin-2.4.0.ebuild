@@ -1,8 +1,8 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
-inherit gnome2-utils xdg-utils
+EAPI=7
+inherit xdg-utils
 
 DESCRIPTION="A panel plugin that uses indicator-applet to show new messages"
 HOMEPAGE="https://goodies.xfce.org/projects/panel-plugins/xfce4-indicator-plugin"
@@ -20,7 +20,8 @@ RDEPEND=">=dev-libs/libindicator-12.10.1:3=
 	>=xfce-base/libxfce4util-4.11:=
 	>=xfce-base/xfce4-panel-4.11:=
 	>=xfce-base/xfconf-4.13:="
-DEPEND="${RDEPEND}
+DEPEND="${RDEPEND}"
+BDEPEND="
 	dev-util/intltool
 	sys-devel/gettext
 	virtual/pkgconfig"
@@ -36,16 +37,15 @@ src_configure() {
 
 src_install() {
 	default
-
 	find "${D}" -name '*.la' -delete || die
 }
 
 pkg_postinst() {
-	gnome2_icon_cache_update
+	xdg_icon_cache_update
 	xdg_desktop_database_update
 }
 
 pkg_postrm() {
-	gnome2_icon_cache_update
+	xdg_icon_cache_update
 	xdg_desktop_database_update
 }
