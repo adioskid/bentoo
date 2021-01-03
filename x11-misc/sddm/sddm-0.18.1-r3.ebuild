@@ -4,7 +4,7 @@
 EAPI=7
 
 PLOCALES="ar bn ca cs da de es et fi fr hi_IN hu is it ja kk ko lt lv nb nl nn pl pt_BR pt_PT ro ru sk sr sr@ijekavian sr@ijekavianlatin sr@latin sv tr uk zh_CN zh_TW"
-inherit cmake l10n user
+inherit cmake l10n systemd user
 
 DESCRIPTION="Simple Desktop Display Manager"
 HOMEPAGE="https://github.com/sddm/sddm"
@@ -13,8 +13,10 @@ SRC_URI="https://github.com/${PN}/${PN}/releases/download/v${PV}/${P}.tar.xz"
 LICENSE="GPL-2+ MIT CC-BY-3.0 CC-BY-SA-3.0 public-domain"
 SLOT="0"
 KEYWORDS="amd64 ~arm arm64 ~ppc64 x86"
-IUSE="elogind +pam test"
+IUSE="elogind +pam systemd test"
 RESTRICT="!test? ( test )"
+
+REQUIRED_USE="?? ( elogind systemd )"
 
 BDEPEND="
 	dev-python/docutils
@@ -32,7 +34,8 @@ RDEPEND="
 	x11-libs/libxcb[xkb]
 	elogind? ( sys-auth/elogind )
 	pam? ( sys-libs/pam )
-	sys-power/upower
+	systemd? ( sys-apps/systemd:= )
+	!systemd? ( sys-power/upower )
 "
 DEPEND="${RDEPEND}
 	test? ( >=dev-qt/qttest-5.9.4:5 )
@@ -43,10 +46,13 @@ PATCHES=(
 	"${FILESDIR}/${PN}-0.18.0-Xsession.patch" # bug 611210
 	"${FILESDIR}/${PN}-0.18.0-sddmconfdir.patch"
 	# fix for groups: https://github.com/sddm/sddm/issues/1159
-	"${FILESDIR}/${PN}-0.18.1-revert-honor-PAM-supplemental-groups.patch"
-	"${FILESDIR}/${PN}-0.18.1-honor-PAM-supplemental-groups-v2.patch"
+	"${FILESDIR}/${P}-revert-honor-PAM-supplemental-groups.patch"
+	"${FILESDIR}/${P}-honor-PAM-supplemental-groups-v2.patch"
+	# fix for ReuseSession=true
+	"${FILESDIR}/${P}-only-reuse-online-sessions.patch"
 	# TODO: fix properly
 	"${FILESDIR}/${PN}-0.16.0-ck2-revert.patch" # bug 633920
+	"${FILESDIR}/pam-1.4-substack.patch"
 )
 
 src_prepare() {
@@ -67,6 +73,7 @@ src_prepare() {
 src_configure() {
 	local mycmakeargs=(
 		-DENABLE_PAM=$(usex pam)
+		-DNO_SYSTEMD=$(usex '!systemd')
 		-DUSE_ELOGIND=$(usex 'elogind')
 		-DBUILD_MAN_PAGES=ON
 		-DDBUS_CONFIG_FILENAME="org.freedesktop.sddm.conf"
@@ -96,4 +103,6 @@ pkg_postinst() {
 
 	enewgroup ${PN}
 	enewuser ${PN} -1 -1 /var/lib/${PN} ${PN},video
+
+	systemd_reenable sddm.service
 }
