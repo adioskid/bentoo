@@ -1,8 +1,8 @@
 # Bentoo
 
-Bentōō is an initiative to distribute an user-friendly version of Funtoo linux Stage4 to new users, with more update packages, focusing on agility, security privacy and games.
+## updated based on profile 1.3, experimental yet!!!
 
-our Telegram group -> https://t.me/joinchat/DG0l5Rez0MRt4p2GHnNohQ
+Bentōō is an initiative to distribute an user-friendly version of Funtoo linux Stage4 to new users, with more update packages, focusing on agility, security privacy and games.
 
 ## with local overlays
 
@@ -13,8 +13,12 @@ create a `/etc/portage/repos.conf/bentoo.conf` file containing precisely:
 [bentoo]
 location = /usr/local/portage/bentoo
 sync-type = git
-sync-uri = https://github.com/lucascouts/bentoo.git
+sync-uri = https://github.com/adioskid/bentoo.git
 priority= 99
+```
+#### then change to new branch.
+```
+# cd /usr/local/portage/bentoo && git checkout GG
 ```
 
 Afterwards, simply run `ego sync`, and Portage should seamlessly make all our ebuilds available.
@@ -24,18 +28,13 @@ Afterwards, simply run `ego sync`, and Portage should seamlessly make all our eb
 Invoke the following:
 
 ```
-# layman -o https://raw.github.com/lucascouts/bentoo/master/repositories.xml -f -a bentoo
+# layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
+```
+#### then change to new branch.
+```
+# cd /var/lib/layman/bentoo && git checkout GG && cd ~
 ```
 
-### Installation guide
+### Bentoo Portage config
 
-To install just follow the Funtoo installation steps and replace the downloaded stage3 with the Bentoo Stage4.
-```
-https://www.funtoo.org/install
-```
-
-
-## Bentoo Portage config
-
-Here you can see the portage files configurations : https://github.com/lucascouts/bentoo-cfg
-
+Here you can see the portage files configurations : https://github.com/adioskid/bentoo-cfg
