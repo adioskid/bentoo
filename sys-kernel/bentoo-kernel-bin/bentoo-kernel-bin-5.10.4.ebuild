@@ -6,7 +6,6 @@ inherit
 distfile="https://binhost.bentoo.info/distfiles"
 
 DESCRIPTION="Image and modules from bentoo sources(gentoo-sources fork)"
-HOMEPAGE=""
 SRC_URI="
 	${distfile}/${P}.tar.xz
 	source? ( ${distfile}/bentoo-sources-bin-${PV}.tar.xz )
