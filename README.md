@@ -13,7 +13,7 @@ create a `/etc/portage/repos.conf/bentoo.conf` file containing precisely:
 [bentoo]
 location = /usr/local/portage/bentoo
 sync-type = git
-sync-uri = https://github.com/lucascouts/bentoo.git
+sync-uri = https://github.com/adioskid/bentoo.git
 priority= 99
 ```
 #### then change to new branch.
@@ -28,7 +28,7 @@ Afterwards, simply run `ego sync`, and Portage should seamlessly make all our eb
 Invoke the following:
 
 ```
-# layman -o https://raw.github.com/lucascouts/bentoo/master/repositories.xml -f -a bentoo
+# layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
 ```
 #### then change to new branch.
 ```
@@ -37,4 +37,4 @@ Invoke the following:
 
 ### Bentoo Portage config
 
-Here you can see the portage files configurations : https://github.com/lucascouts/bentoo-cfg
+Here you can see the portage files configurations : https://github.com/adioskid/bentoo-cfg
