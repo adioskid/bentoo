@@ -1,6 +1,6 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 inherit
 
 distfile="https://binhost.bentoo.info/distfiles"
@@ -33,7 +33,6 @@ RDEPEND="
 	)
 	nvidia? (
 		x11-drivers/nvidia-drivers
-		x11-drivers/nvidia-kernel-modules
 	)
 "
 QA_PREBUILT='*'
