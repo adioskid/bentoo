@@ -5,8 +5,9 @@ EAPI=7
 
 inherit acct-user
 
-DESCRIPTION="User used to run distcc daemon"
-ACCT_USER_ID=358
-ACCT_USER_GROUPS=( distcc )
+DESCRIPTION="User for running the GeoClue D-Bus geolocation service"
+ACCT_USER_ID=351
+ACCT_USER_GROUPS=( geoclue )
+ACCT_USER_HOME=/var/lib/geoclue
 
 acct-user_add_deps
