@@ -12,34 +12,33 @@ S="${WORKDIR}/${P}-source"
 
 LICENSE="AGPL-3"
 SLOT="0/${PV}"
-KEYWORDS="amd64 arm arm64 ~hppa ~ia64 ppc ppc64 x86"
-IUSE="X +javascript libressl opengl ssl static-libs"
+KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ppc ppc64 ~s390 x86"
+IUSE="X +javascript libressl opengl ssl"
+REQUIRED_USE="opengl? ( javascript )"
 
 # Although we use the bundled, patched version of freeglut in mupdf (because of
 # bug #653298), the best way to ensure that its dependencies are present is to
 # install system's freeglut.
 BDEPEND="virtual/pkgconfig"
 RDEPEND="
-	>=dev-lang/mujs-1.0.7:=[static-libs?]
 	dev-libs/gumbo
-	media-libs/freetype:2=[static-libs?]
-	media-libs/harfbuzz:=[static-libs?,truetype]
-	media-libs/jbig2dec:=[static-libs?]
-	media-libs/libpng:0=[static-libs?]
-	>=media-libs/openjpeg-2.1:2=[static-libs?]
-	virtual/jpeg[static-libs?]
-	opengl? ( >=media-libs/freeglut-3.0.0:= )
+	media-libs/freetype:2=
+	media-libs/harfbuzz:=[truetype]
+	media-libs/jbig2dec:=
+	media-libs/libpng:0=
+	>=media-libs/openjpeg-2.1:2=
+	virtual/jpeg
+	javascript? ( >=dev-lang/mujs-1.0.7:= )
+	opengl? ( >=media-libs/freeglut-3.0.0 )
 	ssl? (
-		libressl? ( >=dev-libs/libressl-3.2.0:0=[static-libs?] )
-		!libressl? ( >=dev-libs/openssl-1.1:0=[static-libs?] )
+		libressl? ( >=dev-libs/libressl-3.1.4:0= )
+		!libressl? ( >=dev-libs/openssl-1.1:0= )
 	)
 	X? (
-		x11-libs/libX11[static-libs?]
-		x11-libs/libXext[static-libs?]
+		x11-libs/libX11
+		x11-libs/libXext
 	)"
 DEPEND="${RDEPEND}"
-
-REQUIRED_USE="opengl? ( !static-libs )"
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-1.15-CFLAGS.patch
@@ -59,12 +58,11 @@ src_prepare() {
 
 	use hppa && append-cflags -ffunction-sections
 
-	use javascript || \
-		sed -e '/* #define FZ_ENABLE_JS/ a\#define FZ_ENABLE_JS 0' \
-			-i include/mupdf/fitz/config.h || die
+	append-cflags "-DFZ_ENABLE_JS=$(usex javascript 1 0)"
 
 	sed -e "1iOS = Linux" \
 		-e "1iCC = $(tc-getCC)" \
+		-e "1iCXX = $(tc-getCXX)" \
 		-e "1iLD = $(tc-getLD)" \
 		-e "1iAR = $(tc-getAR)" \
 		-e "1iverbose = yes" \
@@ -77,7 +75,6 @@ src_prepare() {
 
 _emake() {
 	# When HAVE_OBJCOPY is yes, we end up with a lot of QA warnings.
-
 	# Bundled libs
 	# * General
 	# Note that USE_SYSTEM_LIBS=yes is a metaoption which will set to upstream's
@@ -101,14 +98,13 @@ _emake() {
 	#
 	# [0] https://git.ghostscript.com/?p=mupdf.git;a=blob;f=Makethird;h=c4c540fa4a075df0db85e6fdaab809099881f35a;hb=HEAD#l9
 	# [1] https://www.ghostscript.com/doc/lcms2mt/doc/WhyThisFork.txt
-
 	emake \
 		GENTOO_PV=${PV} \
 		HAVE_GLUT=$(usex opengl) \
 		HAVE_LIBCRYPTO=$(usex ssl) \
 		HAVE_X11=$(usex X) \
 		USE_SYSTEM_LIBS=yes \
-		USE_SYSTEM_MUJS=yes \
+		USE_SYSTEM_MUJS=$(usex javascript) \
 		USE_SYSTEM_GLUT=no \
 		HAVE_OBJCOPY=no \
 		"$@"
@@ -116,9 +112,6 @@ _emake() {
 
 src_compile() {
 	_emake XCFLAGS="-fpic"
-
-	use static-libs && \
-		_emake build/debug/lib${PN}.a
 }
 
 src_install() {
@@ -133,8 +126,6 @@ src_install() {
 
 	dosym libmupdf.so.${PV} /usr/$(get_libdir)/lib${PN}.so
 
-	use static-libs && \
-		dolib.a build/debug/lib${PN}.a
 	if use opengl ; then
 		einfo "mupdf symlink points to mupdf-gl (bug 616654)"
 		dosym ${PN}-gl /usr/bin/${PN}
