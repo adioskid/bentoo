@@ -202,12 +202,7 @@ RDEPEND="${RDEPEND}"
 # 3. Specify LLVM_MAX_SLOT, e.g. 6.
 LLVM_MAX_SLOT=11
 LLVM_DEPSTR="
-	|| (
-		sys-devel/llvm:8
-		sys-devel/llvm:7
-		>=sys-devel/llvm-6.0.1-r1
-	)
-	sys-devel/llvm:=
+	sys-devel/llvm:11=
 "
 LLVM_DEPSTR_AMDGPU="
 	|| (
