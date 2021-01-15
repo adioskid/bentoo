@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -10,8 +10,8 @@ inherit linux-info xorg-3 flag-o-matic
 if [[ ${PV} == 9999* ]]; then
 	SRC_URI=""
 else
-	KEYWORDS="amd64 x86"
-	COMMIT_ID="5ca3ac1a90af177eb111a965e9b4dd8a27cc58fc"
+	KEYWORDS="~amd64 ~x86"
+	COMMIT_ID="a511f22cdec56504913b457a2e60dafee8e2b570"
 	SRC_URI="https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel/-/archive/${COMMIT_ID}/${P}.tar.bz2"
 	S="${WORKDIR}/${PN}-${COMMIT_ID}"
 fi
@@ -52,10 +52,6 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}
 	x11-base/xorg-proto"
-
-PATCHES=(
-	"${FILESDIR}"/${PN}-gcc-pr65873.patch
-)
 
 src_configure() {
 	replace-flags -Os -O2

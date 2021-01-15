@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -14,8 +14,7 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 ~sparc ~x86 ~amd64-l
 IUSE="exif introspection libnotify pcre +trash-panel-plugin udisks"
 
 GVFS_DEPEND=">=gnome-base/gvfs-1.18.3"
-DEPEND=">=dev-lang/perl-5.6
-	>=dev-libs/glib-2.50
+DEPEND=">=dev-libs/glib-2.50
 	>=x11-libs/gdk-pixbuf-2.14
 	>=x11-libs/gtk+-3.22:3
 	>=xfce-base/exo-0.12:=

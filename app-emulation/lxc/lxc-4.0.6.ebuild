@@ -10,19 +10,21 @@ HOMEPAGE="https://linuxcontainers.org/ https://github.com/lxc/lxc"
 SRC_URI="https://linuxcontainers.org/downloads/lxc/${P}.tar.gz
 	verify-sig? ( https://linuxcontainers.org/downloads/lxc/${P}.tar.gz.asc )"
 
-KEYWORDS="amd64 ~arm ~arm64 ~ppc64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~x86"
 
 LICENSE="LGPL-3"
 SLOT="0"
-IUSE="apparmor +caps doc examples libressl man pam seccomp selinux +ssl +tools verify-sig"
+IUSE="apparmor +caps doc examples libressl man pam selinux +ssl +tools verify-sig"
 
-RDEPEND="app-misc/pax-utils
+RDEPEND="acct-group/lxc
+	acct-user/lxc
+	app-misc/pax-utils
 	sys-apps/util-linux
 	sys-libs/libcap
+	sys-libs/libseccomp
 	virtual/awk
 	caps? ( sys-libs/libcap )
 	pam? ( sys-libs/pam )
-	seccomp? ( sys-libs/libseccomp )
 	selinux? ( sys-libs/libselinux )
 	ssl? (
 		!libressl? ( dev-libs/openssl:0= )
@@ -109,6 +111,7 @@ src_configure() {
 		--enable-bash
 		--enable-commands
 		--enable-memfd-rexec
+		--enable-seccomp
 		--enable-thread-safety
 
 		$(use_enable apparmor)
@@ -117,7 +120,6 @@ src_configure() {
 		$(use_enable examples)
 		$(use_enable man doc)
 		$(use_enable pam)
-		$(use_enable seccomp)
 		$(use_enable selinux)
 		$(use_enable ssl openssl)
 		$(use_enable tools)

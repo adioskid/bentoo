@@ -1,4 +1,4 @@
-# Copyright 2000-2020 Gentoo Authors
+# Copyright 2000-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -14,17 +14,21 @@ if [[ ${PV} = *9999 ]] ; then
 	fi
 	inherit git-r3
 else
-	if [[ ${MY_P} = ${P} ]] ; then
-		SRC_URI="https://download.videolan.org/pub/videolan/${PN}/${PV}/${P}.tar.xz"
-	else
-		SRC_URI="https://download.videolan.org/pub/videolan/testing/${MY_P}/${MY_P}.tar.xz"
-	fi
+	SRC_URI="https://code.videolan.org/videolan/vlc-$(ver_cut 1-2)/-/archive/${PV}/vlc-$(ver_cut 1-2)-${PV}.tar.gz"
+	S="${WORKDIR}/${PN}-$(ver_cut 1-2)-${PV}"
+	#if [[ ${MY_P} = ${P} ]] ; then
+	#	SRC_URI="https://download.videolan.org/pub/videolan/${PN}/${PV}/${P}.tar.xz"
+	#else
+	#	SRC_URI="https://download.videolan.org/pub/videolan/testing/${MY_P}/${MY_P}.tar.xz"
+	#fi
 	KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 -sparc ~x86"
 fi
+
 inherit autotools flag-o-matic toolchain-funcs virtualx xdg
 
 DESCRIPTION="Media player and framework with support for most multimedia files and streaming"
 HOMEPAGE="https://www.videolan.org/vlc/"
+#S="${WORKDIR}/${MY_P}"
 
 LICENSE="LGPL-2.1 GPL-2"
 SLOT="0/5-9" # vlc - vlccore
@@ -79,7 +83,7 @@ RDEPEND="
 	chromaprint? ( media-libs/chromaprint:= )
 	chromecast? (
 		>=dev-libs/protobuf-2.5.0:=
-		>=net-libs/libmicrodns-0.0.9:=
+		>=net-libs/libmicrodns-0.1.2:=
 	)
 	dav1d? ( media-libs/dav1d:= )
 	dbus? ( sys-apps/dbus )
@@ -151,7 +155,7 @@ RDEPEND="
 	png? ( media-libs/libpng:0= )
 	projectm? (
 		media-fonts/dejavu
-		media-libs/libprojectm
+		media-libs/libprojectm:0=
 	)
 	pulseaudio? ( media-sound/pulseaudio )
 	qt5? (
@@ -227,13 +231,10 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-2.1.0-fix-libtremor-libs.patch # build system
 	"${FILESDIR}"/${PN}-2.2.8-freerdp-2.patch # bug 590164
 	"${FILESDIR}"/${PN}-3.0.6-fdk-aac-2.0.0.patch # bug 672290
-	"${FILESDIR}"/${PN}-3.0.8-qt-5.15.patch # TODO: upstream
 	"${FILESDIR}"/${PN}-3.0.11.1-srt-1.4.2.patch # bug 758062
 )
 
 DOCS=( AUTHORS THANKS NEWS README doc/fortunes.txt )
-
-S="${WORKDIR}/${MY_P}"
 
 src_prepare() {
 	xdg_src_prepare # bug 608256
@@ -247,7 +248,7 @@ src_prepare() {
 	fi
 
 	# Make it build with libtool 1.5
-	rm m4/lt* m4/libtool.m4 || die
+	#rm m4/lt* m4/libtool.m4 || die
 
 	# We are not in a real git checkout due to the absence of a .git directory.
 	touch src/revision.txt || die
@@ -434,6 +435,12 @@ src_configure() {
 	# VLC now requires C++11 after commit 4b1c9dcdda0bbff801e47505ff9dfd3f274eb0d8
 	append-cxxflags -std=c++11
 
+	if use omxil; then
+		# bug #723006
+		# https://trac.videolan.org/vlc/ticket/24617
+		append-cflags -fcommon
+	fi
+
 	# FIXME: Needs libresid-builder from libsidplay:2 which is in another directory...
 	append-ldflags "-L/usr/$(get_libdir)/sidplay/builders/"
 
@@ -467,16 +474,16 @@ src_test() {
 
 src_install() {
 	default
-	find "${D}" -name '*.la' -delete || die
+	find "${ED}" -name '*.la' -delete || die
 }
 
 pkg_postinst() {
-	if [[ -z ${ROOT} ]] && [[ -x "/usr/$(get_libdir)/vlc/vlc-cache-gen" ]] ; then
-		einfo "Running /usr/$(get_libdir)/vlc/vlc-cache-gen on /usr/$(get_libdir)/vlc/plugins/"
-		"/usr/$(get_libdir)/vlc/vlc-cache-gen" "/usr/$(get_libdir)/vlc/plugins/"
+	if [[ -z "${ROOT}" ]] && [[ -x "${EROOT}/usr/$(get_libdir)/vlc/vlc-cache-gen" ]] ; then
+		einfo "Running ${EROOT}/usr/$(get_libdir)/vlc/vlc-cache-gen on ${EROOT}/usr/$(get_libdir)/vlc/plugins/"
+		"${EROOT}/usr/$(get_libdir)/vlc/vlc-cache-gen" "${EROOT}/usr/$(get_libdir)/vlc/plugins/"
 	else
-		ewarn "We cannot run vlc-cache-gen (most likely ROOT!=/)"
-		ewarn "Please run /usr/$(get_libdir)/vlc/vlc-cache-gen manually"
+		ewarn "We cannot run vlc-cache-gen (most likely ROOT != /)"
+		ewarn "Please run ${EROOT}/usr/$(get_libdir)/vlc/vlc-cache-gen manually"
 		ewarn "If you do not do it, vlc will take a long time to load."
 	fi
 
@@ -484,8 +491,8 @@ pkg_postinst() {
 }
 
 pkg_postrm() {
-	if [[ -e /usr/$(get_libdir)/vlc/plugins/plugins.dat ]]; then
-		rm /usr/$(get_libdir)/vlc/plugins/plugins.dat || die "Failed to rm plugins.dat"
+	if [[ -e "${EROOT}"/usr/$(get_libdir)/vlc/plugins/plugins.dat ]]; then
+		rm "${EROOT}"/usr/$(get_libdir)/vlc/plugins/plugins.dat || die "Failed to rm plugins.dat"
 	fi
 
 	xdg_pkg_postrm

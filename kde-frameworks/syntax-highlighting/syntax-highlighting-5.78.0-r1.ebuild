@@ -23,6 +23,10 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
+PATCHES=(
+	"${FILESDIR}"/${PN}-5.77.0-bash-zsh-fix.patch
+)
+
 src_install() {
 	ecm_src_install
 	dobin "${BUILD_DIR}"/bin/katehighlightingindexer
