@@ -1,0 +1,22 @@
+diff --git a/update-distcc-symlinks.py b/update-distcc-symlinks.py
+index b96b6ff..932eb01 100755
+--- a/update-distcc-symlinks.py
++++ b/update-distcc-symlinks.py
+@@ -2,7 +2,7 @@
+ 
+ import subprocess, string, os, stat, re
+ 
+-distcc_dir = "/usr/lib/distcc"
++distcc_dir = "/usr/lib/distcc/bin"
+ gcc_dir = "/usr/lib/gcc"
+ gcccross_dir = "/usr/lib/gcc-cross"
+ old_symlinks = set()
+@@ -73,6 +73,6 @@ for link in old_symlinks:
+ for link in new_symlinks:
+   if link not in old_symlinks:
+     if os.access("/usr/bin/distcc", os.X_OK):
+-      os.symlink("../../bin/distcc", distcc_dir + "/" + link)
++      os.symlink("../../../bin/distcc", distcc_dir + "/" + link)
+     else:
+-      os.symlink("../../local/bin/distcc", distcc_dir + "/" + link)
++      os.symlink("../../../local/bin/distcc", distcc_dir + "/" + link)
