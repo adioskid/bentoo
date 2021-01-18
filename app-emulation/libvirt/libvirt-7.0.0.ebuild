@@ -39,8 +39,6 @@ REQUIRED_USE="
 	xen? ( libvirtd )"
 
 BDEPEND="
-	acct-user/qemu
-	policykit? ( acct-group/libvirt )
 	app-text/xhtml1
 	dev-lang/perl
 	dev-libs/libxslt
@@ -54,6 +52,7 @@ BDEPEND="
 # package will use 3 by default. Since we don't have slot pinning in an API,
 # we must go with the most recent
 RDEPEND="
+	acct-user/qemu
 	app-misc/scrub
 	>=dev-libs/glib-2.48.0
 	dev-libs/libgcrypt:0
@@ -92,7 +91,10 @@ RDEPEND="
 		sys-fs/lvm2[-device-mapper-only(-)]
 	)
 	pcap? ( >=net-libs/libpcap-1.0.0 )
-	policykit? ( >=sys-auth/polkit-0.9 )
+	policykit? (
+		acct-group/libvirt
+		>=sys-auth/polkit-0.9
+	)
 	qemu? (
 		>=app-emulation/qemu-1.5.0
 		dev-libs/yajl
@@ -127,7 +129,6 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-6.7.0-do-not-use-sysconfig.patch
 	"${FILESDIR}"/${PN}-6.7.0-doc-path.patch
 	"${FILESDIR}"/${PN}-6.7.0-fix-paths-for-apparmor.patch
-	"${FILESDIR}"/${PN}-6.10.0-Fix-segfault-when-parsing-mdev-types.patch
 )
 
 pkg_setup() {

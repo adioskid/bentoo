@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -18,7 +18,7 @@ IUSE="debug doc +gmp json +modern-kernel python +readline static-libs xtables"
 
 RDEPEND="
 	>=net-libs/libmnl-1.0.4:0=
-	>=net-libs/libnftnl-1.1.8:0=
+	>=net-libs/libnftnl-1.1.9:0=
 	gmp? ( dev-libs/gmp:0= )
 	json? ( dev-libs/jansson )
 	python? ( ${PYTHON_DEPS} )
