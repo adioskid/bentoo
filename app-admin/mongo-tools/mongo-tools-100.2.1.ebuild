@@ -3,12 +3,9 @@
 
 EAPI=7
 
-MY_PV=${PV/_rc/-rc}
-MY_P=${PN}-r${MY_PV}
-
 DESCRIPTION="A high-performance, open source, schema-free document-oriented database"
 HOMEPAGE="https://www.mongodb.com"
-SRC_URI="https://github.com/mongodb/mongo-tools/archive/r${MY_PV}.tar.gz -> mongo-tools-${MY_PV}.tar.gz"
+SRC_URI="https://github.com/mongodb/mongo-tools/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="Apache-2.0"
 SLOT="0"
@@ -29,14 +26,7 @@ S="${WORKDIR}/src/${EGO_PN}"
 src_unpack() {
 	mkdir -p "${S%/*}" || die
 	default
-	mv ${MY_P} "${S}" || die
-}
-
-src_prepare() {
-	default
-
-	# allow building with go 1.12 #678924
-	sed -i 's/_Ctype_struct_/C.struct_/' vendor/github.com/google/gopacket/pcap/pcap.go || die
+	mv ${P} "${S}" || die
 }
 
 src_compile() {
@@ -59,7 +49,7 @@ src_compile() {
 	fi
 
 	mkdir -p bin || die
-	for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop mongoreplay; do
+	for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop; do
 		echo "Building $i"
 		GOROOT="$(go env GOROOT)" GOPATH="${WORKDIR}" go build -buildmode="${buildmode}" -o "bin/$i" \
 			-ldflags "-X ${EGO_PN}/common/options.VersionStr=${PV}" --tags "${myconf[*]}" "$i/main/$i.go" || die
