@@ -4,7 +4,7 @@
 EAPI=7
 
 DISTUTILS_USE_SETUPTOOLS=rdepend
-PYTHON_COMPAT=( python3_{6..9} )
+PYTHON_COMPAT=( python3_{7..9} )
 PYTHON_REQ_USE="threads(+)"
 
 inherit distutils-r1
@@ -21,11 +21,11 @@ SRC_URI="
 
 LICENSE="MIT"
 SLOT="0"
-KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 s390 sparc x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~x64-cygwin ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~sparc-solaris ~x64-solaris ~x86-solaris"
 IUSE="doc test"
 RESTRICT="!test? ( test )"
 
-DEPEND="
+BDEPEND="
 	test? (
 		dev-libs/libxml2[${PYTHON_USEDEP}]
 		dev-python/lxml[${PYTHON_USEDEP}]
@@ -36,7 +36,7 @@ S=${WORKDIR}/${P}/src
 
 PATCHES=(
 	# support env passthrough for Gentoo ebuilds
-	"${FILESDIR}"/scons-4.0.0-env-passthrough.patch
+	"${FILESDIR}"/scons-4.1.0-env-passthrough.patch
 	# respect CC, CXX, C*FLAGS, LDFLAGS by default
 	"${FILESDIR}"/scons-4.0.0-respect-cc-etc-r1.patch
 )
@@ -58,10 +58,8 @@ src_prepare() {
 	cd "${WORKDIR}/${P}" || die
 	distutils-r1_src_prepare
 
-	# remove half-broken, useless custom commands
-	# and fix manpage install location
-	sed -i -e '/cmdclass/,/},$/d' \
-		-e '/data_files/s:man/:share/man/:' "${S}"/setup.py || die
+	# manpage install is completely broken
+	sed -i -e '/build\/doc\/man/d' src/setup.cfg || die
 
 	if use test; then
 		local remove_tests=(
@@ -84,8 +82,7 @@ python_test() {
 	unset AR AS ASFLAGS CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 	cd "${WORKDIR}/${P}" || die
 	"${EPYTHON}" runtest.py -a --passed \
-		-j "$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")" \
-		--builddir "${BUILD_DIR}/lib"
+		-j "$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")"
 
 	# runtest.py script returns "0" if all tests are passed
 	# and returns "2" if there are any tests with "no result"
@@ -96,5 +93,6 @@ python_test() {
 python_install_all() {
 	distutils-r1_python_install_all
 
+	doman *.1
 	use doc && dodoc "${DISTDIR}"/${P}-user.{pdf,html}
 }
