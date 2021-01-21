@@ -67,6 +67,7 @@ CDEPEND="${PYTHON_DEPS}
 		net-libs/gnutls
 		sys-boot/gnu-efi
 		sys-boot/efibootmgr
+		sys-fs/udisks
 		sys-libs/efivar
 		x11-libs/cairo
 	)
