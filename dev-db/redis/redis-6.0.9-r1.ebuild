@@ -1,4 +1,4 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -10,8 +10,8 @@ HOMEPAGE="https://redis.io"
 SRC_URI="http://download.redis.io/releases/${P}.tar.gz"
 
 LICENSE="BSD"
-KEYWORDS="amd64 arm arm64 ~hppa ppc ppc64 ~sparc x86 ~amd64-linux ~x86-linux ~x86-solaris"
-IUSE="+jemalloc luajit tcmalloc test"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~x86 ~amd64-linux ~x86-linux ~x86-solaris"
+IUSE="+jemalloc luajit ssl tcmalloc test"
 RESTRICT="!test? ( test )"
 SLOT="0"
 
@@ -22,6 +22,7 @@ COMMON_DEPEND="
 	jemalloc? ( >=dev-libs/jemalloc-5.1:= )
 	luajit? ( dev-lang/luajit:2 )
 	!luajit? ( || ( dev-lang/lua:5.1 =dev-lang/lua-5.1*:0 ) )
+	ssl? ( dev-libs/openssl:0= )
 	tcmalloc? ( dev-util/google-perftools )
 "
 
@@ -39,7 +40,10 @@ BDEPEND="
 # Tcl is only needed in the CHOST test env
 DEPEND="
 	${COMMON_DEPEND}
-	test? ( dev-lang/tcl:0= )"
+	test? (
+		dev-lang/tcl:0=
+		ssl? ( dev-tcltk/tls )
+	)"
 
 REQUIRED_USE="?? ( jemalloc tcmalloc )"
 
@@ -126,6 +130,10 @@ src_compile() {
 		myconf+="MALLOC=libc"
 	fi
 
+	if use ssl; then
+		myconf+=" BUILD_TLS=yes"
+	fi
+
 	tc-export AR CC RANLIB
 	emake V=1 ${myconf} AR="${AR}" CC="${CC}" RANLIB="${RANLIB}"
 }
@@ -137,7 +145,12 @@ src_test() {
 			"Expect some test failures or emerge with 'FEATURES=-usersandbox'!"
 	fi
 
-	emake check
+	if use ssl; then
+		./utils/gen-test-certs.sh
+		./runtest --tls
+	else
+		./runtest
+	fi
 }
 
 src_install() {

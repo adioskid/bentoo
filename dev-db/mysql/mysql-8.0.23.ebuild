@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -12,7 +12,7 @@ MY_PV="${PV//_pre*}"
 MY_P="${PN}-${MY_PV}"
 
 # Patch version
-PATCH_SET="https://dev.gentoo.org/~whissi/dist/mysql/${PN}-8.0.22-patches-02.tar.xz"
+PATCH_SET="https://dev.gentoo.org/~whissi/dist/mysql/${PN}-8.0.23-patches-01.tar.xz"
 
 SRC_URI="https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-boost-${MY_PV}.tar.gz
 	https://cdn.mysql.com/archives/mysql-8.0/mysql-boost-${MY_PV}.tar.gz
@@ -37,7 +37,7 @@ REQUIRED_USE="?? ( tcmalloc jemalloc )
 	router? ( server )
 	tcmalloc? ( server )"
 
-KEYWORDS="amd64 arm arm64 ~hppa ~ia64 ~mips ~ppc ppc64 ~s390 ~sparc x86 ~amd64-linux ~x86-linux ~x64-macos ~x86-macos ~x64-solaris ~x86-solaris"
+KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~x86 ~amd64-linux ~x86-linux ~x64-macos ~x64-solaris ~x86-solaris"
 
 # Shorten the path because the socket path length must be shorter than 107 chars
 # and we will run a mysql server during test phase
@@ -385,6 +385,7 @@ src_test() {
 	touch "${T}/disabled.def"
 
 	local -a disabled_tests
+	disabled_tests+=( "auth_sec.atomic_rename_user;0;Depends on user running test" )
 	disabled_tests+=( "auth_sec.keyring_file_data_qa;0;Won't work with user privileges" )
 	disabled_tests+=( "gis.spatial_analysis_functions_buffer;5452;Known rounding error with latest AMD processors (PS)" )
 	disabled_tests+=( "gis.gis_bugs_crashes;5452;Known rounding error with latest AMD processors (PS)" )
@@ -396,6 +397,7 @@ src_test() {
 	disabled_tests+=( "gis.spatial_utility_function_simplify;5452;Known rounding error with latest AMD processors (PS)" )
 	disabled_tests+=( "gis.spatial_op_testingfunc_mix;5452;Known rounding error with latest AMD processors (PS)" )
 	disabled_tests+=( "gis.spatial_analysis_functions_distance;5452;Known rounding error with latest AMD processors (PS)" )
+	disabled_tests+=( "main.cast;0;Needs update for 2021" )
 	disabled_tests+=( "main.mysql_load_data_local_dir;0;Known test failure - no upstream bug yet" )
 	disabled_tests+=( "main.subquery_bugs;0;Known rounding error with latest AMD processors -- no upstream bug yet" )
 	disabled_tests+=( "main.window_std_var;0;Known rounding error with latest AMD processors -- no upstream bug yet" )
