@@ -1,0 +1,18 @@
+--- a/plymouth.c	2016-01-10 11:35:54.941195950 +0100
++++ b/plymouth.c	2016-01-10 11:36:59.269907603 +0100
+@@ -248,6 +248,7 @@
+         }
+         break;
+ 
++/*
+     case RC_HOOK_SERVICE_STOP_NOW:
+         if(!ply_message("Stopping service", name))
+             rv = 1;
+@@ -257,6 +258,7 @@
+         if(!ply_message("Starting service", name))
+             rv = 1;
+         break;
++*/
+ 
+     case RC_HOOK_SERVICE_START_OUT:
+         /* Start Plymouth daemon if not yet started and tell we have rw access
