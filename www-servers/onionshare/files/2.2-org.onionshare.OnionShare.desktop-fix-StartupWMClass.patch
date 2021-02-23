@@ -1,0 +1,23 @@
+From 8cfb8141b8563595acf2eb13d281d5800f148481 Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Sun, 13 Oct 2019 23:07:07 +0200
+Subject: [PATCH 2/2] install/org.onionshare.OnionShare.desktop: fix
+ StartupWMClass
+
+---
+ install/org.onionshare.OnionShare.desktop | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/install/org.onionshare.OnionShare.desktop b/install/org.onionshare.OnionShare.desktop
+index 536d73c..6facec0 100644
+--- a/install/org.onionshare.OnionShare.desktop
++++ b/install/org.onionshare.OnionShare.desktop
+@@ -13,4 +13,4 @@ Keywords=tor;anonymity;privacy;onion service;file sharing;file hosting;
+ Keywords[da]=tor;anonymitet;privatliv;onion-tjeneste;fildeling;filhosting;
+ Keywords[de]=tor;Anonymität;Privatsphäre;Onion-Service;File-Sharing;File-Hosting;
+ StartupNotify=true
+-StartupWMClass=onionshare
++StartupWMClass=onionshare-gui
+-- 
+2.21.0
+
