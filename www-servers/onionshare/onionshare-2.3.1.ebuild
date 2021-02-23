@@ -33,7 +33,6 @@ RDEPEND="${PYTHON_DEPS}
 	nautilus? ( dev-python/nautilus-python )"
 
 PATCHES=(
-	"${FILESDIR}"/2.2-org.onionshare.OnionShare.desktop-fix-StartupWMClass.patch
 	"${FILESDIR}"/2.2-scripts-onionshare-nautilus.py-use-python3.patch
 )
 
