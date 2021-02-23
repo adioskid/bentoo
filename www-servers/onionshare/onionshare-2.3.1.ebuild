@@ -32,10 +32,6 @@ RDEPEND="${PYTHON_DEPS}
 	>=net-vpn/tor-0.2.7.1
 	nautilus? ( dev-python/nautilus-python )"
 
-PATCHES=(
-	"${FILESDIR}"/2.2-scripts-onionshare-nautilus.py-use-python3.patch
-)
-
 python_test() {
 	${EPYTHON} -m pytest tests/ || die
 }
