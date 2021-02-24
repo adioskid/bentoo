@@ -1,9 +1,11 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
+# Edited by Iade Gesso, PhD in 14th July 2020
 
-EAPI=6
+EAPI=7
 
-SRC_URI="https://github.com/Sabayon/genkernel-next/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/Sabayon/genkernel-next/archive/v${PV}.tar.gz -> ${P}.tar.gz
+         https://www.busybox.net/downloads/busybox-1.32.0.tar.bz2"
 KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~x86"
 inherit bash-completion-r1
 
@@ -35,6 +37,10 @@ RDEPEND="${DEPEND}
 	sys-apps/util-linux
 	sys-block/thin-provisioning-tools
 	sys-fs/lvm2"
+
+PATCHES=(
+	"${FILESDIR}/genkernel-next-70_old_busybox.patch"
+)
 
 src_prepare() {
 	default
