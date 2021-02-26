@@ -6,7 +6,7 @@ inherit desktop eutils xdg-utils
 
 DESCRIPTION="Feature rich multi-platform remote desktop application"
 HOMEPAGE="https://anydesk.com"
-SRC_URI="https://download.anydesk.com/linux/anydesk-6.0.1-amd64.tar.gz"
+SRC_URI="https://download.anydesk.com/linux/anydesk-6.1.0-amd64.tar.gz"
 
 # OpeSSL/SSLeay, libvpx, zlib, Xiph, xxHash
 LICENSE="AnyDesk-TOS BSD BSD-2 openssl ZLIB"
