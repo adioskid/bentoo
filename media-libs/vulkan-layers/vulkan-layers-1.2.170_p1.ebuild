@@ -8,15 +8,8 @@ CMAKE_ECLASS="cmake"
 PYTHON_COMPAT=( python3_{7..9} )
 inherit cmake-multilib python-any-r1
 
-if [[ ${PV} == *9999* ]]; then
-	EGIT_REPO_URI="https://github.com/KhronosGroup/${MY_PN}.git"
-	EGIT_SUBMODULES=()
-	inherit git-r3
-else
-	SRC_URI="https://github.com/KhronosGroup/${MY_PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~riscv ~x86"
-	S="${WORKDIR}"/${MY_PN}-${PV}
-fi
+COMMIT="4fdcd0eebfed3505732720fc6fd98293e847d697"
+SRC_URI="https://github.com/KhronosGroup/Vulkan-ValidationLayers/archive/${COMMIT}.tar.gz -> ${P}.tar.gz"
 
 DESCRIPTION="Vulkan Validation Layers"
 HOMEPAGE="https://github.com/KhronosGroup/Vulkan-ValidationLayers"
@@ -24,6 +17,8 @@ HOMEPAGE="https://github.com/KhronosGroup/Vulkan-ValidationLayers"
 LICENSE="Apache-2.0"
 SLOT="0"
 IUSE="wayland X"
+
+S="${WORKDIR}/Vulkan-ValidationLayers-${COMMIT}"
 
 BDEPEND=">=dev-util/cmake-3.10.2"
 DEPEND="${PYTHON_DEPS}
@@ -45,9 +40,11 @@ multilib_src_configure() {
 		-DBUILD_WSI_XCB_SUPPORT=$(usex X)
 		-DBUILD_WSI_XLIB_SUPPORT=$(usex X)
 		-DBUILD_TESTS=OFF
+		-DVULKAN_HEADERS_INSTALL_DIR="${EPREFIX}/usr/include/vulkan"
 		-DGLSLANG_INSTALL_DIR="${EPREFIX}/usr"
-		-DCMAKE_INSTALL_INCLUDEDIR="${EPREFIX}/usr/include/vulkan/"
+		-DCMAKE_INSTALL_INCLUDEDIR="${EPREFIX}/usr/include/vulkan"
 		-DSPIRV_HEADERS_INSTALL_DIR="${EPREFIX}/usr/include/spirv"
+		#-DSPIRV_TOOLS_INSTALL_DIR="{EPREFIX}/usr/include/spirv"
 	)
 	cmake_src_configure
 }
