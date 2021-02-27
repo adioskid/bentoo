@@ -13,7 +13,7 @@ LICENSE="ZLIB"
 SLOT="$(ver_cut 1-2).0"
 KEYWORDS="~amd64 ~x86"
 
-S="${WORKDIR}/${MY_PN}-${PV}/${MY_PN}"
+S="${WORKDIR}/box2d-${PV}/"
 
 src_prepare() {
 	# This version supports CMake but upstream has dropped it since this
