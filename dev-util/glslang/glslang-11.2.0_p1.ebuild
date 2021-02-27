@@ -6,9 +6,18 @@ CMAKE_ECLASS="cmake"
 PYTHON_COMPAT=( python3_{7,8,9} )
 inherit cmake-multilib python-any-r1
 
+if [[ ${PV} == *9999* ]]; then
+	EGIT_REPO_URI="https://github.com/KhronosGroup/${PN}.git"
+	inherit git-r3
+else
+	SNAPSHOT_COMMIT="e04a046ce7c2ce6d37cc7a28802c167d84ffabf3"
+	SRC_URI="https://github.com/KhronosGroup/${PN}/archive/${SNAPSHOT_COMMIT}.tar.gz -> ${P}.tar.gz"
+	KEYWORDS="amd64 arm arm64 ppc ppc64 ~riscv x86"
+	S="${WORKDIR}/${PN}-${SNAPSHOT_COMMIT}"
+fi
+
 DESCRIPTION="Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator"
 HOMEPAGE="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/ https://github.com/KhronosGroup/glslang"
-SRC_URI="https://api.github.com/repos/KhronosGroup/glslang/tarball/11.2.0 -> glslang-11.2.0.tar.gz"
 
 LICENSE="BSD"
 SLOT="0"
@@ -18,8 +27,3 @@ BDEPEND="${PYTHON_DEPS}"
 
 # Bug 698850
 RESTRICT="test"
-
-src_unpack() {
-	unpack "${A}"
-	mv "${WORKDIR}"/KhronosGroup-glslang-* "${S}" || die
-}
