@@ -41,6 +41,7 @@ DOC_CONTENTS="
 
 PATCHES=(
 	"${FILESDIR}/0.8.8-initrd-binaries-paths.patch"
+	"${FILESDIR}/0.9.3-glibc-sysmacros.patch"
 )
 
 src_configure() {
