@@ -2,7 +2,7 @@
 
 EAPI="5"
 
-inherit autotools-utils readme.gentoo toolchain-funcs
+inherit autotools-utils readme.gentoo-r1 toolchain-funcs
 
 DESCRIPTION="Graphical boot animation (splash) and logger"
 HOMEPAGE="http://cgit.freedesktop.org/plymouth/"
@@ -14,7 +14,7 @@ LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="*"
 IUSE_VIDEO_CARDS="video_cards_intel video_cards_radeon"
-IUSE="${IUSE_VIDEO_CARDS} debug gdm +gtk +libkms +pango static-libs"
+IUSE="${IUSE_VIDEO_CARDS} debug +gdm +gtk +libkms +pango static-libs"
 
 CDEPEND="
 	>=media-libs/libpng-1.2.16
