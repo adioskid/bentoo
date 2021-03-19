@@ -7,11 +7,11 @@ inherit cmake-utils
 
 DESCRIPTION="Machine-readable files for the SPIR-V Registry"
 HOMEPAGE="https://www.khronos.org/registry/spir-v/"
-EGIT_COMMIT="fdab0e7272d67105ec290fbff4764065b32c13a1"
+EGIT_COMMIT="bcf55210f13a4fa3c3d0963b509ff1070e434c79"
 SRC_URI="https://github.com/KhronosGroup/SPIRV-Headers/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="MIT"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 ppc ppc64 ~riscv x86"
+KEYWORDS="*"
 
 S="${WORKDIR}/SPIRV-Headers-${EGIT_COMMIT}"
