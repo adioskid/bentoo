@@ -68,8 +68,6 @@ RDEPEND="${COMMON_DEPEND}
 	upower? ( sys-power/upower )
 "
 
-PATCHES=( "${FILESDIR}"/${PN}-3.2.32.1-remove-broken-tests.ebuild )
-
 src_prepare() {
 	ecm_src_prepare
 	export PYTHON_INCLUDE_DIRS="$(python_get_includedir)" \
