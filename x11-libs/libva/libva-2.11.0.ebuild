@@ -64,10 +64,6 @@ MULTILIB_WRAPPED_HEADERS=(
 	/usr/include/va/va_glx.h
 )
 
-PATCHES=(
-	"${FILESDIR}/${PN}-2.10.0-fix_wayland_build.patch"
-)
-
 src_prepare() {
 	default
 	eautoreconf
