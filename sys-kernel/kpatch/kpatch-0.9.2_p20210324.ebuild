@@ -9,7 +9,8 @@ if [[ "${PV}" == "9999" ]]; then
 	inherit git-r3
 	EGIT_REPO_URI="https://github.com/dynup/${PN}.git"
 else
-	SRC_URI="https://github.com/dynup/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+	EGIT_COMMIT="453fb1b97a8ba1fe6d82b26531f3d800a5c4d103"
+	SRC_URI="https://github.com/dynup/${PN}/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64"
 fi
 
@@ -33,6 +34,8 @@ DEPEND="
 	sys-devel/bison
 	test? ( dev-util/shellcheck-bin )
 "
+
+S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
 
 pkg_setup() {
 	if use kmod; then

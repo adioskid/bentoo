@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=( python3_{7..9} )
 PYTHON_REQ_USE="threads(+),xml"
 
 MY_PV="${PV/_alpha/.alpha}"
@@ -47,9 +47,7 @@ ADDONS_SRC=(
 	# not packaged in Gentoo, https://www.netlib.org/fp/dtoa.c
 	"${ADDONS_URI}/dtoa-20180411.tgz"
 	# not packaged in Gentoo, https://skia.org/
-	"${ADDONS_URI}/skia-m85-e684c6daef6bfb774a325a069eda1f76ca6ac26c.tar.xz"
-	# QR code generating library for >=libreoffice-6.4, bug #691740
-	"${ADDONS_URI}/QR-Code-generator-1.4.0.tar.gz"
+	"${ADDONS_URI}/skia-m88-59bafeeaa7de9eb753e3778c414e01dcf013dcd8.tar.xz"
 	"base? (
 		${ADDONS_URI}/commons-logging-1.2-src.tar.gz
 		${ADDONS_URI}/ba2930200c9f019c2d93a8c88c651a0f-flow-engine-0.9.4.zip
@@ -101,8 +99,8 @@ RESTRICT="!test? ( test )"
 LICENSE="|| ( LGPL-3 MPL-1.1 )"
 SLOT="0"
 
-#[[ ${MY_PV} == *9999* ]] || \
-#KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~amd64-linux"
+[[ ${MY_PV} == *9999* ]] || \
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc64 ~amd64-linux"
 
 BDEPEND="
 	dev-util/intltool
@@ -143,14 +141,16 @@ COMMON_DEPEND="${PYTHON_DEPS}
 	dev-libs/icu:=
 	dev-libs/libassuan
 	dev-libs/libgpg-error
-	dev-libs/liborcus:0/0.15
+	dev-libs/liborcus:0/0.16
 	dev-libs/librevenge
 	dev-libs/libxml2
 	dev-libs/libxslt
 	dev-libs/nspr
 	dev-libs/nss
+	dev-libs/qrcodegen
 	>=dev-libs/redland-1.0.16
 	>=dev-libs/xmlsec-1.2.28[nss]
+	games-engines/box2d:=
 	media-gfx/fontforge
 	media-gfx/graphite2
 	media-libs/fontconfig
@@ -253,8 +253,8 @@ DEPEND="${COMMON_DEPEND}
 	java? (
 		dev-java/ant-core
 		|| (
-			dev-java/openjdk:11
-			dev-java/openjdk-bin:11
+			dev-java/openjdk:15
+			dev-java/openjdk-bin:15
 		)
 	)
 	test? (
@@ -271,8 +271,8 @@ RDEPEND="${COMMON_DEPEND}
 	media-fonts/liberation-fonts
 	|| ( x11-misc/xdg-utils kde-plasma/kde-cli-tools )
 	java? ( || (
-		dev-java/openjdk:11
-		dev-java/openjdk-jre-bin:11
+		dev-java/openjdk:15
+		dev-java/openjdk-jre-bin:15
 		>=virtual/jre-1.8
 	) )
 	kde? ( kde-frameworks/breeze-icons:* )
@@ -418,8 +418,8 @@ src_configure() {
 		strip-flags
 	fi
 
-	export CLANG_CC=${CC}
-	export CLANG_CXX=${CXX}
+	export LO_CLANG_CC=${CC}
+	export LO_CLANG_CXX=${CXX}
 
 	# Show flags set at the end
 	einfo "  Used CFLAGS:    ${CFLAGS}"
@@ -502,7 +502,6 @@ src_configure() {
 		--without-system-jfreereport
 		--without-system_apache_commons
 		--without-system-sane
-		--without-system-qrcodegen
 		$(use_enable base report-builder)
 		$(use_enable bluetooth sdremote-bluetooth)
 		$(use_enable coinmp)
@@ -549,11 +548,13 @@ src_configure() {
 			--without-junit
 			--without-system-hsqldb
 			--with-ant-home="${ANT_HOME}"
+			#--with-jdk-home=$(java-config --jdk-home 2>/dev/null)
+			--with-jvm-path="${EPREFIX}/usr/lib/"
 		)
-		if has_version "dev-java/openjdk:11"; then
-			myeconfargs+=( -with-jdk-home="${EPREFIX}/usr/$(get_libdir)/openjdk-11" )
-		elif has_version "dev-java/openjdk-bin:11"; then
-			myeconfargs+=( --with-jdk-home="/opt/openjdk-bin-11" )
+		if has_version "dev-java/openjdk:15"; then
+			myeconfargs+=( -with-jdk-home="${EPREFIX}/usr/$(get_libdir)/openjdk-15" )
+		elif has_version "dev-java/openjdk-bin:15"; then
+			myeconfargs+=( --with-jdk-home="/opt/openjdk-bin-15" )
 		fi
 
 		use libreoffice_extensions_scripting-beanshell && \
@@ -642,9 +643,9 @@ EOF
 	done
 
 	# bug 709450
-	mkdir -p "${ED}"/usr/share/metainfo || die
-	mv "${ED}"/usr/share/appdata/* "${ED}"/usr/share/metainfo/ || die
-	rmdir "${ED}"/usr/share/appdata || die
+	#mkdir -p "${ED}"/usr/share/metainfo || die
+	#mv "${ED}"/usr/share/appdata/* "${ED}"/usr/share/metainfo/ || die
+	#rmdir "${ED}"/usr/share/appdata || die
 }
 
 pkg_postinst() {

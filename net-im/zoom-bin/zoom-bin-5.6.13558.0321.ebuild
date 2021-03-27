@@ -1,6 +1,4 @@
-# Copyright 2019 Yurij Mikhalevich <yurij@mikhalevi.ch>
-# Copyright 2020 Funtoo Solutions, Inc.
-# Distributed under the terms of the MIT License
+# Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
@@ -9,15 +7,14 @@ inherit unpacker xdg
 MY_PN="${PN/-bin/}"
 
 DESCRIPTION="Video conferencing and web conferencing service"
-BASE_SERVER_URI="https://zoom.us"
 HOMEPAGE="https://zoom.us"
-SRC_URI="${BASE_SERVER_URI}/client/${PV}/${MY_PN}_x86_64.pkg.tar.xz -> ${MY_PN}-${PV}_x86_64.pkg.tar.xz"
+SRC_URI="https://cdn.zoom.us/prod/5.6.13558.0321/zoom_x86_64.pkg.tar.xz -> zoom-5.6.13558.0321_x86_64.pkg.tar.xz"
 
 LICENSE="ZOOM"
 SLOT="0"
-KEYWORDS="~amd64"
+KEYWORDS="amd64"
 
-RESTRICT="mirror"
+RESTRICT="mirror strip preserve-libs"
 
 IUSE="pulseaudio"
 
