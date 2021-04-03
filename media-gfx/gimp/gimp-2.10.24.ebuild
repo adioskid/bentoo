@@ -82,12 +82,6 @@ DEPEND="
 
 DOCS=( "AUTHORS" "ChangeLog" "HACKING" "NEWS" "README" "README.i18n" )
 
-# Bugs 685210 (and duplicate 691070)
-PATCHES=(
-	"${FILESDIR}/${PN}-2.10_fix_test-appdata.patch"
-	"${FILESDIR}/${PN}-2.99.2_fix_autoconf-2.70.patch"
-)
-
 src_prepare() {
 	sed -i -e 's/mypaint-brushes-1.0/mypaint-brushes-2.0/' configure.ac || die #737794
 
