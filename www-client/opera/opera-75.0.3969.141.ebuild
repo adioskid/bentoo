@@ -127,7 +127,6 @@ src_install() {
 	fi
 
 	# symlink widevine
-	rm "${OPERA_HOME}/resources/widevine_config.json" || die
 	if use widevine; then
 		echo "[\"${EPREFIX}/usr/$(get_libdir)/chromium-browser/WidevineCdm\"]" > \
 			"${OPERA_HOME}/resources/widevine_config.json" || die
