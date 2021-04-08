@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -8,7 +8,7 @@ inherit eutils flag-o-matic linux-info linux-mod user udev
 DESCRIPTION="VMware kernel modules"
 HOMEPAGE="https://github.com/mkubecek/vmware-host-modules"
 
-MY_KERNEL_VERSION="5.10"
+MY_KERNEL_VERSION="5.11"
 SRC_URI="https://github.com/mkubecek/vmware-host-modules/archive/w${PV}-k${MY_KERNEL_VERSION}.zip -> ${P}-${MY_KERNEL_VERSION}.zip"
 
 LICENSE="GPL-2"
@@ -19,10 +19,15 @@ IUSE=""
 RDEPEND=""
 DEPEND=""
 
+RESTRICT="mirror"
+
 S="${WORKDIR}/vmware-host-modules-w${PV}-k${MY_KERNEL_VERSION}"
 
 pkg_setup() {
 	CONFIG_CHECK="~HIGH_RES_TIMERS"
+	if kernel_is -ge 5 5; then
+		CONFIG_CHECK="${CONFIG_CHECK} X86_IOPL_IOPERM"
+	fi
 	if kernel_is -ge 2 6 37 && kernel_is -lt 2 6 39; then
 		CONFIG_CHECK="${CONFIG_CHECK} BKL"
 	fi
