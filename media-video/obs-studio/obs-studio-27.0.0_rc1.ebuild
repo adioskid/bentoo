@@ -114,6 +114,8 @@ src_configure() {
 	cmake-utils_src_configure
 }
 
+S="${WORKDIR}/${PN}-27.0.0-rc1"
+
 src_install() {
 	cmake-utils_src_install
 	#external plugins may need some things not installed by default, install them here
