@@ -90,7 +90,6 @@ DOCS=( {README,INSTALL}.md NEWS )
 RESTRICT="!test? ( test )"
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-0.3.25-fix-docdir-path.patch
 	"${FILESDIR}"/${PN}-0.3.25-enable-failed-mlock-warning.patch
 )
 
