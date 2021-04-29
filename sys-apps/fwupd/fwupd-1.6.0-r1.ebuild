@@ -132,7 +132,9 @@ src_configure() {
 		$(meson_use thunderbolt plugin_thunderbolt)
 		$(meson_use tpm plugin_tpm)
 		$(meson_use uefi plugin_uefi_capsule)
+		$(meson_use uefi plugin_uefi_capsule_splash)
 		$(meson_use uefi plugin_uefi_pk)
+		$(meson_use uefi efi_binary)
 		-Dconsolekit="false"
 		-Dcurl="true"
 		# Dependencies are not available (yet?)
