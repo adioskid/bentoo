@@ -1,20 +1,19 @@
-# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
 
-inherit desktop optfeature xdg
+inherit desktop eutils xdg
 
 DESCRIPTION="Official desktop client for Telegram (binary package)"
 HOMEPAGE="https://desktop.telegram.org"
 SRC_URI="
-	https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz
-	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.tar.xz )
+	https://github.com/telegramdesktop/tdesktop/archive/v2.7.4.tar.gz -> tdesktop-2.7.4.tar.gz
+	https://github.com/telegramdesktop/tdesktop/releases/download/v2.7.4/tsetup.2.7.4.tar.xz
 "
 
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
-KEYWORDS="-* ~amd64"
+KEYWORDS="-* amd64"
 
 QA_PREBUILT="usr/lib/${PN}/Telegram"
 
@@ -22,14 +21,7 @@ RDEPEND="
 	dev-libs/glib:2
 	dev-libs/gobject-introspection
 	>=media-libs/fontconfig-2.13
-	media-libs/freetype:2
-	media-libs/libglvnd[X]
-	>=sys-apps/dbus-1.4.2[X]
-	sys-libs/zlib
-	x11-libs/libSM
-	x11-libs/libdrm
-	x11-libs/libICE
-	x11-libs/libSM
+	>=sys-apps/dbus-1.4.20
 	x11-libs/libX11
 	>=x11-libs/libxcb-1.10[xkb]
 "
