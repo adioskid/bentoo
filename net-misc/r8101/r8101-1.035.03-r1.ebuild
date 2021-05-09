@@ -20,7 +20,7 @@ BUILD_TARGETS="modules"
 CONFIG_CHECK="!R8169"
 ERROR_R8169="${P} requires Realtek 8169 PCI Gigabit Ethernet adapter (CONFIG_R8169) to be DISABLED"
 
-S="${WORKDIR}/${PN}-${SNAPSHOT_COMMIT}"
+S="${WORKDIR}/realtek-r8101-linux-driver-${SNAPSHOT_COMMIT}"
 
 pkg_setup() {
     linux-mod_pkg_setup
