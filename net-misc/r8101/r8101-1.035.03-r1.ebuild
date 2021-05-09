@@ -14,7 +14,7 @@ SLOT="0"
 IUSE="binhost"
 KEYWORDS="*"
 
-MODULE_NAMES="r8101(net/ethernet::src)"
+MODULE_NAMES="r8101(net:${S}/src)"
 BUILD_TARGETS="modules"
 
 CONFIG_CHECK="!R8169"

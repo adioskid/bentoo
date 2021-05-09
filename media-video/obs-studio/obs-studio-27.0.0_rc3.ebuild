@@ -15,7 +15,7 @@ if [[ ${PV} == *9999 ]]; then
 	EGIT_REPO_URI="https://github.com/obsproject/obs-studio.git"
 	EGIT_SUBMODULES=()
 else
-	SRC_URI="https://github.com/obsproject/${PN}/archive/refs/tags/27.0.0-rc1.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://github.com/obsproject/${PN}/archive/refs/tags/27.0.0-rc3.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="~amd64 ~ppc64 ~x86"
 fi
 

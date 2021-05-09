@@ -7,7 +7,7 @@ inherit rpm xdg-utils
 
 DESCRIPTION="Serves ProtonMail to IMAP/SMTP clients"
 HOMEPAGE="https://protonmail.com/bridge/"
-SRC_URI="https://protonmail.com/download/bridge/${P/-bin/}-1.x86_64.rpm"
+SRC_URI="https://github.com/ProtonMail/proton-bridge/releases/download/v${PV}/protonmail-bridge-${PV}-1.x86_64.rpm"
 
 RESTRICT="bindist mirror"
 
