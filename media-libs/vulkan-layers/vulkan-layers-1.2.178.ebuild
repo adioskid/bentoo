@@ -30,6 +30,7 @@ DEPEND="${PYTHON_DEPS}
 	>=dev-util/glslang-10.11.0.0_pre20201216:=[${MULTILIB_USEDEP}]
 	>=dev-util/spirv-tools-2020.6:=[${MULTILIB_USEDEP}]
 	>=dev-util/vulkan-headers-${PV}
+	>=dev-cpp/robin-hood-hashing-3.11.2
 	wayland? ( dev-libs/wayland:=[${MULTILIB_USEDEP}] )
 	X? (
 		x11-libs/libX11:=[${MULTILIB_USEDEP}]
