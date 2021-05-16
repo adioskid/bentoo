@@ -35,6 +35,9 @@ RDEPEND="
 	x11-libs/gdk-pixbuf:2
 	x11-libs/gtk+:3
 	x11-libs/pango
+	app-text/gspell
+	net-libs/libsrtp
+	net-libs/libnice
 	gpg? ( app-crypt/gpgme:1 )
 	http? ( net-libs/libsoup:2.4 )
 	omemo? (
