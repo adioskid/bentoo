@@ -16,7 +16,8 @@ MY_P=${PN}-src-r${PV/_rc/-rc}
 
 DESCRIPTION="A high-performance, open source, schema-free document-oriented database"
 HOMEPAGE="https://www.mongodb.com"
-SRC_URI="https://fastdl.mongodb.org/src/${MY_P}.tar.gz"
+EGIT_COMMIT="f856bd9d8ea972ffa55e4762b8164fa2145e8bdb"
+SRC_URI="https://github.com/mongodb/mongo/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="Apache-2.0 SSPL-1"
 SLOT="0"
@@ -58,7 +59,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-4.4.1-boost.patch"
 )
 
-S="${WORKDIR}/${MY_P}"
+S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
 
 python_check_deps() {
 	if use test; then
