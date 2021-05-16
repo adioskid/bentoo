@@ -95,6 +95,9 @@ src_configure() {
 		-DDISABLE_V4L2=$(usex !v4l)
 		-DDISABLE_VLC=$(usex !vlc)
 		-DLIBOBS_PREFER_IMAGEMAGICK=$(usex imagemagick)
+		-DENABLE_PIPEWIRE=OFF
+		-DBUILD_BROWSER=OFF
+		-DBUILD_VST=OFF
 		-DOBS_MULTIARCH_SUFFIX=${libdir#lib}
 		-DUNIX_STRUCTURE=1
 		-DWITH_RTMPS=$(usex ssl)
@@ -119,7 +122,7 @@ src_configure() {
 	cmake_src_configure
 }
 
-S="${WORKDIR}/${PN}-27.0.0-rc1"
+S="${WORKDIR}/${PN}-27.0.0-rc3"
 
 src_install() {
 	cmake_src_install

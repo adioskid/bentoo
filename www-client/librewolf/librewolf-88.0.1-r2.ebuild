@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-88-patches-02.tar.xz"
+FIREFOX_PATCHSET="firefox-88-patches-03.tar.xz"
 
 LLVM_MAX_SLOT=12
 
@@ -32,14 +32,14 @@ if [[ -n ${MOZ_ESR} ]] ; then
 	MOZ_PV="${MOZ_PV}esr"
 fi
 
-MOZ_PN="${PN%-bin}"
+MOZ_PN="firefox"
 MOZ_P="${MOZ_PN}-${MOZ_PV}"
 MOZ_PV_DISTFILES="${MOZ_PV}${MOZ_PV_SUFFIX}"
 MOZ_P_DISTFILES="${MOZ_PN}-${MOZ_PV_DISTFILES}"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs \
-	virtualx xdg
+	virtualx xdg librewolf-r1
 
 MOZ_SRC_BASE_URI="https://archive.mozilla.org/pub/${MOZ_PN}/releases/${MOZ_PV}"
 
@@ -54,15 +54,15 @@ PATCH_URIS=(
 SRC_URI="${MOZ_SRC_BASE_URI}/source/${MOZ_P}.source.tar.xz -> ${MOZ_P_DISTFILES}.source.tar.xz
 	${PATCH_URIS[@]}"
 
-DESCRIPTION="Firefox Web Browser"
-HOMEPAGE="https://www.mozilla.com/firefox"
+DESCRIPTION="LibreWolf Web Browser"
+HOMEPAGE="https://librewolf-community.gitlab.io/"
 
 KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 
 SLOT="0/$(ver_cut 1)"
 LICENSE="MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="+clang cpu_flags_arm_neon dbus debug eme-free geckodriver +gmp-autoupdate
-	hardened hwaccel jack lto +openh264 pgo pulseaudio screencast sndio selinux
+	hardened hwaccel jack lto +openh264 pgo pulseaudio screencast selinux
 	+system-av1 +system-harfbuzz +system-icu +system-jpeg +system-libevent
 	+system-libvpx +system-webp wayland wifi"
 
@@ -102,8 +102,12 @@ BDEPEND="${PYTHON_DEPS}
 			)
 		)
 	)
-	amd64? ( >=dev-lang/nasm-2.13 )
-	x86? ( >=dev-lang/nasm-2.13 )"
+	amd64? ( >=dev-lang/yasm-1.1 )
+	x86? ( >=dev-lang/yasm-1.1 )
+	!system-av1? (
+		amd64? ( >=dev-lang/nasm-2.13 )
+		x86? ( >=dev-lang/nasm-2.13 )
+	)"
 
 CDEPEND="
 	>=dev-libs/nss-3.63
@@ -159,8 +163,7 @@ CDEPEND="
 		)
 	)
 	jack? ( virtual/jack )
-	selinux? ( sec-policy/selinux-mozilla )
-	sndio? ( media-sound/sndio )"
+	selinux? ( sec-policy/selinux-mozilla )"
 
 RDEPEND="${CDEPEND}
 	jack? ( virtual/jack )
@@ -184,7 +187,7 @@ DEPEND="${CDEPEND}
 	amd64? ( virtual/opengl )
 	x86? ( virtual/opengl )"
 
-S="${WORKDIR}/${PN}-${PV%_*}"
+S="${WORKDIR}/firefox-${PV%_*}"
 
 # Allow MOZ_GMP_PLUGIN_LIST to be set in an eclass or
 # overridden in the enviromnent (advanced hackers only)
@@ -221,7 +224,7 @@ MOZ_LANGS=(
 	fa ff fi fr fy-NL ga-IE gd gl gn gu-IN he hi-IN hr hsb hu hy-AM
 	ia id is it ja ka kab kk km kn ko lij lt lv mk mr ms my
 	nb-NO ne-NP nl nn-NO oc pa-IN pl pt-BR pt-PT rm ro ru
-	si sk sl son sq sr sv-SE szl ta te th tl tr trs uk ur uz vi
+	si sk sl son sq sr sv-SE ta te th tl tr trs uk ur uz vi
 	xh zh-CN zh-TW
 )
 
@@ -402,12 +405,12 @@ pkg_setup() {
 			[[ -z ${version_lld} ]] && die "Failed to read ld.lld version!"
 
 			# temp fix for https://bugs.gentoo.org/768543
-			# we can assume that rust 1.{49,50}.0 always uses llvm 11
+			# we can assume that rust 1.49.0 always uses llvm 11
 			local version_rust=$(rustc -Vv 2>/dev/null | grep -F -- 'release:' | awk '{ print $2 }')
 			[[ -n ${version_rust} ]] && version_rust=$(ver_cut 1-2 "${version_rust}")
 			[[ -z ${version_rust} ]] && die "Failed to read version from rustc!"
 
-			if ver_test "${version_rust}" -ge "1.49" && ver_test "${version_rust}" -le "1.50" ; then
+			if ver_test "${version_rust}" -eq "1.49" ; then
 				local version_llvm_rust="12"
 			else
 				local version_llvm_rust=$(rustc -Vv 2>/dev/null | grep -F -- 'LLVM version:' | awk '{ print $3 }')
@@ -454,17 +457,6 @@ pkg_setup() {
 			MOZ_API_KEY_GOOGLE="AIzaSyDEAOvatFogGaPi0eTgsV_ZlEzx0ObmepsMzfAc"
 		fi
 
-		if [[ -z "${MOZ_API_KEY_LOCATION+set}" ]] ; then
-			MOZ_API_KEY_LOCATION="AIzaSyB2h2OuRgGaPicUgy5N-5hsZqiPW6sH3n_rptiQ"
-		fi
-
-		# Mozilla API keys (see https://location.services.mozilla.com/api)
-		# Note: These are for Gentoo Linux use ONLY. For your own distribution, please
-		# get your own set of keys.
-		if [[ -z "${MOZ_API_KEY_MOZILLA+set}" ]] ; then
-			MOZ_API_KEY_MOZILLA="edb3d487-3a84-46m0ap1e3-9dfd-92b5efaaa005"
-		fi
-
 		# Ensure we use C locale when building, bug #746215
 		export LC_ALL=C
 	fi
@@ -485,6 +477,8 @@ src_unpack() {
 			unpack ${_src_file}
 		fi
 	done
+
+	librewolf-r1_src_unpack
 }
 
 src_prepare() {
@@ -529,8 +523,6 @@ src_prepare() {
 
 	# Write API keys to disk
 	echo -n "${MOZ_API_KEY_GOOGLE//gGaPi/}" > "${S}"/api-google.key || die
-	echo -n "${MOZ_API_KEY_LOCATION//gGaPi/}" > "${S}"/api-location.key || die
-	echo -n "${MOZ_API_KEY_MOZILLA//m0ap1/}" > "${S}"/api-mozilla.key || die
 
 	xdg_src_prepare
 }
@@ -602,7 +594,6 @@ src_configure() {
 		--disable-install-strip \
 		--disable-strip \
 		--disable-updater \
-		--enable-official-branding \
 		--enable-release \
 		--enable-system-ffi \
 		--enable-system-pixman \
@@ -638,33 +629,10 @@ src_configure() {
 		fi
 
 		mozconfig_add_options_ac "${key_origin}" \
+			--with-google-location-service-api-keyfile="${S}/api-google.key" \
 			--with-google-safebrowsing-api-keyfile="${S}/api-google.key"
 	else
 		einfo "Building without Google API key ..."
-	fi
-
-	if [[ -s "${S}/api-location.key" ]] ; then
-		local key_origin="Gentoo default"
-		if [[ $(cat "${S}/api-location.key" | md5sum | awk '{ print $1 }') != ffb7895e35dedf832eb1c5d420ac7420 ]] ; then
-			key_origin="User value"
-		fi
-
-		mozconfig_add_options_ac "${key_origin}" \
-			--with-google-location-service-api-keyfile="${S}/api-location.key"
-	else
-		einfo "Building without Location API key ..."
-	fi
-
-	if [[ -s "${S}/api-mozilla.key" ]] ; then
-		local key_origin="Gentoo default"
-		if [[ $(cat "${S}/api-mozilla.key" | md5sum | awk '{ print $1 }') != 3927726e9442a8e8fa0e46ccc39caa27 ]] ; then
-			key_origin="User value"
-		fi
-
-		mozconfig_add_options_ac "${key_origin}" \
-			--with-mozilla-api-keyfile="${S}/api-mozilla.key"
-	else
-		einfo "Building without Mozilla API key ..."
 	fi
 
 	mozconfig_use_with system-av1
@@ -694,8 +662,6 @@ src_configure() {
 	if use kernel_linux && ! use pulseaudio ; then
 		mozconfig_add_options_ac '-pulseaudio' --enable-alsa
 	fi
-
-	mozconfig_use_enable sndio
 
 	mozconfig_use_enable wifi necko-wifi
 
@@ -860,6 +826,8 @@ src_configure() {
 	# Set build dir
 	mozconfig_add_options_mk 'Gentoo default' "MOZ_OBJDIR=${BUILD_DIR}"
 
+	librewolf-r1_src_configure
+
 	# Show flags we will use
 	einfo "Build BINDGEN_CFLAGS:\t${BINDGEN_CFLAGS:-no value set}"
 	einfo "Build CFLAGS:\t\t${CFLAGS:-no value set}"
@@ -929,8 +897,7 @@ src_install() {
 	fi
 
 	# Install policy (currently only used to disable application updates)
-	insinto "${MOZILLA_FIVE_HOME}/distribution"
-	newins "${FILESDIR}"/distribution.ini distribution.ini
+	insinto ${MOZILLA_FIVE_HOME}/distribution/
 	newins "${FILESDIR}"/disable-auto-update.policy.json policies.json
 
 	# Install system-wide preferences
@@ -986,11 +953,9 @@ src_install() {
 	fi
 
 	# Install icons
-	local icon_srcdir="${S}/browser/branding/official"
-	local icon_symbolic_file="${FILESDIR}/icon/firefox-symbolic.svg"
+	local icon_srcdir="${S}/browser/branding/${PN}"
 
 	insinto /usr/share/icons/hicolor/symbolic/apps
-	newins "${icon_symbolic_file}" ${PN}-symbolic.svg
 
 	local icon size
 	for icon in "${icon_srcdir}"/default*.png ; do
@@ -1005,12 +970,12 @@ src_install() {
 	done
 
 	# Install menus
-	local wrapper_wayland="${PN}-wayland.sh"
-	local wrapper_x11="${PN}-x11.sh"
-	local desktop_file="${FILESDIR}/icon/${PN}-r2.desktop"
+	local wrapper_wayland="${MOZ_PN}-wayland.sh"
+	local wrapper_x11="${MOZ_PN}-x11.sh"
+	local desktop_file="${FILESDIR}/icon/${MOZ_PN}-r2.desktop"
 	local display_protocols="auto X11"
 	local icon="${PN}"
-	local name="Mozilla ${MOZ_PN^}"
+	local name="LibreWolf"
 	local use_wayland="false"
 
 	if use wayland ; then
@@ -1061,7 +1026,7 @@ src_install() {
 
 	# Install generic wrapper script
 	[[ -f "${ED}/usr/bin/${PN}" ]] && rm "${ED}/usr/bin/${PN}"
-	newbin "${FILESDIR}/${PN}.sh" ${PN}
+	newbin "${FILESDIR}/${MOZ_PN}.sh" ${PN}
 
 	# Update wrapper
 	local wrapper
@@ -1080,6 +1045,8 @@ src_install() {
 			"${wrapper}" \
 			|| die
 	done
+
+	librewolf-r1_src_install
 }
 
 pkg_preinst() {

@@ -61,7 +61,7 @@ src_install() {
 	dosym ${dst}/anydesk /opt/bin/anydesk
 	newinitd "${FILESDIR}"/anydesk.init anydesk
 	insinto /usr/share/polkit-1/actions
-	doins polkit-1/com.anydesk.anydesk.policy
+	doins polkit-1/*.policy
 	insinto /usr/share
 	doins -r icons
 	domenu "${FILESDIR}"/anydesk.desktop
