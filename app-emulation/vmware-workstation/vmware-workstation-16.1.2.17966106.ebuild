@@ -11,7 +11,7 @@ MY_PV=$(ver_cut 1-3)
 PV_MODULES="${MY_PV}"
 PV_BUILD=$(ver_cut 4)
 MY_P="${MY_PN}-${MY_PV}-${PV_BUILD}"
-VMWARE_FUSION_VER="12.1.1/17801503" # https://softwareupdate.vmware.com/cds/vmw-desktop/fusion/
+VMWARE_FUSION_VER="12.1.2/17964953" # https://softwareupdate.vmware.com/cds/vmw-desktop/fusion/
 SYSTEMD_UNITS_TAG="gentoo-02"
 UNLOCKER_VERSION="3.0.3"
 
@@ -44,8 +44,6 @@ REQUIRED_USE="
 "
 RESTRICT="mirror preserve-libs strip"
 
-# vmware should not use virtual/libc as this is a
-# precompiled binary package thats linked to glibc.
 RDEPEND="
 	app-arch/bzip2
 	app-arch/unzip
@@ -69,6 +67,7 @@ RDEPEND="
 	cups? ( net-print/cups )
 	sys-apps/tcp-wrappers
 	sys-apps/util-linux
+	sys-auth/polkit
 	x11-libs/libXxf86vm
 	x11-libs/libdrm
 	x11-libs/libxshmfence

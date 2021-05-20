@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -16,13 +16,12 @@ MY_P=${PN}-src-r${PV/_rc/-rc}
 
 DESCRIPTION="A high-performance, open source, schema-free document-oriented database"
 HOMEPAGE="https://www.mongodb.com"
-EGIT_COMMIT="f856bd9d8ea972ffa55e4762b8164fa2145e8bdb"
-SRC_URI="https://github.com/mongodb/mongo/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://fastdl.mongodb.org/src/${MY_P}.tar.gz"
 
 LICENSE="Apache-2.0 SSPL-1"
 SLOT="0"
 KEYWORDS="~amd64 ~arm64"
-IUSE="debug kerberos libressl lto ssl test +tools"
+IUSE="debug kerberos lto ssl test +tools"
 RESTRICT="!test? ( test )"
 
 RDEPEND="acct-group/mongodb
@@ -37,8 +36,7 @@ RDEPEND="acct-group/mongodb
 	>=sys-libs/zlib-1.2.11:=
 	kerberos? ( dev-libs/cyrus-sasl[kerberos] )
 	ssl? (
-		!libressl? ( >=dev-libs/openssl-1.0.1g:0= )
-		libressl? ( dev-libs/libressl:0= )
+		>=dev-libs/openssl-1.0.1g:0=
 	)"
 DEPEND="${RDEPEND}
 	${PYTHON_DEPS}
@@ -56,10 +54,11 @@ PDEPEND="tools? ( >=app-admin/mongo-tools-100 )"
 
 PATCHES=(
 	"${FILESDIR}/${PN}-4.4.1-fix-scons.patch"
+	"${FILESDIR}/${PN}-4.4.1-no-compass.patch"
 	"${FILESDIR}/${PN}-4.4.1-boost.patch"
 )
 
-S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
+S="${WORKDIR}/${MY_P}"
 
 python_check_deps() {
 	if use test; then
