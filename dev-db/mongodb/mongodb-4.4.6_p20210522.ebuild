@@ -59,7 +59,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-4.4.1-boost.patch"
 )
 
-S="${WORKDIR}/${MY_P}-${SNAPSHOT_COMMIT}"
+S="${WORKDIR}/${PN}-${SNAPSHOT_COMMIT}"
 
 python_check_deps() {
 	if use test; then
