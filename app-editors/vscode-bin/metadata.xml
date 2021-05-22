@@ -1,9 +1,0 @@
-<pkgmetadata>
-    <maintainer type="person">
-        <email>scott.wl.furry@gmail.com</email>
-        <name>scott furry</name>
-    </maintainer>
-    <upstream>
-        <doc>https://libraries.io/github/microsoft/vscode</doc>
-    </upstream>
-</pkgmetadata>

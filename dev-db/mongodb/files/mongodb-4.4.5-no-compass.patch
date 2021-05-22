@@ -1,0 +1,35 @@
+diff --git a/src/mongo/SConscript b/src/mongo/SConscript
+index 8acf5469..737c31d4 100644
+--- a/src/mongo/SConscript
++++ b/src/mongo/SConscript
+@@ -834,30 +834,6 @@ for full_dir, archive_dir in list(env["ARCHIVE_ADDITION_DIR_MAP"].items()):
+ for target in env["DIST_BINARIES"]:
+     installBinary(env, "db/modules/" + target)
+ 
+-compass_script = "install_compass"
+-if env.TargetOSIs('windows'):
+-    compass_script = "Install-Compass.ps1"
+-
+-compass_installer = f"$BUILD_DIR/mongo/installer/compass/{compass_script}"
+-
+-distBinaries.append(compass_installer)
+-
+-if not hygienic:
+-    compass_script_installer = env.Install("$DESTDIR/bin", compass_installer)
+-else:
+-    compass_script_installer = env.AutoInstall(
+-        target='$PREFIX_BINDIR',
+-        source=[
+-            compass_installer,
+-        ],
+-        AIB_COMPONENT='dist',
+-        AIB_ROLE='runtime',
+-    )
+-
+-if env.TargetOSIs('posix'):
+-    env.AddPostAction( compass_script_installer, 'chmod 755 $TARGET' )
+-    env.AddPostAction( compass_installer, 'chmod 755 $TARGET' )
+-
+ if not hygienic:
+     server_archive = env.Command(
+         target='#/${SERVER_ARCHIVE}',
