@@ -16,7 +16,7 @@ MY_P=${PN}-src-r${PV/_rc/-rc}
 
 DESCRIPTION="A high-performance, open source, schema-free document-oriented database"
 HOMEPAGE="https://www.mongodb.com"
-SNAPSHOT_COMMIT="2f9ad0ee82124af66af3b39adb594c81a73c296e"
+SNAPSHOT_COMMIT="fc033384735fae02b3f5e9dd387f2a2c8c1e047b"
 SRC_URI="https://github.com/mongodb/mongo/archive/${SNAPSHOT_COMMIT}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="Apache-2.0 SSPL-1"
@@ -54,8 +54,8 @@ DEPEND="${RDEPEND}
 PDEPEND="tools? ( >=app-admin/mongo-tools-100 )"
 
 PATCHES=(
-	"${FILESDIR}/${PN}-4.4.1-fix-scons.patch"
-	"${FILESDIR}/${PN}-4.4.5-no-compass.patch"
+	#"${FILESDIR}/${PN}-4.4.1-fix-scons.patch"
+	#"${FILESDIR}/${PN}-4.4.5-no-compass.patch"
 	"${FILESDIR}/${PN}-4.4.1-boost.patch"
 )
 
@@ -89,7 +89,7 @@ src_prepare() {
 	default
 
 	# remove bundled libs
-	rm -r src/third_party/{boost-*,pcre-*,scons-*,snappy-*,yaml-cpp-*,zlib-*} || die
+	rm -r src/third_party/{boost*,pcre-*,scons-*,snappy-*,yaml-cpp*,zlib-*} || die
 
 	# remove compass
 	rm -r src/mongo/installer/compass || die
