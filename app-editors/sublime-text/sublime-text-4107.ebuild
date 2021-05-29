@@ -1,7 +1,7 @@
 # Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 inherit desktop gnome2-utils
 
@@ -12,12 +12,11 @@ MY_PV=${PV#*_p}
 DESCRIPTION="Sophisticated text editor for code, markup and prose"
 HOMEPAGE="https://www.sublimetext.com"
 SRC_URI="
-	amd64? ( https://download.sublimetext.com/sublime_text_${MV}_build_${MY_PV}_x64.tar.bz2 )
-	x86? ( https://download.sublimetext.com/sublime_text_${MV}_build_${MY_PV}_x32.tar.bz2 )"
+	amd64? ( https://download.sublimetext.com/sublime_text_build_${MY_PV}_x64.tar.xz )"
 
 LICENSE="Sublime"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64"
 IUSE="dbus"
 RESTRICT="bindist mirror strip"
 
@@ -28,7 +27,7 @@ RDEPEND="
 	dbus? ( sys-apps/dbus )"
 
 QA_PREBUILT="*"
-S="${WORKDIR}/sublime_text_${MV}"
+S="${WORKDIR}/sublime_text"
 
 # Sublime bundles the kitchen sink, which includes python and other assorted
 # modules. Do not try to unbundle these because you are guaranteed to fail.
