@@ -35,10 +35,10 @@ S="${WORKDIR}/sublime_text"
 src_install() {
 	insinto /opt/${PN}${MV}
 	doins -r Packages Icon
-	doins changelog.txt Lib/python38/sublime_plugin.py Lib/python38/sublime.py Lib/python3.8.zip
+	doins changelog.txt Lib/python33/sublime_plugin.py Lib/python33/sublime.py Lib/python3.3.zip
 
 	exeinto /opt/${PN}${MV}
-	doexe crash_reporter plugin_host-3.8 sublime_text
+	doexe crash_reporter plugin_host-3.3 sublime_text
 	dosym ../../opt/${PN}${MV}/sublime_text /usr/bin/subl
 
 	local size
