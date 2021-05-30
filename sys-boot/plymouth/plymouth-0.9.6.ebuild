@@ -3,18 +3,14 @@
 
 EAPI=7
 
-inherit flag-o-matic
-SRC_URI="http://distfiles.gentoo.org/distfiles/be/gentoo-logo.png"
+EGIT_COMMIT="e3a2cb956665e5e30da50ad9357fcc6e9d9a6398"
+SRC_URI="
+	https://github.com/freedesktop/plymouth/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz
+	http://distfiles.gentoo.org/distfiles/be/gentoo-logo.png"
 
-if [[ ${PV} == 9999 ]]; then
-	inherit git-r3
-	EGIT_REPO_URI="https://gitlab.freedesktop.org/plymouth/plymouth"
-else
-	EGIT_COMMIT="e3a2cb956665e5e30da50ad9357fcc6e9d9a6398"
-	SRC_URI="https://github.com/freedesktop/plymouth/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="~alpha amd64 arm arm64 ~ia64 ppc ppc64 sparc x86"
-	S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
-fi
+KEYWORDS="~alpha amd64 arm arm64 ~ia64 ppc ppc64 sparc x86"
+
+S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
 
 inherit autotools readme.gentoo-r1 systemd toolchain-funcs
 
