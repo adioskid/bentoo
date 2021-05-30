@@ -4,7 +4,7 @@
 EAPI=7
 
 inherit flag-o-matic
-SRC_URI="https://dev.gentoo.org/~aidecoe/distfiles/${CATEGORY}/${PN}/gentoo-logo.png"
+SRC_URI="http://distfiles.gentoo.org/distfiles/be/gentoo-logo.png"
 
 if [[ ${PV} == 9999 ]]; then
 	inherit git-r3
