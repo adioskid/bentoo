@@ -20,7 +20,7 @@ HOMEPAGE="https://obsproject.com"
 
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+alsa browser fdk imagemagick jack lua nvenc pipewire pulseaudio python speex +ssl truetype v4l vlc"
+IUSE="+alsa browser fdk imagemagick jack lua nvenc pipewire pulseaudio python speex +ssl truetype v4l vlc wayland"
 REQUIRED_USE="
 	lua? ( ${LUA_REQUIRED_USE} )
 	python? ( ${PYTHON_REQUIRED_USE} )
@@ -34,7 +34,7 @@ DEPEND="
 	>=dev-libs/jansson-2.5
 	dev-qt/qtcore:5
 	dev-qt/qtdeclarative:5
-	dev-qt/qtgui:5
+	dev-qt/qtgui:5[wayland?]
 	dev-qt/qtmultimedia:5
 	dev-qt/qtnetwork:5
 	dev-qt/qtquickcontrols:5
@@ -43,7 +43,7 @@ DEPEND="
 	dev-qt/qtwidgets:5
 	dev-qt/qtx11extras:5
 	dev-qt/qtxml:5
-	media-libs/x264:=
+	media-libs/x264
 	media-video/ffmpeg:=[x264]
 	net-misc/curl
 	sys-apps/dbus
@@ -88,6 +88,7 @@ DEPEND="
 	)
 	v4l? ( media-libs/libv4l )
 	vlc? ( media-video/vlc:= )
+	wayland? ( dev-libs/wayland )
 "
 RDEPEND="${DEPEND}"
 
@@ -110,6 +111,7 @@ src_configure() {
 	local mycmakeargs=(
 		-DDISABLE_ALSA=$(usex !alsa)
 		-DBUILD_BROWSER=$(usex browser)
+		-DENABLE_WAYLAND=$(usex wayland)
 		-DDISABLE_FREETYPE=$(usex !truetype)
 		-DDISABLE_JACK=$(usex !jack)
 		-DDISABLE_LIBFDK=$(usex !fdk)
