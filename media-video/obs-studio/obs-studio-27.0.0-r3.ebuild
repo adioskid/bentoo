@@ -9,16 +9,11 @@ PYTHON_COMPAT=( python3_{7..9} )
 
 inherit cmake lua-single python-single-r1 xdg-utils
 
-if [[ ${PV} == *9999 ]]; then
-	inherit git-r3
-	EGIT_REPO_URI="https://github.com/obsproject/obs-studio.git"
-	EGIT_SUBMODULES=()
-else
-	SRC_URI="
-		https://github.com/obsproject/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz
-		browser? ( https://github.com/obsproject/obs-browser/archive/f1a61c5a2579e5673765c31a47c2053d4b502d4b.tar.gz https://cdn-fastly.obsproject.com/downloads/cef_binary_4280_linux64.tar.bz2 )"
-	KEYWORDS="~amd64 ~ppc64 ~x86"
-fi
+SRC_URI="
+	https://api.github.com/repos/obsproject/obs-studio/tarball/${PV} -> obs-studio-${P}.tar.gz
+	browser? ( https://github.com/obsproject/obs-browser/archive/f1a61c5a2579e5673765c31a47c2053d4b502d4b.tar.gz https://cdn-fastly.obsproject.com/downloads/cef_binary_4280_linux64.tar.bz2 )
+"
+KEYWORDS="*"
 
 DESCRIPTION="Software for Recording and Streaming Live Video Content"
 HOMEPAGE="https://obsproject.com"
@@ -96,11 +91,6 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
-PATCHES=(
-	"${FILESDIR}/${PN}-26.1.2-fix-alsa-crash.patch"
-	"${FILESDIR}/${PN}-26.1.2-python-3.8.patch" # https://github.com/obsproject/obs-studio/pull/3335
-)
-
 src_unpack() {
 	default
 	mv ${WORKDIR}/obsproject-obs-studio-??????? ${P} || die
@@ -137,9 +127,9 @@ src_configure() {
 		-DBUILD_VST=OFF
 	)
 
-	if [[ ${PV} != *9999 ]]; then
+	if use browser; then
 		mycmakeargs+=(
-			-DOBS_VERSION_OVERRIDE=${PV}
+			-DCEF_ROOT_DIR="../cef_binary_4280_linux64"
 		)
 	fi
 
