@@ -19,7 +19,7 @@ if [[ ${PV} == "9999" ]]; then
 	inherit git-r3
 else
 	KEYWORDS="amd64 arm64"
-	EGIT_COMMIT="686035ca1ee65d8180585d0e8c4b30faa0caacc4"
+	EGIT_COMMIT="1ac16ecd8450084fade1401eec18c8663e48cdf6"
 	SRC_URI="https://github.com/dino/dino/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
 fi
