@@ -28,11 +28,11 @@ Afterwards, simply run `ego sync`, and Portage should seamlessly make all our eb
 Invoke the following:
 
 ```
-# layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
+layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
 ```
 #### then change to new branch.
 ```
-# cd /var/lib/layman/bentoo && git checkout next && cd ~
+cd /var/lib/layman/bentoo && git checkout next && cd ~
 ```
 
 ### Bentoo Portage config
