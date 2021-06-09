@@ -18,7 +18,7 @@ priority= 99
 ```
 #### then change to new branch.
 ```
-# cd /usr/local/portage/bentoo && git checkout prime
+cd /usr/local/portage/bentoo && git checkout prime
 ```
 
 Afterwards, simply run `ego sync`, and Portage should seamlessly make all our ebuilds available.
@@ -28,11 +28,11 @@ Afterwards, simply run `ego sync`, and Portage should seamlessly make all our eb
 Invoke the following:
 
 ```
-# layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
+layman -o https://raw.github.com/adioskid/bentoo/master/repositories.xml -f -a bentoo
 ```
 #### then change to new branch.
 ```
-# cd /var/lib/layman/bentoo && git checkout prime && cd ~
+cd /var/lib/layman/bentoo && git checkout prime && cd ~
 ```
 
 ### Bentoo Portage config
