@@ -18,7 +18,7 @@ priority= 99
 ```
 #### then change to new branch.
 ```
-# cd /usr/local/portage/bentoo && git checkout next
+cd /usr/local/portage/bentoo && git checkout next
 ```
 
 Afterwards, simply run `ego sync`, and Portage should seamlessly make all our ebuilds available.
