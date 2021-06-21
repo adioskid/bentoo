@@ -1,0 +1,153 @@
+diff -ruN a/SConstruct b/SConstruct
+--- a/SConstruct	2021-06-10 18:37:05.484950457 +0200
++++ b/SConstruct	2021-06-10 20:44:48.504195166 +0200
+@@ -1264,6 +1264,8 @@
+     'aarch64'    : { 'endian': 'little', 'defines': ('__arm64__', '__aarch64__')},
+     'i386'       : { 'endian': 'little', 'defines': ('__i386', '_M_IX86')},
+     'ppc64le'    : { 'endian': 'little', 'defines': ('__powerpc64__',)},
++    # FIXME: This should also check __riscv_xlen == 64
++    'riscv64'    : { 'endian': 'little', 'defines': ('__riscv', )},
+     's390x'      : { 'endian': 'big',    'defines': ('__s390x__',)},
+     'sparc'      : { 'endian': 'big',    'defines': ('__sparc',)},
+     'x86_64'     : { 'endian': 'little', 'defines': ('__x86_64', '_M_AMD64')},
+@@ -1441,10 +1443,10 @@
+ # options for some strange reason in SCons. Instead, we store this
+ # option as a new variable in the environment.
+ if get_option('allocator') == "auto":
+-    # using an allocator besides system on android would require either fixing or disabling
++    # using an allocator besides system on android or riscv64 would require either fixing or disabling
+     # gperftools on android
+     if env.TargetOSIs('windows') or \
+-       env.TargetOSIs('linux') and not env.TargetOSIs('android'):
++       env.TargetOSIs('linux') and not (env.TargetOSIs('android') or env['TARGET_ARCH'] == 'riscv64'):
+         env['MONGO_ALLOCATOR'] = "tcmalloc"
+     else:
+         env['MONGO_ALLOCATOR'] = "system"
+diff -ruN a/src/mongo/platform/pause.h b/src/mongo/platform/pause.h
+--- a/src/mongo/platform/pause.h	2021-05-03 09:41:41.000000000 +0200
++++ b/src/mongo/platform/pause.h	2021-06-11 09:10:03.342513498 +0200
+@@ -74,6 +74,10 @@
+ // TODO: What should this be?
+ #define MONGO_YIELD_CORE_FOR_SMT()
+ 
++#elif defined(__riscv)
++
++#define MONGO_YIELD_CORE_FOR_SMT() __asm__ volatile("nop" ::: "memory")
++
+ #else
+ #error "No processor pause implementation for this architecture."
+ #endif
+diff -ruN a/src/third_party/IntelRDFPMathLib20U1/SConscript b/src/third_party/IntelRDFPMathLib20U1/SConscript
+--- a/src/third_party/IntelRDFPMathLib20U1/SConscript	2021-06-10 18:49:54.080199111 +0200
++++ b/src/third_party/IntelRDFPMathLib20U1/SConscript	2021-06-10 18:50:14.900185181 +0200
+@@ -313,7 +313,7 @@
+     cpp_defines['efi2'] = '1'
+     cpp_defines['EFI2'] = '1'
+ # Using 64 bit little endian
+-elif processor == 'x86_64' or processor == 'ppc64le':
++elif processor == 'x86_64' or processor == 'ppc64le' or processor == 'riscv64':
+     cpp_defines['efi2'] = '1'
+     cpp_defines['EFI2'] = '1'
+ # Using 64 bit big endian
+diff -ruN a/src/third_party/wiredtiger/SConscript b/src/third_party/wiredtiger/SConscript
+--- a/src/third_party/wiredtiger/SConscript	2021-05-03 09:41:41.000000000 +0200
++++ b/src/third_party/wiredtiger/SConscript	2021-06-12 07:25:33.728430462 +0200
+@@ -156,6 +156,7 @@
+     'POWERPC_HOST' : env['TARGET_ARCH'] == 'ppc64le',
+     'X86_HOST'     : env['TARGET_ARCH'] == 'x86_64',
+     'ZSERIES_HOST' : env['TARGET_ARCH'] == 's390x',
++    'RISCV64_HOST' : env['TARGET_ARCH'] == 'riscv64',
+ }
+ 
+ def filtered_filelist(f, checksum):
+diff -ruN a/src/third_party/wiredtiger/dist/filelist b/src/third_party/wiredtiger/dist/filelist
+--- a/src/third_party/wiredtiger/dist/filelist	2021-05-03 09:41:41.000000000 +0200
++++ b/src/third_party/wiredtiger/dist/filelist	2021-06-12 07:27:50.432308889 +0200
+@@ -53,6 +53,7 @@
+ src/checksum/x86/crc32-x86-alt.c	X86_HOST
+ src/checksum/zseries/crc32-s390x.c	ZSERIES_HOST
+ src/checksum/zseries/crc32le-vx.sx	ZSERIES_HOST
++src/checksum/riscv/crc32-riscv.c	RISCV64_HOST
+ src/config/config.c
+ src/config/config_api.c
+ src/config/config_check.c
+diff -ruN a/src/third_party/wiredtiger/src/checksum/riscv/crc32-riscv.c b/src/third_party/wiredtiger/src/checksum/riscv/crc32-riscv.c
+--- a/src/third_party/wiredtiger/src/checksum/riscv/crc32-riscv.c	1970-01-01 01:00:00.000000000 +0100
++++ b/src/third_party/wiredtiger/src/checksum/riscv/crc32-riscv.c	2021-06-12 07:30:06.228188124 +0200
+@@ -0,0 +1,48 @@
++/*-
++ * Public Domain 2014-present MongoDB, Inc.
++ * Public Domain 2008-2014 WiredTiger, Inc.
++ *
++ * This is free and unencumbered software released into the public domain.
++ *
++ * Anyone is free to copy, modify, publish, use, compile, sell, or
++ * distribute this software, either in source code form or as a compiled
++ * binary, for any purpose, commercial or non-commercial, and by any
++ * means.
++ *
++ * In jurisdictions that recognize copyright laws, the author or authors
++ * of this software dedicate any and all copyright interest in the
++ * software to the public domain. We make this dedication for the benefit
++ * of the public at large and to the detriment of our heirs and
++ * successors. We intend this dedication to be an overt act of
++ * relinquishment in perpetuity of all present and future rights to this
++ * software under copyright law.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++ * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
++ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ * OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++#include <wiredtiger_config.h>
++#include <inttypes.h>
++#include <stddef.h>
++
++extern uint32_t __wt_checksum_sw(const void *chunk, size_t len);
++#if defined(__GNUC__)
++extern uint32_t (*wiredtiger_crc32c_func(void))(const void *, size_t)
++  __attribute__((visibility("default")));
++#else
++extern uint32_t (*wiredtiger_crc32c_func(void))(const void *, size_t);
++#endif
++
++/*
++ * wiredtiger_crc32c_func --
++ *     WiredTiger: detect CRC hardware and return the checksum function.
++ */
++uint32_t (*wiredtiger_crc32c_func(void))(const void *, size_t)
++{
++    return (__wt_checksum_sw);
++}
+diff -ruN a/src/third_party/wiredtiger/src/include/gcc.h b/src/third_party/wiredtiger/src/include/gcc.h
+--- a/src/third_party/wiredtiger/src/include/gcc.h	2021-05-03 09:41:41.000000000 +0200
++++ b/src/third_party/wiredtiger/src/include/gcc.h	2021-06-10 19:36:14.234752503 +0200
+@@ -280,6 +280,24 @@
+         __asm__ volatile("" ::: "memory"); \
+     } while (0)
+ 
++#elif defined(__riscv)
++#define WT_PAUSE() __asm__ volatile("nop" ::: "memory")
++
++#define WT_FULL_BARRIER()                                   \
++    do {                                                    \
++        __asm__ volatile("fence iorw,iorw" ::: "memory"); \
++    } while (0)
++
++#define WT_READ_BARRIER()                                   \
++    do {                                                    \
++        __asm__ volatile("fence ir,ir" ::: "memory"); \
++    } while (0)
++
++#define WT_WRITE_BARRIER()                                   \
++    do {                                                    \
++        __asm__ volatile("fence ow,ow" ::: "memory"); \
++    } while (0)
+ #else
++
+ #error "No write barrier implementation for this hardware"
+ #endif
