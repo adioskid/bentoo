@@ -9,21 +9,18 @@ PYTHON_COMPAT=( python3_{7..9} )
 
 inherit cmake lua-single python-single-r1 xdg-utils
 
-if [[ ${PV} == *9999 ]]; then
-	inherit git-r3
-	EGIT_REPO_URI="https://github.com/obsproject/obs-studio.git"
-	EGIT_SUBMODULES=()
-else
-	SRC_URI="https://github.com/obsproject/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="~amd64 ~ppc64 ~x86"
-fi
+SRC_URI="
+	https://github.com/obsproject/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz
+	browser? ( https://github.com/obsproject/obs-browser/archive/a14ed2fe19a1716fa2e5d295e2a79046da18438e.tar.gz https://cdn-fastly.obsproject.com/downloads/cef_binary_4280_linux64.tar.bz2 )
+	"
+KEYWORDS="*"
 
 DESCRIPTION="Software for Recording and Streaming Live Video Content"
 HOMEPAGE="https://obsproject.com"
 
 LICENSE="GPL-2"
 SLOT="0"
-IUSE="+alsa fdk imagemagick jack lua nvenc pulseaudio python speex +ssl truetype v4l vlc"
+IUSE="+alsa browser fdk jack lua nvenc pipewire pulseaudio python speex +ssl truetype v4l vlc wayland"
 REQUIRED_USE="
 	lua? ( ${LUA_REQUIRED_USE} )
 	python? ( ${PYTHON_REQUIRED_USE} )
@@ -76,7 +73,6 @@ DEPEND="
 		x11-libs/libXtst
 	)
 	fdk? ( media-libs/fdk-aac:= )
-	imagemagick? ( media-gfx/imagemagick:= )
 	jack? ( virtual/jack )
 	lua? ( ${LUA_DEPS} )
 	nvenc? ( >=media-video/ffmpeg-4[video_cards_nvidia] )
@@ -95,10 +91,14 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
-PATCHES=(
-	"${FILESDIR}/${PN}-26.1.2-fix-alsa-crash.patch"
-	"${FILESDIR}/${PN}-26.1.2-python-3.8.patch" # https://github.com/obsproject/obs-studio/pull/3335
-)
+src_unpack() {
+	default
+	mv ${WORKDIR}/obsproject-obs-studio-??????? ${P} || die
+	if use browser; then
+		rm -d "${P}/plugins/obs-browser" || die
+		mv ${WORKDIR}/obs-browser-* ${P}/plugins/obs-browser || die
+	fi
+}
 
 pkg_setup() {
 	use lua && lua-single_pkg_setup
@@ -119,7 +119,9 @@ src_configure() {
 		-DDISABLE_SPEEXDSP=$(usex !speex)
 		-DDISABLE_V4L2=$(usex !v4l)
 		-DDISABLE_VLC=$(usex !vlc)
-		-DLIBOBS_PREFER_IMAGEMAGICK=$(usex imagemagick)
+		# FL-8476: imagemagick support is going away upstream, so we need to
+		# force disable it in our ebuild to avoid failures.
+		-DLIBOBS_PREFER_IMAGEMAGICK=0
 		-DOBS_MULTIARCH_SUFFIX=${libdir#lib}
 		-DUNIX_STRUCTURE=1
 		-DWITH_RTMPS=$(usex ssl)
@@ -131,12 +133,6 @@ src_configure() {
 	if use browser; then
 		mycmakeargs+=(
 			-DCEF_ROOT_DIR="../cef_binary_4280_linux64"
-		)
-	fi
-
-	if [[ ${PV} != *9999 ]]; then
-		mycmakeargs+=(
-			-DOBS_VERSION_OVERRIDE=${PV}
 		)
 	fi
 

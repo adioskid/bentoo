@@ -14,7 +14,7 @@ SRC_URI="https://media.inkscape.org/dl/resources/file/${P}.tar.xz"
 
 LICENSE="GPL-2 LGPL-2.1"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 ~hppa ~ia64 ppc ppc64 ~s390 ~sparc x86"
+KEYWORDS="*"
 IUSE="cdr dbus dia exif graphicsmagick imagemagick inkjar jemalloc jpeg lcms
 openmp postscript spell static-libs svg2 visio wpg"
 
@@ -28,14 +28,14 @@ BDEPEND="
 "
 COMMON_DEPEND="${PYTHON_DEPS}
 	>=app-text/poppler-0.57.0:=[cairo]
-	>=dev-cpp/cairomm-1.12:0
-	>=dev-cpp/glibmm-2.54.1:2
+	>=dev-cpp/cairomm-1.12
+	>=dev-cpp/glibmm-2.54.1
 	dev-cpp/gtkmm:3.0
-	>=dev-cpp/pangomm-2.40:1.4
+	>=dev-cpp/pangomm-2.40
 	>=dev-libs/boehm-gc-7.1:=
 	dev-libs/double-conversion:=
 	>=dev-libs/glib-2.41
-	>=dev-libs/libsigc++-2.8:2
+	>=dev-libs/libsigc++-2.8
 	>=dev-libs/libxml2-2.7.4
 	>=dev-libs/libxslt-1.1.25
 	dev-libs/gdl:3
