@@ -58,7 +58,7 @@ RDEPEND="
 	app-accessibility/at-spi2-atk
 	x11-libs/gtk+
 	x11-libs/gdk-pixbuf
-	virtual/libffi
+	dev-libs/libffi
 	dev-libs/libpcre
 	net-libs/gnutls
 	sys-libs/zlib
