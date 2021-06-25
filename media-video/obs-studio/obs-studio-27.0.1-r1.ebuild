@@ -93,7 +93,6 @@ RDEPEND="${DEPEND}"
 
 src_unpack() {
 	default
-	mv ${WORKDIR}/obsproject-obs-studio-??????? ${P} || die
 	if use browser; then
 		rm -d "${P}/plugins/obs-browser" || die
 		mv ${WORKDIR}/obs-browser-* ${P}/plugins/obs-browser || die
