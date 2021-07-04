@@ -33,7 +33,7 @@ RDEPEND="
 	>=x11-libs/libxcb-1.10[xkb]
 "
 
-S="${WORKDIR}/tdesktop-${PV}"
+S="${WORKDIR}/tdesktop-${PV}-full"
 
 src_install() {
 	exeinto /usr/lib/${PN}
