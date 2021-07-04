@@ -8,13 +8,12 @@ inherit desktop optfeature xdg
 DESCRIPTION="Official desktop client for Telegram (binary package)"
 HOMEPAGE="https://desktop.telegram.org"
 SRC_URI="
-	https://github.com/telegramdesktop/tdesktop/archive/v${PV}.tar.gz -> tdesktop-${PV}.tar.gz
-	amd64? ( https://updates.tdesktop.com/tlinux/tsetup.${PV}.tar.xz )
+	https://github.com/telegramdesktop/tdesktop/releases/download/v${PV}/tdesktop-${PV}-full.tar.gz -> tdesktop-${PV}.tar.gz
 "
 
 LICENSE="GPL-3-with-openssl-exception"
 SLOT="0"
-KEYWORDS="-* ~amd64"
+KEYWORDS="*"
 
 QA_PREBUILT="usr/lib/${PN}/Telegram"
 
