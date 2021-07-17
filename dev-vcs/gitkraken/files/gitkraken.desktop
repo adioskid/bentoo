@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=GitKraken
+Type=Application
+Comment=Git GUI Tool
+Exec=gitkraken
+Icon=/opt/gitkraken/gitkraken.png
+Categories=Development;
