@@ -15,7 +15,7 @@ IUSE=""
 
 RDEPEND="
 	x11-libs/libXScrnSaver
-	gnome-base/libgnome-keyring
+	gnome-base/gnome-keyring
 	dev-libs/nss
 "
 
